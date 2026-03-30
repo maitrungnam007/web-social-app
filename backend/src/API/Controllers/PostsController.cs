@@ -9,7 +9,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+// [Authorize] // Tạm thời tắt để test
 public class PostsController : ControllerBase
 {
     private readonly IPostService _postService;
@@ -40,7 +40,8 @@ public class PostsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PostResponseDto>>> CreatePost([FromBody] CreatePostDto dto)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        // Tạm thời dùng userId từ seeded data để test
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _postService.CreatePostAsync(dto, userId);
         if (!result.Success)
             return BadRequest(result);
@@ -70,7 +71,8 @@ public class PostsController : ControllerBase
     [HttpPost("{id}/like")]
     public async Task<ActionResult<ApiResponse<bool>>> LikePost(int id)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        // Tạm thời dùng userId từ seeded data để test
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _postService.LikePostAsync(id, userId);
         return Ok(result);
     }
@@ -78,7 +80,8 @@ public class PostsController : ControllerBase
     [HttpDelete("{id}/like")]
     public async Task<ActionResult<ApiResponse<bool>>> UnlikePost(int id)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        // Tạm thời dùng userId từ seeded data để test
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _postService.UnlikePostAsync(id, userId);
         return Ok(result);
     }

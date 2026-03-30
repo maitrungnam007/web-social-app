@@ -42,6 +42,9 @@ builder.Services.AddScoped<IUserRepository, UserRepository>();
 
 // Đăng ký các Service
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IPostService, PostService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IUserService, UserService>();
 
 // Cấu hình CORS
 builder.Services.AddCors(options =>

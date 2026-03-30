@@ -1,8 +1,38 @@
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
+
+  const handleLogout = () => {
+    // Dismiss tất cả toast cũ trước khi hiện toast mới
+    toast.dismiss()
+    
+    toast((t) => (
+      <div className="flex flex-col gap-2">
+        <p className="font-medium">Bạn có chắc chắn muốn đăng xuất không?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id)
+              logout()
+              toast.success('Đăng xuất thành công!')
+            }}
+            className="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+          >
+            Đăng xuất
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1 bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+          >
+            Hủy
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity, id: 'logout-confirm' })
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 bg-white shadow-md z-50">
@@ -45,7 +75,7 @@ export default function Navbar() {
             </Link>
 
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="text-gray-600 hover:text-red-600 p-2"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">

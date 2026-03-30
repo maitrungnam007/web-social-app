@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import MainLayout from './layouts/MainLayout'
 import AuthLayout from './layouts/AuthLayout'
@@ -68,6 +69,28 @@ function App() {
     <BrowserRouter>
       <AuthProvider>
         <AppRoutes />
+        <Toaster 
+          position="top-center"
+          toastOptions={{
+            duration: 1000,
+            style: {
+              background: '#333',
+              color: '#fff',
+            },
+            success: {
+              style: {
+                background: '#10b981',
+              },
+              duration: 1000,
+            },
+            error: {
+              style: {
+                background: '#ef4444',
+              },
+              duration: 3000,
+            },
+          }}
+        />
       </AuthProvider>
     </BrowserRouter>
   )

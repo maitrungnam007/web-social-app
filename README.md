@@ -174,6 +174,18 @@ dotnet test
 dotnet test --collect:"XPlat Code Coverage"
 ```
 
-## 📝 Giấy phép
+## � Tài khoản Test
+
+Dưới đây là các tài khoản được seed sẵn trong database để test:
+
+| Username | Email | Password | Vai trò |
+|----------|-------|----------|---------|
+| `user1` | user1@test.com | `Password123!` | User |
+| `user2` | user2@test.com | `Password123!` | User |
+| `admin` | admin@test.com | `Admin123!` | Admin |
+
+**Lưu ý:** Các tài khoản này chỉ dùng cho mục đích test. Vui lòng đổi mật khẩu khi deploy production.
+
+## �📝 Giấy phép
 
 Dự án này được tạo cho mục đích giáo dục như một phần của khóa học C# and .NET Development (Spring 2026).

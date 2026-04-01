@@ -9,7 +9,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize]
 public class CommentsController : ControllerBase
 {
     private readonly ICommentService _commentService;

@@ -9,7 +9,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize]
 public class StoriesController : ControllerBase
 {
     private readonly IStoryService _storyService;

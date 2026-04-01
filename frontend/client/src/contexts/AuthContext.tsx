@@ -9,6 +9,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string, firstName?: string, lastName?: string) => Promise<void>
   logout: () => void
+  updateUser: (userData: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -39,10 +40,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const response = await authApi.login(username, password)
     if (response.success && response.data) {
       const authData = response.data as any
-      localStorage.setItem(TOKEN_KEY, authData.token)
-      localStorage.setItem(USER_KEY, JSON.stringify(authData.user))
-      setToken(authData.token)
-      setUser(authData.user)
+      // Backend trả về { success, message, token, refreshToken, user }
+      const userData = authData.user || authData.User
+      const tokenValue = authData.token || authData.Token
+      
+      localStorage.setItem(TOKEN_KEY, tokenValue)
+      localStorage.setItem(USER_KEY, JSON.stringify(userData))
+      setToken(tokenValue)
+      setUser(userData)
     } else {
       throw new Error(response.message)
     }
@@ -53,10 +58,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.register({ username, email, password, firstName, lastName })
       if (response.success && response.data) {
         const authData = response.data as any
-        localStorage.setItem(TOKEN_KEY, authData.token)
-        localStorage.setItem(USER_KEY, JSON.stringify(authData.user))
-        setToken(authData.token)
-        setUser(authData.user)
+        // Backend trả về { success, message, token, refreshToken, user }
+        const userData = authData.user || authData.User
+        const tokenValue = authData.token || authData.Token
+        
+        localStorage.setItem(TOKEN_KEY, tokenValue)
+        localStorage.setItem(USER_KEY, JSON.stringify(userData))
+        setToken(tokenValue)
+        setUser(userData)
       } else {
         const error: any = new Error(response.message)
         error.response = { data: { message: response.message, errors: response.errors } }
@@ -74,8 +83,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null
+      const updatedUser = { ...prev, ...userData }
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      return updatedUser
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

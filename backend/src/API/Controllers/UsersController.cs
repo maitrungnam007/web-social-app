@@ -8,7 +8,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize] // Bật lại xác thực JWT
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
@@ -21,6 +21,7 @@ public class UsersController : ControllerBase
     }
     
     [HttpGet("{id}")]
+    [AllowAnonymous] // Cho phép xem profile của user khác
     public async Task<ActionResult> GetUser(string id)
     {
         var result = await _userService.GetUserByIdAsync(id);
@@ -32,8 +33,10 @@ public class UsersController : ControllerBase
     [HttpPut("profile")]
     public async Task<ActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
     {
-        // Tạm thời dùng userId từ seeded data để test
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
         var result = await _userService.UpdateProfileAsync(userId, dto);
         if (!result.Success)
             return BadRequest(result);
@@ -44,7 +47,9 @@ public class UsersController : ControllerBase
     [HttpPost("avatar")]
     public async Task<ActionResult> UploadAvatar(IFormFile file)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
         
         if (file == null || file.Length == 0)
         {
@@ -95,6 +100,7 @@ public class UsersController : ControllerBase
     }
     
     [HttpGet("search")]
+    [AllowAnonymous] // Cho phép tìm kiếm user
     public async Task<ActionResult> SearchUsers([FromQuery] string term)
     {
         var result = await _userService.SearchUsersAsync(term);
@@ -104,8 +110,10 @@ public class UsersController : ControllerBase
     [HttpPut("password")]
     public async Task<ActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        // Tạm thời dùng userId từ seeded data để test
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
         var result = await _userService.ChangePasswordAsync(userId, dto);
         if (!result.Success)
             return BadRequest(result);

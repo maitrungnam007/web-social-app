@@ -1,5 +1,6 @@
 using Core.DTOs.Report;
 using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -7,7 +8,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize]
 public class ReportsController : ControllerBase
 {
     private readonly IReportService _reportService;

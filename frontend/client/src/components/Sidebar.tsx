@@ -46,7 +46,9 @@ export default function Sidebar() {
       <div className="p-4">
         <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-100 rounded-lg">
           <img
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+            src={user?.avatarUrl 
+              ? `http://localhost:5259/api/files/${user.avatarUrl}` 
+              : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
             alt={user?.userName}
             className="w-12 h-12 rounded-full"
           />

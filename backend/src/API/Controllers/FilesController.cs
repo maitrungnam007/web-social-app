@@ -1,11 +1,12 @@
 using Core.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize]
 public class FilesController : ControllerBase
 {
     private readonly IFileStorageService _fileStorageService;
@@ -58,6 +59,7 @@ public class FilesController : ControllerBase
 
     // Lấy file
     [HttpGet("{*filePath}")]
+    [AllowAnonymous]
     public IActionResult GetFile(string filePath)
     {
         var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "uploads");

@@ -68,7 +68,9 @@ export default function Navbar() {
 
             <Link to={`/profile/${user?.id}`} className="flex items-center space-x-2">
               <img
-                src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                src={user?.avatarUrl 
+                  ? `http://localhost:5259/api/files/${user.avatarUrl}` 
+                  : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
                 alt={user?.userName}
                 className="w-8 h-8 rounded-full"
               />

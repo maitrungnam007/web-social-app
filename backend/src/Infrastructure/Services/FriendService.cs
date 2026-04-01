@@ -124,6 +124,34 @@ public class FriendService : IFriendService
         return ApiResponse<bool>.SuccessResult(true, "Đã từ chối lời mời kết bạn");
     }
 
+    // Thu hồi lời mời kết bạn
+    public async Task<ApiResponse<bool>> CancelFriendRequestAsync(int friendshipId, string userId)
+    {
+        var friendship = await _context.Friendships.FindAsync(friendshipId);
+        if (friendship == null)
+        {
+            return ApiResponse<bool>.ErrorResult("Không tìm thấy lời mời kết bạn");
+        }
+
+        // Chỉ người gửi mới có thể thu hồi
+        if (friendship.RequesterId != userId)
+        {
+            return ApiResponse<bool>.ErrorResult("Bạn không có quyền thu hồi lời mời này");
+        }
+
+        // Kiểm tra trạng thái
+        if (friendship.Status != FriendshipStatus.Pending)
+        {
+            return ApiResponse<bool>.ErrorResult("Lời mời kết bạn không còn hiệu lực để thu hồi");
+        }
+
+        // Xóa lời mời
+        _context.Friendships.Remove(friendship);
+        await _context.SaveChangesAsync();
+
+        return ApiResponse<bool>.SuccessResult(true, "Đã thu hồi lời mời kết bạn");
+    }
+
     // Lấy danh sách bạn bè
     public async Task<ApiResponse<List<FriendListDto>>> GetFriendsAsync(string userId)
     {
@@ -160,6 +188,32 @@ public class FriendService : IFriendService
             .Include(f => f.Requester)
             .Include(f => f.Addressee)
             .Where(f => f.AddresseeId == userId && f.Status == FriendshipStatus.Pending)
+            .OrderByDescending(f => f.CreatedAt)
+            .ToListAsync();
+
+        var result = requests.Select(f => new FriendshipResponseDto
+        {
+            Id = f.Id,
+            RequesterId = f.RequesterId,
+            RequesterName = f.Requester.UserName ?? "",
+            RequesterAvatar = f.Requester.AvatarUrl,
+            AddresseeId = f.AddresseeId,
+            AddresseeName = f.Addressee.UserName ?? "",
+            AddresseeAvatar = f.Addressee.AvatarUrl,
+            Status = f.Status,
+            CreatedAt = f.CreatedAt
+        }).ToList();
+
+        return ApiResponse<List<FriendshipResponseDto>>.SuccessResult(result);
+    }
+
+    // Lấy danh sách lời mời đã gửi
+    public async Task<ApiResponse<List<FriendshipResponseDto>>> GetSentRequestsAsync(string userId)
+    {
+        var requests = await _context.Friendships
+            .Include(f => f.Requester)
+            .Include(f => f.Addressee)
+            .Where(f => f.RequesterId == userId && f.Status == FriendshipStatus.Pending)
             .OrderByDescending(f => f.CreatedAt)
             .ToListAsync();
 

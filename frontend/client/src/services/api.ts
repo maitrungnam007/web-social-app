@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ApiResponse, User, Post, PagedResult, Comment, Story, Notification, Friendship } from '../types'
+import { ApiResponse, User, Post, PagedResult, Comment, Story, Notification, Friendship, Friend } from '../types'
 
 const API_BASE_URL = '/api'
 
@@ -113,7 +113,7 @@ export const commentsApi = {
 
 // Friends API
 export const friendsApi = {
-  getFriends: async (): Promise<ApiResponse<Friendship[]>> => {
+  getFriends: async (): Promise<ApiResponse<Friend[]>> => {
     const response = await api.get('/friends')
     return response.data
   },
@@ -140,6 +140,16 @@ export const friendsApi = {
   
   unfriend: async (friendId: string): Promise<ApiResponse<boolean>> => {
     const response = await api.delete(`/friends/${friendId}`)
+    return response.data
+  },
+  
+  getSentRequests: async (): Promise<ApiResponse<Friendship[]>> => {
+    const response = await api.get('/friends/sent-requests')
+    return response.data
+  },
+  
+  cancelFriendRequest: async (friendshipId: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.delete(`/friends/cancel/${friendshipId}`)
     return response.data
   },
 }
@@ -186,6 +196,45 @@ export const notificationsApi = {
   
   markAllAsRead: async (): Promise<ApiResponse<boolean>> => {
     const response = await api.post('/notifications/read-all')
+    return response.data
+  },
+}
+
+// Users API
+export const usersApi = {
+  getUser: async (id: string): Promise<ApiResponse<User>> => {
+    const response = await api.get(`/users/${id}`)
+    return response.data
+  },
+  
+  updateProfile: async (data: { firstName?: string; lastName?: string; bio?: string; avatarUrl?: string }): Promise<ApiResponse<User>> => {
+    const response = await api.put('/users/profile', data)
+    return response.data
+  },
+  
+  searchUsers: async (term: string): Promise<ApiResponse<User[]>> => {
+    const response = await api.get(`/users/search?term=${term}`)
+    return response.data
+  },
+  
+  uploadAvatar: async (file: File): Promise<ApiResponse<{ avatarUrl: string; fullUrl: string; user: User }>> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/users/avatar', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+}
+
+// Files API
+export const filesApi = {
+  uploadFile: async (file: File, folder: string = 'images'): Promise<ApiResponse<{ filePath: string; fileUrl: string }>> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post(`/files/upload?folder=${folder}`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
     return response.data
   },
 }

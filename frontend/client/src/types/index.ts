@@ -76,6 +76,15 @@ export interface Friendship {
   createdAt: string
 }
 
+export interface Friend {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Blocked'
+}
+
 export interface ApiResponse<T> {
   success: boolean
   message: string

@@ -47,6 +47,7 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IStoryService, StoryService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 
 // Cấu hình CORS
 builder.Services.AddCors(options =>

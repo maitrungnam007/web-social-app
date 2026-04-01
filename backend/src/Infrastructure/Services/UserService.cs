@@ -22,7 +22,9 @@ public class UserService : IUserService
     // Lấy thông tin người dùng theo ID
     public async Task<ApiResponse<UserDto>> GetUserByIdAsync(string id)
     {
-        var user = await _context.Users.FindAsync(id);
+        var user = await _context.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user == null)
         {
             return ApiResponse<UserDto>.ErrorResult("Không tìm thấy người dùng");

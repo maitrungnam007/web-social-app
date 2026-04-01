@@ -133,7 +133,12 @@ using (var scope = app.Services.CreateScope())
         // Seed dữ liệu mẫu
         await SeedData.SeedAsync(dbContext, userManager, roleManager);
         
+        // Warmup EF Core - thực hiện query đơn giản để cache execution plan
+        await dbContext.Users.AsNoTracking().Take(1).ToListAsync();
+        await dbContext.Posts.AsNoTracking().Take(1).ToListAsync();
+        
         Console.WriteLine("✅ Database đã được tạo và seed dữ liệu thành công!");
+        Console.WriteLine("🔥 EF Core warmup completed!");
     }
     catch (Exception ex)
     {

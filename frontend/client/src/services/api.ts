@@ -31,34 +31,48 @@ api.interceptors.response.use(
   }
 )
 
+// Helper function để tạo cancel token
+export const createCancelToken = () => {
+  const controller = new AbortController()
+  return {
+    signal: controller.signal,
+    cancel: () => controller.abort()
+  }
+}
+
 // Auth API
 export const authApi = {
-  login: async (username: string, password: string): Promise<ApiResponse<{ token: string; user: User }>> => {
-    const response = await api.post('/auth/login', { userName: username, password })
+  login: async (username: string, password: string, signal?: AbortSignal): Promise<ApiResponse<{ token: string; user: User }>> => {
+    const response = await api.post('/auth/login', { userName: username, password }, { signal })
     return response.data
   },
   
-  register: async (data: { username: string; email: string; password: string; firstName?: string; lastName?: string }): Promise<ApiResponse<{ token: string; user: User }>> => {
+  register: async (data: { username: string; email: string; password: string; firstName?: string; lastName?: string }, signal?: AbortSignal): Promise<ApiResponse<{ token: string; user: User }>> => {
     const response = await api.post('/auth/register', {
       userName: data.username,
       email: data.email,
       password: data.password,
       firstName: data.firstName,
       lastName: data.lastName,
-    })
+    }, { signal })
     return response.data
   },
 }
 
 // Posts API
 export const postsApi = {
-  getPosts: async (page: number = 1, pageSize: number = 10): Promise<ApiResponse<PagedResult<Post>>> => {
-    const response = await api.get(`/posts?page=${page}&pageSize=${pageSize}`)
+  getPosts: async (page: number = 1, pageSize: number = 10, signal?: AbortSignal): Promise<ApiResponse<PagedResult<Post>>> => {
+    const response = await api.get(`/posts?page=${page}&pageSize=${pageSize}`, { signal })
     return response.data
   },
   
-  getPost: async (id: number): Promise<ApiResponse<Post>> => {
-    const response = await api.get(`/posts/${id}`)
+  getPostsByUserId: async (userId: string, page: number = 1, pageSize: number = 10, signal?: AbortSignal): Promise<ApiResponse<PagedResult<Post>>> => {
+    const response = await api.get(`/posts?userId=${userId}&page=${page}&pageSize=${pageSize}`, { signal })
+    return response.data
+  },
+  
+  getPost: async (id: number, signal?: AbortSignal): Promise<ApiResponse<Post>> => {
+    const response = await api.get(`/posts/${id}`, { signal })
     return response.data
   },
   
@@ -202,8 +216,8 @@ export const notificationsApi = {
 
 // Users API
 export const usersApi = {
-  getUser: async (id: string): Promise<ApiResponse<User>> => {
-    const response = await api.get(`/users/${id}`)
+  getUser: async (id: string, signal?: AbortSignal): Promise<ApiResponse<User>> => {
+    const response = await api.get(`/users/${id}`, { signal })
     return response.data
   },
   
@@ -212,8 +226,8 @@ export const usersApi = {
     return response.data
   },
   
-  searchUsers: async (term: string): Promise<ApiResponse<User[]>> => {
-    const response = await api.get(`/users/search?term=${term}`)
+  searchUsers: async (term: string, signal?: AbortSignal): Promise<ApiResponse<User[]>> => {
+    const response = await api.get(`/users/search?term=${term}`, { signal })
     return response.data
   },
   

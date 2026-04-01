@@ -332,7 +332,7 @@ export default function Friends() {
             pendingRequests.map((request) => (
               <div key={request.id} className="p-4 flex items-center gap-4">
                 <img
-                  src={request.requesterAvatar ? `http://localhost:5259/api/files/${request.requesterAvatar}` : 'https://via.placeholder.com/48'}
+                  src={request.requesterAvatar ? `http://localhost:5259/api/files/${request.requesterAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.requesterName)}&background=random&size=48`}
                   alt={request.requesterName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -371,7 +371,7 @@ export default function Friends() {
             sentRequests.map((request) => (
               <div key={request.id} className="p-4 flex items-center gap-4">
                 <img
-                  src={request.addresseeAvatar ? `http://localhost:5259/api/files/${request.addresseeAvatar}` : 'https://via.placeholder.com/48'}
+                  src={request.addresseeAvatar ? `http://localhost:5259/api/files/${request.addresseeAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.addresseeName)}&background=random&size=48`}
                   alt={request.addresseeName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
@@ -427,7 +427,7 @@ export default function Friends() {
                 return (
                   <div key={user.id} className="p-4 flex items-center gap-4">
                     <img
-                      src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : 'https://via.placeholder.com/48'}
+                      src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=48`}
                       alt={user.userName}
                       className="w-12 h-12 rounded-full object-cover"
                     />

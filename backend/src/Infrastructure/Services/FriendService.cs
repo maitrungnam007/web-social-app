@@ -156,6 +156,7 @@ public class FriendService : IFriendService
     public async Task<ApiResponse<List<FriendListDto>>> GetFriendsAsync(string userId)
     {
         var friendships = await _context.Friendships
+            .AsNoTracking()
             .Include(f => f.Requester)
             .Include(f => f.Addressee)
             .Where(f => 
@@ -185,6 +186,7 @@ public class FriendService : IFriendService
     public async Task<ApiResponse<List<FriendshipResponseDto>>> GetPendingRequestsAsync(string userId)
     {
         var requests = await _context.Friendships
+            .AsNoTracking()
             .Include(f => f.Requester)
             .Include(f => f.Addressee)
             .Where(f => f.AddresseeId == userId && f.Status == FriendshipStatus.Pending)
@@ -211,6 +213,7 @@ public class FriendService : IFriendService
     public async Task<ApiResponse<List<FriendshipResponseDto>>> GetSentRequestsAsync(string userId)
     {
         var requests = await _context.Friendships
+            .AsNoTracking()
             .Include(f => f.Requester)
             .Include(f => f.Addressee)
             .Where(f => f.RequesterId == userId && f.Status == FriendshipStatus.Pending)

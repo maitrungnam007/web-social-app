@@ -109,6 +109,7 @@ public class PostService : IPostService
     public async Task<ApiResponse<PagedResult<PostResponseDto>>> GetPostsAsync(PostFilterDto filter, string? currentUserId)
     {
         var query = _context.Posts
+            .AsNoTracking()
             .Include(p => p.User)
             .Include(p => p.Likes)
             .Include(p => p.Comments)

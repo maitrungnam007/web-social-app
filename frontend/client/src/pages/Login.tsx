@@ -8,12 +8,38 @@ export default function Login() {
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
   const { login } = useAuth()
   const navigate = useNavigate()
 
+  const validateForm = (): boolean => {
+    const newErrors: { username?: string; password?: string } = {}
+    
+    if (!username.trim()) {
+      newErrors.username = 'Vui lòng nhập tên đăng nhập'
+    } else if (username.trim().length < 3) {
+      newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự'
+    }
+    
+    if (!password) {
+      newErrors.password = 'Vui lòng nhập mật khẩu'
+    } else if (password.length < 6) {
+      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự'
+    }
+    
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    if (!validateForm()) {
+      return
+    }
+    
     setLoading(true)
+    setErrors({})
 
     try {
       await login(username, password)
@@ -22,10 +48,33 @@ export default function Login() {
         navigate('/')
       }, 1000)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message 
-        || err.message 
-        || 'Tên đăng nhập hoặc mật khẩu không đúng'
+      // Debug: xem error structure
+      console.log('Full error:', err)
+      console.log('Error response:', err.response)
+      console.log('Error response data:', err.response?.data)
+      console.log('Error message:', err.message)
+      
+      // Axios error structure: err.response.data chứa ApiResponse từ backend
+      const apiResponse = err.response?.data
+      let errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.'
+      
+      // Ưu tiên message từ API response
+      if (apiResponse?.message) {
+        errorMessage = apiResponse.message
+      } else if (apiResponse?.errors && Array.isArray(apiResponse.errors) && apiResponse.errors.length > 0) {
+        errorMessage = apiResponse.errors.join(', ')
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
+      console.log('Final errorMessage:', errorMessage)
       toast.error(errorMessage)
+      
+      // Highlight fields on error
+      setErrors({ 
+        username: ' ', 
+        password: ' ' 
+      })
     } finally {
       setLoading(false)
     }
@@ -39,10 +88,18 @@ export default function Login() {
         <input
           type="text"
           value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-          required
+          onChange={(e) => {
+            setUsername(e.target.value)
+            if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
+          }}
+          className={`mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
+            errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
+          }`}
+          placeholder="Nhập tên đăng nhập"
         />
+        {errors.username && (
+          <p className="mt-1 text-sm text-red-500">{errors.username}</p>
+        )}
       </div>
 
       <div>
@@ -51,9 +108,14 @@ export default function Login() {
           <input
             type={showPassword ? 'text' : 'password'}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10"
-            required
+            onChange={(e) => {
+              setPassword(e.target.value)
+              if (errors.password) setErrors(prev => ({ ...prev, password: undefined }))
+            }}
+            className={`mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10 ${
+              errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+            }`}
+            placeholder="Nhập mật khẩu"
           />
           <button
             type="button"
@@ -72,14 +134,25 @@ export default function Login() {
             )}
           </button>
         </div>
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+        )}
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Đang đăng nhập...
+          </span>
+        ) : 'Đăng nhập'}
       </button>
 
       <p className="text-center text-sm text-gray-600">

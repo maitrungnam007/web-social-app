@@ -4,6 +4,7 @@ using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
@@ -11,198 +12,278 @@ namespace Infrastructure.Services;
 public class PostService : IPostService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<PostService> _logger;
 
-    public PostService(ApplicationDbContext context)
+    public PostService(ApplicationDbContext context, ILogger<PostService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // Tạo bài đăng mới
     public async Task<ApiResponse<PostResponseDto>> CreatePostAsync(CreatePostDto dto, string userId)
     {
-        var post = new Post
+        try
         {
-            Content = dto.Content,
-            ImageUrl = dto.ImageUrl,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow,
-            IsDeleted = false
-        };
+            var post = new Post
+            {
+                Content = dto.Content,
+                ImageUrl = dto.ImageUrl,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
 
-        _context.Posts.Add(post);
-        await _context.SaveChangesAsync();
+            _context.Posts.Add(post);
+            await _context.SaveChangesAsync();
 
-        // Xử lý hashtags
-        if (dto.Hashtags != null && dto.Hashtags.Any())
-        {
-            await ProcessHashtags(post.Id, dto.Hashtags);
+            // Xử lý hashtags
+            if (dto.Hashtags != null && dto.Hashtags.Any())
+            {
+                await ProcessHashtags(post.Id, dto.Hashtags);
+            }
+
+            return await GetPostByIdAsync(post.Id, userId);
         }
-
-        return await GetPostByIdAsync(post.Id, userId);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi tạo bài đăng cho user {UserId}", userId);
+            return ApiResponse<PostResponseDto>.ErrorResult("Có lỗi xảy ra khi tạo bài đăng");
+        }
     }
 
     // Cập nhật bài đăng
     public async Task<ApiResponse<PostResponseDto>> UpdatePostAsync(int postId, UpdatePostDto dto, string userId)
     {
-        var post = await _context.Posts.FindAsync(postId);
-        if (post == null || post.IsDeleted)
+        try
         {
-            return ApiResponse<PostResponseDto>.ErrorResult("Không tìm thấy bài đăng");
-        }
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<PostResponseDto>.ErrorResult("Không tìm thấy bài đăng");
+            }
 
-        if (post.UserId != userId)
+            if (post.UserId != userId)
+            {
+                return ApiResponse<PostResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bài đăng này");
+            }
+
+            post.Content = dto.Content;
+            post.ImageUrl = dto.ImageUrl;
+            post.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return await GetPostByIdAsync(postId, userId);
+        }
+        catch (Exception ex)
         {
-            return ApiResponse<PostResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bài đăng này");
+            _logger.LogError(ex, "Lỗi khi cập nhật bài đăng {PostId}", postId);
+            return ApiResponse<PostResponseDto>.ErrorResult("Có lỗi xảy ra khi cập nhật bài đăng");
         }
-
-        post.Content = dto.Content;
-        post.ImageUrl = dto.ImageUrl;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return await GetPostByIdAsync(postId, userId);
     }
 
     // Xóa bài đăng
     public async Task<ApiResponse<bool>> DeletePostAsync(int postId, string userId)
     {
-        var post = await _context.Posts.FindAsync(postId);
-        if (post == null || post.IsDeleted)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
-        }
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            }
 
-        if (post.UserId != userId)
+            if (post.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn không có quyền xóa bài đăng này");
+            }
+
+            post.IsDeleted = true;
+            post.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xóa bài đăng thành công");
+        }
+        catch (Exception ex)
         {
-            return ApiResponse<bool>.ErrorResult("Bạn không có quyền xóa bài đăng này");
+            _logger.LogError(ex, "Lỗi khi xóa bài đăng {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa bài đăng");
         }
-
-        post.IsDeleted = true;
-        post.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã xóa bài đăng thành công");
     }
 
     // Lấy bài đăng theo ID
     public async Task<ApiResponse<PostResponseDto>> GetPostByIdAsync(int postId, string? currentUserId)
     {
-        var post = await _context.Posts
-            .Include(p => p.User)
-            .Include(p => p.Likes)
-            .Include(p => p.Comments)
-            .Include(p => p.PostHashtags).ThenInclude(ph => ph.Hashtag)
-            .FirstOrDefaultAsync(p => p.Id == postId && !p.IsDeleted);
-
-        if (post == null)
+        try
         {
-            return ApiResponse<PostResponseDto>.ErrorResult("Không tìm thấy bài đăng");
-        }
+            // Dùng projection để tránh N+1 và in-memory counting
+            var post = await _context.Posts
+                .AsNoTracking()
+                .Where(p => p.Id == postId && !p.IsDeleted)
+                .Select(p => new PostResponseDto
+                {
+                    Id = p.Id,
+                    Content = p.Content,
+                    ImageUrl = p.ImageUrl,
+                    UserId = p.UserId,
+                    UserName = p.User != null ? p.User.UserName : "",
+                    UserAvatar = p.User != null ? p.User.AvatarUrl : null,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    LikeCount = p.Likes.Count(l => l.CommentId == null),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted),
+                    IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
+                    Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
+                })
+                .FirstOrDefaultAsync();
 
-        var response = MapToResponse(post, currentUserId);
-        return ApiResponse<PostResponseDto>.SuccessResult(response);
+            if (post == null)
+            {
+                return ApiResponse<PostResponseDto>.ErrorResult("Không tìm thấy bài đăng");
+            }
+
+            return ApiResponse<PostResponseDto>.SuccessResult(post);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy bài đăng {PostId}", postId);
+            return ApiResponse<PostResponseDto>.ErrorResult("Có lỗi xảy ra khi lấy bài đăng");
+        }
     }
 
     // Lấy danh sách bài đăng có phân trang
     public async Task<ApiResponse<PagedResult<PostResponseDto>>> GetPostsAsync(PostFilterDto filter, string? currentUserId)
     {
-        var query = _context.Posts
-            .AsNoTracking()
-            .Include(p => p.User)
-            .Include(p => p.Likes)
-            .Include(p => p.Comments)
-            .Include(p => p.PostHashtags).ThenInclude(ph => ph.Hashtag)
-            .Where(p => !p.IsDeleted);
-
-        // Lọc theo userId
-        if (!string.IsNullOrEmpty(filter.UserId))
+        try
         {
-            query = query.Where(p => p.UserId == filter.UserId);
+            var query = _context.Posts
+                .AsNoTracking()
+                .Where(p => !p.IsDeleted);
+
+            // Lọc theo userId
+            if (!string.IsNullOrEmpty(filter.UserId))
+            {
+                query = query.Where(p => p.UserId == filter.UserId);
+            }
+
+            // Lọc theo hashtag
+            if (!string.IsNullOrEmpty(filter.Hashtag))
+            {
+                query = query.Where(p => p.PostHashtags.Any(ph => ph.Hashtag.Name == filter.Hashtag));
+            }
+
+            // Tìm kiếm theo nội dung
+            if (!string.IsNullOrEmpty(filter.SearchTerm))
+            {
+                query = query.Where(p => p.Content.Contains(filter.SearchTerm));
+            }
+
+            // Đếm tổng số trước phân trang
+            var totalCount = await query.CountAsync();
+
+            // Dùng projection để tránh N+1
+            var posts = await query
+                .OrderByDescending(p => p.CreatedAt)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .Select(p => new PostResponseDto
+                {
+                    Id = p.Id,
+                    Content = p.Content,
+                    ImageUrl = p.ImageUrl,
+                    UserId = p.UserId,
+                    UserName = p.User != null ? p.User.UserName : "",
+                    UserAvatar = p.User != null ? p.User.AvatarUrl : null,
+                    CreatedAt = p.CreatedAt,
+                    UpdatedAt = p.UpdatedAt,
+                    LikeCount = p.Likes.Count(l => l.CommentId == null),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted),
+                    IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
+                    Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
+                })
+                .ToListAsync();
+
+            var result = new PagedResult<PostResponseDto>
+            {
+                Items = posts,
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize
+            };
+
+            return ApiResponse<PagedResult<PostResponseDto>>.SuccessResult(result);
         }
-
-        // Lọc theo hashtag
-        if (!string.IsNullOrEmpty(filter.Hashtag))
+        catch (Exception ex)
         {
-            query = query.Where(p => p.PostHashtags.Any(ph => ph.Hashtag.Name == filter.Hashtag));
+            _logger.LogError(ex, "Lỗi khi lấy danh sách bài đăng");
+            return ApiResponse<PagedResult<PostResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách bài đăng");
         }
-
-        // Tìm kiếm theo nội dung
-        if (!string.IsNullOrEmpty(filter.SearchTerm))
-        {
-            query = query.Where(p => p.Content.Contains(filter.SearchTerm));
-        }
-
-        // Sắp xếp theo thời gian tạo giảm dần
-        query = query.OrderByDescending(p => p.CreatedAt);
-
-        // Phân trang
-        var totalCount = await query.CountAsync();
-        var posts = await query
-            .Skip((filter.Page - 1) * filter.PageSize)
-            .Take(filter.PageSize)
-            .ToListAsync();
-
-        var items = posts.Select(p => MapToResponse(p, currentUserId)).ToList();
-
-        var result = new PagedResult<PostResponseDto>
-        {
-            Items = items,
-            TotalCount = totalCount,
-            Page = filter.Page,
-            PageSize = filter.PageSize
-        };
-
-        return ApiResponse<PagedResult<PostResponseDto>>.SuccessResult(result);
     }
 
     // Thích bài đăng
     public async Task<ApiResponse<bool>> LikePostAsync(int postId, string userId)
     {
-        var post = await _context.Posts.FindAsync(postId);
-        if (post == null || post.IsDeleted)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            }
+
+            // Kiểm tra đã thích chưa
+            var existingLike = await _context.Likes
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+
+            if (existingLike != null)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn đã thích bài đăng này rồi");
+            }
+
+            var like = new Like
+            {
+                PostId = postId,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Likes.Add(like);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã thích bài đăng");
         }
-
-        // Kiểm tra đã thích chưa
-        var existingLike = await _context.Likes
-            .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
-
-        if (existingLike != null)
+        catch (Exception ex)
         {
-            return ApiResponse<bool>.ErrorResult("Bạn đã thích bài đăng này rồi");
+            _logger.LogError(ex, "Lỗi khi thích bài đăng {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi thích bài đăng");
         }
-
-        var like = new Like
-        {
-            PostId = postId,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Likes.Add(like);
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã thích bài đăng");
     }
 
     // Bỏ thích bài đăng
     public async Task<ApiResponse<bool>> UnlikePostAsync(int postId, string userId)
     {
-        var like = await _context.Likes
-            .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
-
-        if (like == null)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Bạn chưa thích bài đăng này");
+            var like = await _context.Likes
+                .FirstOrDefaultAsync(l => l.PostId == postId && l.UserId == userId);
+
+            if (like == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn chưa thích bài đăng này");
+            }
+
+            _context.Likes.Remove(like);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã bỏ thích bài đăng");
         }
-
-        _context.Likes.Remove(like);
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã bỏ thích bài đăng");
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi bỏ thích bài đăng {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi bỏ thích bài đăng");
+        }
     }
 
     // Xử lý hashtags

@@ -5,6 +5,7 @@ using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
@@ -12,110 +13,136 @@ namespace Infrastructure.Services;
 public class ReportService : IReportService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<ReportService> _logger;
 
-    public ReportService(ApplicationDbContext context)
+    public ReportService(ApplicationDbContext context, ILogger<ReportService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // Tạo báo cáo mới
     public async Task<ApiResponse<bool>> CreateReportAsync(CreateReportDto dto, string reporterId)
     {
-        // Kiểm tra post có tồn tại không
-        var post = await _context.Posts.FindAsync(dto.PostId);
-        if (post == null)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            // Kiểm tra post có tồn tại không
+            var post = await _context.Posts.FindAsync(dto.PostId);
+            if (post == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            }
+
+            // Kiểm tra đã báo cáo chưa
+            var existingReport = await _context.PostReports
+                .FirstOrDefaultAsync(r => r.PostId == dto.PostId && r.ReporterId == reporterId);
+
+            if (existingReport != null)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn đã báo cáo bài đăng này rồi");
+            }
+
+            // Tạo báo cáo mới
+            var report = new PostReport
+            {
+                PostId = dto.PostId,
+                ReporterId = reporterId,
+                Reason = dto.Reason,
+                Description = dto.Description,
+                Status = ReportStatus.Pending,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.PostReports.Add(report);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã gửi báo cáo");
         }
-
-        // Kiểm tra đã báo cáo chưa
-        var existingReport = await _context.PostReports
-            .FirstOrDefaultAsync(r => r.PostId == dto.PostId && r.ReporterId == reporterId);
-
-        if (existingReport != null)
+        catch (Exception ex)
         {
-            return ApiResponse<bool>.ErrorResult("Bạn đã báo cáo bài đăng này rồi");
+            _logger.LogError(ex, "Lỗi khi tạo báo cáo cho bài đăng {PostId}", dto.PostId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi gửi báo cáo");
         }
-
-        // Tạo báo cáo mới
-        var report = new PostReport
-        {
-            PostId = dto.PostId,
-            ReporterId = reporterId,
-            Reason = dto.Reason,
-            Description = dto.Description,
-            Status = ReportStatus.Pending,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.PostReports.Add(report);
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã gửi báo cáo");
     }
 
     // Lấy danh sách báo cáo (Admin)
     public async Task<ApiResponse<PagedResult<ReportResponseDto>>> GetReportsAsync(ReportFilterDto filter)
     {
-        var query = _context.PostReports
-            .Include(r => r.Post)
-            .Include(r => r.Reporter)
-            .AsQueryable();
-
-        // Lọc theo trạng thái
-        if (filter.Status.HasValue)
+        try
         {
-            query = query.Where(r => r.Status == filter.Status.Value);
+            var query = _context.PostReports
+                .Include(r => r.Post)
+                .Include(r => r.Reporter)
+                .AsQueryable();
+
+            // Lọc theo trạng thái
+            if (filter.Status.HasValue)
+            {
+                query = query.Where(r => r.Status == filter.Status.Value);
+            }
+
+            // Đếm tổng số
+            var totalCount = await query.CountAsync();
+
+            // Phân trang
+            var reports = await query
+                .OrderByDescending(r => r.CreatedAt)
+                .Skip((filter.Page - 1) * filter.PageSize)
+                .Take(filter.PageSize)
+                .ToListAsync();
+
+            var result = new PagedResult<ReportResponseDto>
+            {
+                Items = reports.Select(MapToDto).ToList(),
+                TotalCount = totalCount,
+                Page = filter.Page,
+                PageSize = filter.PageSize
+            };
+
+            return ApiResponse<PagedResult<ReportResponseDto>>.SuccessResult(result);
         }
-
-        // Đếm tổng số
-        var totalCount = await query.CountAsync();
-
-        // Phân trang
-        var reports = await query
-            .OrderByDescending(r => r.CreatedAt)
-            .Skip((filter.Page - 1) * filter.PageSize)
-            .Take(filter.PageSize)
-            .ToListAsync();
-
-        var result = new PagedResult<ReportResponseDto>
+        catch (Exception ex)
         {
-            Items = reports.Select(MapToDto).ToList(),
-            TotalCount = totalCount,
-            Page = filter.Page,
-            PageSize = filter.PageSize
-        };
-
-        return ApiResponse<PagedResult<ReportResponseDto>>.SuccessResult(result);
+            _logger.LogError(ex, "Lỗi khi lấy danh sách báo cáo");
+            return ApiResponse<PagedResult<ReportResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách báo cáo");
+        }
     }
 
     // Xử lý báo cáo (Admin)
     public async Task<ApiResponse<bool>> ResolveReportAsync(int reportId, string adminId, ResolveReportDto dto)
     {
-        var report = await _context.PostReports
-            .Include(r => r.Post)
-            .FirstOrDefaultAsync(r => r.Id == reportId);
-
-        if (report == null)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy báo cáo");
+            var report = await _context.PostReports
+                .Include(r => r.Post)
+                .FirstOrDefaultAsync(r => r.Id == reportId);
+
+            if (report == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy báo cáo");
+            }
+
+            // Cập nhật trạng thái
+            report.Status = dto.Status;
+            report.ResolvedAt = DateTime.UtcNow;
+            report.ResolvedBy = adminId;
+
+            // Nếu approved và có notes, có thể xóa post
+            if (dto.Status == ReportStatus.Resolved && report.Post != null)
+            {
+                // Có thể thêm logic xóa post ở đây
+                // _context.Posts.Remove(report.Post);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xử lý báo cáo");
         }
-
-        // Cập nhật trạng thái
-        report.Status = dto.Status;
-        report.ResolvedAt = DateTime.UtcNow;
-        report.ResolvedBy = adminId;
-
-        // Nếu approved và có notes, có thể xóa post
-        if (dto.Status == ReportStatus.Resolved && report.Post != null)
+        catch (Exception ex)
         {
-            // Có thể thêm logic xóa post ở đây
-            // _context.Posts.Remove(report.Post);
+            _logger.LogError(ex, "Lỗi khi xử lý báo cáo {ReportId}", reportId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xử lý báo cáo");
         }
-
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã xử lý báo cáo");
     }
 
     // Helper: Map entity to DTO

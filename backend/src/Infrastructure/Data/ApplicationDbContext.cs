@@ -34,6 +34,13 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(u => u.Posts)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            // Indexes cho query phổ biến
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => e.IsDeleted);
+            entity.HasIndex(e => new { e.UserId, e.IsDeleted });
+            entity.HasIndex(e => new { e.IsDeleted, e.CreatedAt });
         });
         
         // Cấu hình Comment
@@ -53,6 +60,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(c => c.Replies)
                 .HasForeignKey(e => e.ParentCommentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes
+            entity.HasIndex(e => e.PostId);
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.IsDeleted);
+            entity.HasIndex(e => new { e.PostId, e.IsDeleted });
         });
         
         // Cấu hình Like
@@ -71,12 +84,28 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(c => c.Likes)
                 .HasForeignKey(e => e.CommentId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            // Indexes cho query phổ biến
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.PostId);
+            entity.HasIndex(e => e.CommentId);
+            entity.HasIndex(e => new { e.PostId, e.UserId });
+            entity.HasIndex(e => new { e.CommentId, e.UserId });
         });
         
         // Cấu hình Friendship
         builder.Entity<Friendship>(entity =>
         {
             entity.HasKey(e => e.Id);
+            
+            // Index cho query tìm kiếm friendship theo user và status
+            entity.HasIndex(e => e.RequesterId);
+            entity.HasIndex(e => e.AddresseeId);
+            entity.HasIndex(e => e.Status);
+            // Composite index cho query phổ biến
+            entity.HasIndex(e => new { e.RequesterId, e.Status });
+            entity.HasIndex(e => new { e.AddresseeId, e.Status });
+            
             entity.HasOne(e => e.Requester)
                 .WithMany(u => u.FriendshipsInitiated)
                 .HasForeignKey(e => e.RequesterId)
@@ -95,6 +124,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(u => u.Stories)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.ExpiresAt);
+            entity.HasIndex(e => e.IsDeleted);
+            entity.HasIndex(e => new { e.IsDeleted, e.ExpiresAt });
         });
         
         // Cấu hình StoryView
@@ -119,6 +154,12 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany(u => u.Notifications)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            
+            // Indexes
+            entity.HasIndex(e => e.UserId);
+            entity.HasIndex(e => e.IsRead);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.UserId, e.IsRead });
         });
         
         // Cấu hình Hashtag

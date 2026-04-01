@@ -1,5 +1,6 @@
 using Core.Interfaces;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
@@ -7,11 +8,13 @@ namespace Infrastructure.Services;
 public class FileStorageService : IFileStorageService
 {
     private readonly IConfiguration _configuration;
+    private readonly ILogger<FileStorageService> _logger;
     private readonly string _uploadFolder;
 
-    public FileStorageService(IConfiguration configuration)
+    public FileStorageService(IConfiguration configuration, ILogger<FileStorageService> logger)
     {
         _configuration = configuration;
+        _logger = logger;
         _uploadFolder = _configuration["FileStorage:UploadFolder"] ?? "uploads";
         
         // Tạo thư mục uploads nếu chưa tồn tại
@@ -24,26 +27,34 @@ public class FileStorageService : IFileStorageService
     // Upload file và trả về đường dẫn tương đối
     public async Task<string> UploadFileAsync(Stream fileStream, string fileName, string folder)
     {
-        // Tạo thư mục con nếu cần
-        var folderPath = Path.Combine(_uploadFolder, folder);
-        if (!Directory.Exists(folderPath))
+        try
         {
-            Directory.CreateDirectory(folderPath);
+            // Tạo thư mục con nếu cần
+            var folderPath = Path.Combine(_uploadFolder, folder);
+            if (!Directory.Exists(folderPath))
+            {
+                Directory.CreateDirectory(folderPath);
+            }
+
+            // Tạo tên file unique
+            var fileExtension = Path.GetExtension(fileName);
+            var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
+            var filePath = Path.Combine(folderPath, uniqueFileName);
+
+            // Lưu file
+            using (var fileStreamOutput = new FileStream(filePath, FileMode.Create))
+            {
+                await fileStream.CopyToAsync(fileStreamOutput);
+            }
+
+            // Trả về đường dẫn tương đối
+            return Path.Combine(folder, uniqueFileName).Replace("\\", "/");
         }
-
-        // Tạo tên file unique
-        var fileExtension = Path.GetExtension(fileName);
-        var uniqueFileName = $"{Guid.NewGuid()}{fileExtension}";
-        var filePath = Path.Combine(folderPath, uniqueFileName);
-
-        // Lưu file
-        using (var fileStreamOutput = new FileStream(filePath, FileMode.Create))
+        catch (Exception ex)
         {
-            await fileStream.CopyToAsync(fileStreamOutput);
+            _logger.LogError(ex, "Lỗi khi upload file {FileName}", fileName);
+            throw;
         }
-
-        // Trả về đường dẫn tương đối
-        return Path.Combine(folder, uniqueFileName).Replace("\\", "/");
     }
 
     // Xóa file
@@ -59,8 +70,9 @@ public class FileStorageService : IFileStorageService
             }
             return Task.FromResult(false);
         }
-        catch
+        catch (Exception ex)
         {
+            _logger.LogError(ex, "Lỗi khi xóa file {FileUrl}", fileUrl);
             return Task.FromResult(false);
         }
     }

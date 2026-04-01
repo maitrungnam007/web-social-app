@@ -13,4 +13,6 @@ public interface IFriendService
     Task<ApiResponse<List<FriendshipResponseDto>>> GetPendingRequestsAsync(string userId);
     Task<ApiResponse<List<FriendshipResponseDto>>> GetSentRequestsAsync(string userId);
     Task<ApiResponse<bool>> UnfriendAsync(string userId, string friendId);
+    Task<ApiResponse<List<MutualFriendDto>>> GetMutualFriendsAsync(string userId, string otherUserId);
+    Task<ApiResponse<List<FriendSuggestionDto>>> GetFriendSuggestionsAsync(string userId, int count = 10);
 }

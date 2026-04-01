@@ -10,6 +10,7 @@ export default function Profile() {
   const { user: currentUser, updateUser } = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [friendsCount, setFriendsCount] = useState(0)
   const [loadingUser, setLoadingUser] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [hasMorePosts, setHasMorePosts] = useState(true)
@@ -89,6 +90,7 @@ export default function Profile() {
       
       if (userResponse.success && userResponse.data) {
         setUser(userResponse.data)
+        setFriendsCount(userResponse.data.friendsCount || 0)
         setFormData({
           firstName: userResponse.data.firstName || '',
           lastName: userResponse.data.lastName || '',
@@ -346,7 +348,7 @@ export default function Profile() {
             <p className="text-gray-500 text-sm">Bài đăng</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold">0</p>
+            <p className="text-2xl font-bold">{friendsCount}</p>
             <p className="text-gray-500 text-sm">Bạn bè</p>
           </div>
         </div>

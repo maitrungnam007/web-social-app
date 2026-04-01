@@ -6,6 +6,7 @@ export interface User {
   lastName?: string
   avatarUrl?: string
   bio?: string
+  friendsCount?: number
 }
 
 export interface Post {
@@ -83,6 +84,24 @@ export interface Friend {
   lastName?: string
   avatarUrl?: string
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Blocked'
+  mutualFriendsCount?: number
+}
+
+export interface MutualFriend {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+}
+
+export interface FriendSuggestion {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+  mutualFriendsCount: number
 }
 
 export interface ApiResponse<T> {

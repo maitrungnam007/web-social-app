@@ -34,24 +34,31 @@ export default function Register() {
         navigate('/')
       }, 1000)
     } catch (err: any) {
-      // Xử lý lỗi validation từ ASP.NET Core model binding
-      const response = err.response?.data
+      // Debug
+      console.log('Register error:', err)
+      console.log('Error response:', err.response)
+      console.log('Error response data:', err.response?.data)
       
-      if (response?.errors) {
+      // Xử lý lỗi validation từ ASP.NET Core model binding
+      const apiResponse = err.response?.data
+      let errorMessage = 'Đăng ký thất bại. Vui lòng thử lại.'
+      
+      if (apiResponse?.message) {
+        errorMessage = apiResponse.message
+      } else if (apiResponse?.errors) {
         // Kiểm tra xem errors là object (ASP.NET Core) hay array (ApiResponse)
-        if (Array.isArray(response.errors)) {
-          // ApiResponse format: errors là array
-          toast.error(response.errors.join(', '))
-        } else {
+        if (Array.isArray(apiResponse.errors)) {
+          errorMessage = apiResponse.errors.join(', ')
+        } else if (typeof apiResponse.errors === 'object') {
           // ASP.NET Core validation format: { Field: ["message"] }
-          const errorMessages = Object.values(response.errors as Record<string, string[]>).flat().join(', ')
-          toast.error(errorMessages)
+          errorMessage = Object.values(apiResponse.errors as Record<string, string[]>).flat().join(', ')
         }
-      } else if (response?.message) {
-        toast.error(response.message)
-      } else {
-        toast.error('Đăng ký thất bại. Vui lòng thử lại.')
+      } else if (err.message) {
+        errorMessage = err.message
       }
+      
+      console.log('Final errorMessage:', errorMessage)
+      toast.error(errorMessage)
     } finally {
       setLoading(false)
     }

@@ -1,5 +1,5 @@
 import axios from 'axios'
-import { ApiResponse, User, Post, PagedResult, Comment, Story, Notification, Friendship, Friend } from '../types'
+import { ApiResponse, User, Post, PagedResult, Comment, Story, Notification, Friendship, Friend, MutualFriend, FriendSuggestion } from '../types'
 
 const API_BASE_URL = '/api'
 
@@ -24,8 +24,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      localStorage.removeItem('token')
-      window.location.href = '/login'
+      // Không redirect nếu đang ở trang login hoặc register
+      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/register')) {
+        localStorage.removeItem('token')
+        window.location.href = '/login'
+      }
     }
     return Promise.reject(error)
   }
@@ -164,6 +167,16 @@ export const friendsApi = {
   
   cancelFriendRequest: async (friendshipId: number): Promise<ApiResponse<boolean>> => {
     const response = await api.delete(`/friends/cancel/${friendshipId}`)
+    return response.data
+  },
+  
+  getMutualFriends: async (otherUserId: string, signal?: AbortSignal): Promise<ApiResponse<MutualFriend[]>> => {
+    const response = await api.get(`/friends/mutual/${otherUserId}`, { signal })
+    return response.data
+  },
+  
+  getFriendSuggestions: async (count: number = 10, signal?: AbortSignal): Promise<ApiResponse<FriendSuggestion[]>> => {
+    const response = await api.get(`/friends/suggestions?count=${count}`, { signal })
     return response.data
   },
 }

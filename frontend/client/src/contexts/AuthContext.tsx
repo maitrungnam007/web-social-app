@@ -37,19 +37,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const login = async (username: string, password: string) => {
-    const response = await authApi.login(username, password)
-    if (response.success && response.data) {
-      const authData = response.data as any
-      // Backend trả về { success, message, token, refreshToken, user }
-      const userData = authData.user || authData.User
-      const tokenValue = authData.token || authData.Token
-      
-      localStorage.setItem(TOKEN_KEY, tokenValue)
-      localStorage.setItem(USER_KEY, JSON.stringify(userData))
-      setToken(tokenValue)
-      setUser(userData)
-    } else {
-      throw new Error(response.message)
+    try {
+      const response = await authApi.login(username, password)
+      if (response.success && response.data) {
+        const authData = response.data as any
+        const userData = authData.user || authData.User
+        const tokenValue = authData.token || authData.Token
+        
+        localStorage.setItem(TOKEN_KEY, tokenValue)
+        localStorage.setItem(USER_KEY, JSON.stringify(userData))
+        setToken(tokenValue)
+        setUser(userData)
+      }
+    } catch (err: any) {
+      // Axios throw error khi status 401
+      // Lấy message từ response.data
+      const message = err.response?.data?.message || err.message || 'Đăng nhập thất bại'
+      throw new Error(message)
     }
   }
 
@@ -58,7 +62,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.register({ username, email, password, firstName, lastName })
       if (response.success && response.data) {
         const authData = response.data as any
-        // Backend trả về { success, message, token, refreshToken, user }
         const userData = authData.user || authData.User
         const tokenValue = authData.token || authData.Token
         
@@ -66,13 +69,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem(USER_KEY, JSON.stringify(userData))
         setToken(tokenValue)
         setUser(userData)
-      } else {
-        const error: any = new Error(response.message)
-        error.response = { data: { message: response.message, errors: response.errors } }
-        throw error
       }
     } catch (err: any) {
-      throw err
+      // Axios throw error khi status 400/401
+      const message = err.response?.data?.message || err.message || 'Đăng ký thất bại'
+      throw new Error(message)
     }
   }
 

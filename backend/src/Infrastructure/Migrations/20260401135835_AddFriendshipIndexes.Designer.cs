@@ -4,6 +4,7 @@ using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Infrastructure.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260401135835_AddFriendshipIndexes")]
+    partial class AddFriendshipIndexes
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -56,15 +59,11 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("ParentCommentId");
 
                     b.HasIndex("PostId");
 
                     b.HasIndex("UserId");
-
-                    b.HasIndex("PostId", "IsDeleted");
 
                     b.ToTable("Comments");
                 });
@@ -165,10 +164,6 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
-                    b.HasIndex("CommentId", "UserId");
-
-                    b.HasIndex("PostId", "UserId");
-
                     b.ToTable("Likes");
                 });
 
@@ -209,13 +204,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("IsRead");
-
                     b.HasIndex("UserId");
-
-                    b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications");
                 });
@@ -251,15 +240,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAt");
-
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("UserId");
-
-                    b.HasIndex("IsDeleted", "CreatedAt");
-
-                    b.HasIndex("UserId", "IsDeleted");
 
                     b.ToTable("Posts");
                 });
@@ -354,13 +335,7 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ExpiresAt");
-
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("UserId");
-
-                    b.HasIndex("IsDeleted", "ExpiresAt");
 
                     b.ToTable("Stories");
                 });

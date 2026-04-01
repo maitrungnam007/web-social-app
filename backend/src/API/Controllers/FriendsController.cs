@@ -116,4 +116,26 @@ public class FriendsController : ControllerBase
             return NotFound(result);
         return Ok(result);
     }
+
+    [HttpGet("mutual/{otherUserId}")]
+    public async Task<ActionResult<ApiResponse<List<MutualFriendDto>>>> GetMutualFriends(string otherUserId)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _friendService.GetMutualFriendsAsync(userId, otherUserId);
+        return Ok(result);
+    }
+
+    [HttpGet("suggestions")]
+    public async Task<ActionResult<ApiResponse<List<FriendSuggestionDto>>>> GetFriendSuggestions([FromQuery] int count = 10)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _friendService.GetFriendSuggestionsAsync(userId, count);
+        return Ok(result);
+    }
 }

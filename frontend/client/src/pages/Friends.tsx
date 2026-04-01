@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { friendsApi, usersApi } from '../services/api'
-import { Friendship, User, Friend } from '../types'
+import { Friendship, User, Friend, MutualFriend, FriendSuggestion } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
 
@@ -24,6 +24,10 @@ export default function Friends() {
   const [searchTerm, setSearchTerm] = useState('')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [searching, setSearching] = useState(false)
+  const [mutualFriends, setMutualFriends] = useState<{ [key: string]: MutualFriend[] }>({})
+  const [hoveredFriend, setHoveredFriend] = useState<string | null>(null)
+  const [friendSuggestions, setFriendSuggestions] = useState<FriendSuggestion[]>([])
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false)
   const [confirm, setConfirm] = useState<ConfirmState>({
     isOpen: false,
     title: '',
@@ -218,6 +222,42 @@ export default function Friends() {
     }
   }, [])
 
+  // Fetch friend suggestions
+  const fetchFriendSuggestions = useCallback(async () => {
+    try {
+      setLoadingSuggestions(true)
+      const response = await friendsApi.getFriendSuggestions(10)
+      if (response.success && response.data) {
+        setFriendSuggestions(response.data)
+      }
+    } catch (error) {
+      // Silent fail
+    } finally {
+      setLoadingSuggestions(false)
+    }
+  }, [])
+
+  // Load suggestions khi vào tab search
+  useEffect(() => {
+    if (activeTab === 'search' && friendSuggestions.length === 0) {
+      fetchFriendSuggestions()
+    }
+  }, [activeTab, friendSuggestions.length, fetchFriendSuggestions])
+
+  // Fetch mutual friends khi hover vào friend
+  const fetchMutualFriends = useCallback(async (friendId: string) => {
+    if (mutualFriends[friendId]) return // Đã có cache
+    
+    try {
+      const response = await friendsApi.getMutualFriends(friendId)
+      if (response.success && response.data) {
+        setMutualFriends(prev => ({ ...prev, [friendId]: response.data! }))
+      }
+    } catch (error) {
+      // Silent fail - không hiện lỗi
+    }
+  }, [mutualFriends])
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-[400px]">
@@ -290,15 +330,47 @@ export default function Friends() {
                 : friend.userName
 
               return (
-                <div key={friend.id} className="p-4 flex items-center gap-4">
+                <div 
+                  key={friend.id} 
+                  className="p-4 flex items-center gap-4"
+                  onMouseEnter={() => {
+                    setHoveredFriend(friend.id)
+                    fetchMutualFriends(friend.id)
+                  }}
+                  onMouseLeave={() => setHoveredFriend(null)}
+                >
                   <img
                     src={friend.avatarUrl ? `http://localhost:5259/api/files/${friend.avatarUrl}` : `https://ui-avatars.com/api/?name=${friend.userName}&background=random`}
                     alt={displayName}
                     className="w-12 h-12 rounded-full object-cover"
                   />
-                  <div className="flex-1">
+                  <div className="flex-1 relative">
                     <p className="font-medium">{displayName}</p>
                     <p className="text-gray-500 text-sm">@{friend.userName}</p>
+                    
+                    {/* Mutual friends indicator */}
+                    {mutualFriends[friend.id] && mutualFriends[friend.id].length > 0 && (
+                      <p className="text-gray-400 text-xs mt-1">
+                        {mutualFriends[friend.id].length} bạn chung
+                      </p>
+                    )}
+                    
+                    {/* Tooltip hiển thị tên bạn chung khi hover */}
+                    {hoveredFriend === friend.id && mutualFriends[friend.id] && mutualFriends[friend.id].length > 0 && (
+                      <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 z-10 shadow-lg min-w-[150px]">
+                        <p className="font-semibold mb-1">Bạn chung:</p>
+                        {mutualFriends[friend.id].slice(0, 3).map((mf) => (
+                          <p key={mf.id} className="truncate">
+                            {mf.firstName && mf.lastName 
+                              ? `${mf.firstName} ${mf.lastName}` 
+                              : mf.userName}
+                          </p>
+                        ))}
+                        {mutualFriends[friend.id].length > 3 && (
+                          <p className="text-gray-300">+{mutualFriends[friend.id].length - 3} nữa</p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -330,15 +402,47 @@ export default function Friends() {
             </div>
           ) : (
             pendingRequests.map((request) => (
-              <div key={request.id} className="p-4 flex items-center gap-4">
+              <div 
+                key={request.id} 
+                className="p-4 flex items-center gap-4"
+                onMouseEnter={() => {
+                  setHoveredFriend(request.requesterId)
+                  fetchMutualFriends(request.requesterId)
+                }}
+                onMouseLeave={() => setHoveredFriend(null)}
+              >
                 <img
                   src={request.requesterAvatar ? `http://localhost:5259/api/files/${request.requesterAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.requesterName)}&background=random&size=48`}
                   alt={request.requesterName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <p className="font-medium">{request.requesterName}</p>
                   <p className="text-gray-500 text-sm">Muốn kết bạn</p>
+                  
+                  {/* Mutual friends indicator */}
+                  {mutualFriends[request.requesterId] && mutualFriends[request.requesterId].length > 0 && (
+                    <p className="text-gray-400 text-xs mt-1">
+                      {mutualFriends[request.requesterId].length} bạn chung
+                    </p>
+                  )}
+                  
+                  {/* Tooltip */}
+                  {hoveredFriend === request.requesterId && mutualFriends[request.requesterId] && mutualFriends[request.requesterId].length > 0 && (
+                    <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 z-10 shadow-lg min-w-[150px]">
+                      <p className="font-semibold mb-1">Bạn chung:</p>
+                      {mutualFriends[request.requesterId].slice(0, 3).map((mf) => (
+                        <p key={mf.id} className="truncate">
+                          {mf.firstName && mf.lastName 
+                            ? `${mf.firstName} ${mf.lastName}` 
+                            : mf.userName}
+                        </p>
+                      ))}
+                      {mutualFriends[request.requesterId].length > 3 && (
+                        <p className="text-gray-300">+{mutualFriends[request.requesterId].length - 3} nữa</p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -369,15 +473,47 @@ export default function Friends() {
             </div>
           ) : (
             sentRequests.map((request) => (
-              <div key={request.id} className="p-4 flex items-center gap-4">
+              <div 
+                key={request.id} 
+                className="p-4 flex items-center gap-4"
+                onMouseEnter={() => {
+                  setHoveredFriend(request.addresseeId)
+                  fetchMutualFriends(request.addresseeId)
+                }}
+                onMouseLeave={() => setHoveredFriend(null)}
+              >
                 <img
                   src={request.addresseeAvatar ? `http://localhost:5259/api/files/${request.addresseeAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.addresseeName)}&background=random&size=48`}
                   alt={request.addresseeName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
-                <div className="flex-1">
+                <div className="flex-1 relative">
                   <p className="font-medium">{request.addresseeName}</p>
                   <p className="text-gray-500 text-sm">Đang chờ phản hồi</p>
+                  
+                  {/* Mutual friends indicator */}
+                  {mutualFriends[request.addresseeId] && mutualFriends[request.addresseeId].length > 0 && (
+                    <p className="text-gray-400 text-xs mt-1">
+                      {mutualFriends[request.addresseeId].length} bạn chung
+                    </p>
+                  )}
+                  
+                  {/* Tooltip */}
+                  {hoveredFriend === request.addresseeId && mutualFriends[request.addresseeId] && mutualFriends[request.addresseeId].length > 0 && (
+                    <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 z-10 shadow-lg min-w-[150px]">
+                      <p className="font-semibold mb-1">Bạn chung:</p>
+                      {mutualFriends[request.addresseeId].slice(0, 3).map((mf) => (
+                        <p key={mf.id} className="truncate">
+                          {mf.firstName && mf.lastName 
+                            ? `${mf.firstName} ${mf.lastName}` 
+                            : mf.userName}
+                        </p>
+                      ))}
+                      {mutualFriends[request.addresseeId].length > 3 && (
+                        <p className="text-gray-300">+{mutualFriends[request.addresseeId].length - 3} nữa</p>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <div className="flex gap-2">
                   <button
@@ -407,6 +543,95 @@ export default function Friends() {
             />
           </div>
 
+          {/* Friend Suggestions */}
+          {!searchTerm && (
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-3">Gợi ý kết bạn</h3>
+              <div className="bg-white rounded-lg shadow divide-y">
+                {loadingSuggestions ? (
+                  <div className="p-6 text-center">
+                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                  </div>
+                ) : friendSuggestions.length === 0 ? (
+                  <div className="p-6 text-center text-gray-500">
+                    Không có gợi ý nào
+                  </div>
+                ) : (
+                  friendSuggestions.map((suggestion) => {
+                    const isFriend = friends.some(f => f.id === suggestion.id)
+                    const hasPendingRequest = pendingRequests.some(
+                      r => r.requesterId === suggestion.id || r.addresseeId === suggestion.id
+                    )
+
+                    return (
+                      <div 
+                        key={suggestion.id} 
+                        className="p-4 flex items-center gap-4"
+                        onMouseEnter={() => {
+                          setHoveredFriend(suggestion.id)
+                          fetchMutualFriends(suggestion.id)
+                        }}
+                        onMouseLeave={() => setHoveredFriend(null)}
+                      >
+                        <img
+                          src={suggestion.avatarUrl ? `http://localhost:5259/api/files/${suggestion.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(suggestion.userName)}&background=random&size=48`}
+                          alt={suggestion.userName}
+                          className="w-12 h-12 rounded-full object-cover"
+                        />
+                        <div className="flex-1 relative">
+                          <p className="font-medium">
+                            {suggestion.firstName && suggestion.lastName
+                              ? `${suggestion.firstName} ${suggestion.lastName}`
+                              : suggestion.userName}
+                          </p>
+                          <p className="text-gray-500 text-sm">@{suggestion.userName}</p>
+                          
+                          {/* Mutual friends count */}
+                          {suggestion.mutualFriendsCount > 0 && (
+                            <p className="text-gray-400 text-xs mt-1">
+                              {suggestion.mutualFriendsCount} bạn chung
+                            </p>
+                          )}
+                          
+                          {/* Tooltip */}
+                          {hoveredFriend === suggestion.id && mutualFriends[suggestion.id] && mutualFriends[suggestion.id].length > 0 && (
+                            <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 z-10 shadow-lg min-w-[150px]">
+                              <p className="font-semibold mb-1">Bạn chung:</p>
+                              {mutualFriends[suggestion.id].slice(0, 3).map((mf) => (
+                                <p key={mf.id} className="truncate">
+                                  {mf.firstName && mf.lastName 
+                                    ? `${mf.firstName} ${mf.lastName}` 
+                                    : mf.userName}
+                                </p>
+                              ))}
+                              {mutualFriends[suggestion.id].length > 3 && (
+                                <p className="text-gray-300">+{mutualFriends[suggestion.id].length - 3} nữa</p>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {isFriend ? (
+                            <span className="px-4 py-2 text-green-500 text-sm">Đã là bạn</span>
+                          ) : hasPendingRequest ? (
+                            <span className="px-4 py-2 text-gray-500 text-sm">Đã gửi lời mời</span>
+                          ) : (
+                            <button
+                              onClick={() => handleSendFriendRequest(suggestion.id)}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
+                            >
+                              Kết bạn
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Search Results */}
           <div className="bg-white rounded-lg shadow divide-y">
             {searching ? (
@@ -425,19 +650,51 @@ export default function Friends() {
                 )
 
                 return (
-                  <div key={user.id} className="p-4 flex items-center gap-4">
+                  <div 
+                    key={user.id} 
+                    className="p-4 flex items-center gap-4"
+                    onMouseEnter={() => {
+                      setHoveredFriend(user.id)
+                      fetchMutualFriends(user.id)
+                    }}
+                    onMouseLeave={() => setHoveredFriend(null)}
+                  >
                     <img
                       src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=48`}
                       alt={user.userName}
                       className="w-12 h-12 rounded-full object-cover"
                     />
-                    <div className="flex-1">
+                    <div className="flex-1 relative">
                       <p className="font-medium">
                         {user.firstName && user.lastName
                           ? `${user.firstName} ${user.lastName}`
                           : user.userName}
                       </p>
                       <p className="text-gray-500 text-sm">@{user.userName}</p>
+                      
+                      {/* Mutual friends indicator */}
+                      {mutualFriends[user.id] && mutualFriends[user.id].length > 0 && (
+                        <p className="text-gray-400 text-xs mt-1">
+                          {mutualFriends[user.id].length} bạn chung
+                        </p>
+                      )}
+                      
+                      {/* Tooltip */}
+                      {hoveredFriend === user.id && mutualFriends[user.id] && mutualFriends[user.id].length > 0 && (
+                        <div className="absolute left-0 top-full mt-1 bg-gray-800 text-white text-xs rounded-lg px-3 py-2 z-10 shadow-lg min-w-[150px]">
+                          <p className="font-semibold mb-1">Bạn chung:</p>
+                          {mutualFriends[user.id].slice(0, 3).map((mf) => (
+                            <p key={mf.id} className="truncate">
+                              {mf.firstName && mf.lastName 
+                                ? `${mf.firstName} ${mf.lastName}` 
+                                : mf.userName}
+                            </p>
+                          ))}
+                          {mutualFriends[user.id].length > 3 && (
+                            <p className="text-gray-300">+{mutualFriends[user.id].length - 3} nữa</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                     <div className="flex gap-2">
                       {isFriend ? (

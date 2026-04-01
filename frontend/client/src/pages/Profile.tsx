@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
@@ -18,37 +18,50 @@ export default function Profile() {
     bio: ''
   })
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const requestIdRef = useRef(0)
 
   const isOwnProfile = !userId || userId === currentUser?.id
 
   useEffect(() => {
-    loadProfile()
+    const currentRequestId = ++requestIdRef.current
+    loadProfile(currentRequestId)
   }, [userId])
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async (requestId: number) => {
     try {
       setLoading(true)
       const targetId = userId || currentUser?.id || ''
-      const response = await usersApi.getUser(targetId)
-      if (response.success && response.data) {
-        setUser(response.data)
+      
+      // Chạy song song 2 API calls thay vì tuần tự
+      const [userResponse, postsResponse] = await Promise.all([
+        usersApi.getUser(targetId),
+        postsApi.getPosts(1, 10)
+      ])
+      
+      // Chỉ update state nếu đây là request mới nhất
+      if (requestId !== requestIdRef.current) return
+      
+      if (userResponse.success && userResponse.data) {
+        setUser(userResponse.data)
         setFormData({
-          firstName: response.data.firstName || '',
-          lastName: response.data.lastName || '',
-          bio: response.data.bio || ''
+          firstName: userResponse.data.firstName || '',
+          lastName: userResponse.data.lastName || '',
+          bio: userResponse.data.bio || ''
         })
       }
-      // Load user posts
-      const postsResponse = await postsApi.getPosts(1, 10)
       if (postsResponse.success && postsResponse.data) {
         setPosts(postsResponse.data.items.filter(p => p.userId === targetId))
       }
     } catch (error) {
-      toast.error('Không thể tải thông tin người dùng')
+      if (requestId === requestIdRef.current) {
+        toast.error('Không thể tải thông tin người dùng')
+      }
     } finally {
-      setLoading(false)
+      if (requestId === requestIdRef.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [userId, currentUser?.id])
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

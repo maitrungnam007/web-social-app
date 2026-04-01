@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import toast from 'react-hot-toast'
 import { friendsApi, usersApi } from '../services/api'
 import { Friendship, User, Friend } from '../types'
@@ -32,12 +32,14 @@ export default function Friends() {
     confirmVariant: 'danger',
     onConfirm: () => {}
   })
+  const requestIdRef = useRef(0)
 
   useEffect(() => {
-    loadData()
+    const currentRequestId = ++requestIdRef.current
+    loadData(currentRequestId)
   }, [])
 
-  const loadData = async () => {
+  const loadData = useCallback(async (requestId: number) => {
     try {
       setLoading(true)
       const [friendsRes, requestsRes, sentRes] = await Promise.all([
@@ -45,6 +47,9 @@ export default function Friends() {
         friendsApi.getPendingRequests(),
         friendsApi.getSentRequests()
       ])
+      
+      // Chỉ update state nếu đây là request mới nhất
+      if (requestId !== requestIdRef.current) return
       
       if (friendsRes.success && friendsRes.data) {
         setFriends(friendsRes.data)
@@ -56,13 +61,29 @@ export default function Friends() {
         setSentRequests(sentRes.data)
       }
     } catch (error) {
-      toast.error('Không thể tải dữ liệu')
+      // Chỉ hiện lỗi nếu đây là request mới nhất
+      if (requestId === requestIdRef.current) {
+        toast.error('Không thể tải dữ liệu')
+      }
     } finally {
-      setLoading(false)
+      // Chỉ tắt loading nếu đây là request mới nhất
+      if (requestId === requestIdRef.current) {
+        setLoading(false)
+      }
     }
-  }
+  }, [])
 
-  const handleSearchUsers = async (term: string) => {
+  // Debounce search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (searchTerm) {
+        handleSearchUsers(searchTerm)
+      }
+    }, 300)
+    return () => clearTimeout(timer)
+  }, [searchTerm])
+
+  const handleSearchUsers = useCallback(async (term: string) => {
     if (!term.trim()) {
       setSearchResults([])
       return
@@ -79,9 +100,9 @@ export default function Friends() {
     } finally {
       setSearching(false)
     }
-  }
+  }, [currentUser?.id])
 
-  const handleSendFriendRequest = async (addresseeId: string) => {
+  const handleSendFriendRequest = useCallback(async (addresseeId: string) => {
     try {
       const response = await friendsApi.sendFriendRequest(addresseeId)
       if (response.success) {
@@ -90,21 +111,36 @@ export default function Friends() {
     } catch (error) {
       toast.error('Không thể gửi lời mời')
     }
-  }
+  }, [])
 
-  const handleAcceptRequest = async (friendshipId: number) => {
+  const handleAcceptRequest = useCallback(async (friendshipId: number) => {
     try {
       const response = await friendsApi.acceptFriendRequest(friendshipId)
       if (response.success) {
         toast.success('Đã chấp nhận lời mời')
-        loadData()
+        // Chỉ cập nhật state cục bộ thay vì reload toàn bộ
+        setPendingRequests(prev => {
+          const acceptedRequest = prev.find(r => r.id === friendshipId)
+          if (acceptedRequest) {
+            setFriends(f => [...f, {
+              id: acceptedRequest.requesterId,
+              userName: acceptedRequest.requesterName,
+              firstName: undefined,
+              lastName: undefined,
+              avatarUrl: acceptedRequest.requesterAvatar,
+              status: 'Accepted' as const
+            }])
+            return prev.filter(r => r.id !== friendshipId)
+          }
+          return prev
+        })
       }
     } catch (error) {
       toast.error('Không thể chấp nhận')
     }
-  }
+  }, [])
 
-  const handleRejectRequest = (friendshipId: number, requesterName: string) => {
+  const handleRejectRequest = useCallback((friendshipId: number, requesterName: string) => {
     setConfirm({
       isOpen: true,
       title: 'Từ chối lời mời',
@@ -116,9 +152,9 @@ export default function Friends() {
         doRejectRequest(friendshipId)
       }
     })
-  }
+  }, [])
 
-  const doRejectRequest = async (friendshipId: number) => {
+  const doRejectRequest = useCallback(async (friendshipId: number) => {
     try {
       const response = await friendsApi.rejectFriendRequest(friendshipId)
       if (response.success) {
@@ -128,9 +164,9 @@ export default function Friends() {
     } catch (error) {
       toast.error('Không thể từ chối')
     }
-  }
+  }, [])
 
-  const handleUnfriend = (friendId: string, friendName: string) => {
+  const handleUnfriend = useCallback((friendId: string, friendName: string) => {
     setConfirm({
       isOpen: true,
       title: 'Hủy kết bạn',
@@ -142,9 +178,9 @@ export default function Friends() {
         doUnfriend(friendId)
       }
     })
-  }
+  }, [])
 
-  const doUnfriend = async (friendId: string) => {
+  const doUnfriend = useCallback(async (friendId: string) => {
     try {
       const response = await friendsApi.unfriend(friendId)
       if (response.success) {
@@ -154,9 +190,9 @@ export default function Friends() {
     } catch (error) {
       toast.error('Không thể hủy kết bạn')
     }
-  }
+  }, [])
 
-  const handleCancelRequest = (friendshipId: number, addresseeName: string) => {
+  const handleCancelRequest = useCallback((friendshipId: number, addresseeName: string) => {
     setConfirm({
       isOpen: true,
       title: 'Thu hồi lời mời',
@@ -168,9 +204,9 @@ export default function Friends() {
         doCancelRequest(friendshipId)
       }
     })
-  }
+  }, [])
 
-  const doCancelRequest = async (friendshipId: number) => {
+  const doCancelRequest = useCallback(async (friendshipId: number) => {
     try {
       const response = await friendsApi.cancelFriendRequest(friendshipId)
       if (response.success) {
@@ -180,7 +216,7 @@ export default function Friends() {
     } catch (error) {
       toast.error('Không thể thu hồi lời mời')
     }
-  }
+  }, [])
 
   if (loading) {
     return (
@@ -365,10 +401,7 @@ export default function Friends() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
-                handleSearchUsers(e.target.value)
-              }}
+              onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Tìm kiếm người dùng..."
               className="w-full px-4 py-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             />

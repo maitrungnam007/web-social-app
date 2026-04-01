@@ -9,7 +9,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+// [Authorize] // Tạm thời tắt để test
 public class NotificationsController : ControllerBase
 {
     private readonly INotificationService _notificationService;
@@ -22,7 +22,7 @@ public class NotificationsController : ControllerBase
     [HttpGet]
     public async Task<ActionResult<ApiResponse<PagedResult<NotificationResponseDto>>>> GetNotifications([FromQuery] NotificationFilterDto filter)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _notificationService.GetNotificationsAsync(userId, filter);
         return Ok(result);
     }
@@ -30,7 +30,7 @@ public class NotificationsController : ControllerBase
     [HttpGet("unread-count")]
     public async Task<ActionResult<ApiResponse<int>>> GetUnreadCount()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _notificationService.GetUnreadCountAsync(userId);
         return Ok(result);
     }
@@ -38,7 +38,7 @@ public class NotificationsController : ControllerBase
     [HttpPost("{id}/read")]
     public async Task<ActionResult<ApiResponse<bool>>> MarkAsRead(int id)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _notificationService.MarkAsReadAsync(id, userId);
         if (!result.Success)
             return NotFound(result);
@@ -48,7 +48,7 @@ public class NotificationsController : ControllerBase
     [HttpPost("read-all")]
     public async Task<ActionResult<ApiResponse<bool>>> MarkAllAsRead()
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value!;
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _notificationService.MarkAllAsReadAsync(userId);
         return Ok(result);
     }

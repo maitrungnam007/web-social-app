@@ -48,6 +48,12 @@ builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IStoryService, StoryService>();
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IHashtagService, HashtagService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
+// Cấu hình SignalR
+builder.Services.AddSignalR();
 
 // Cấu hình CORS
 builder.Services.AddCors(options =>
@@ -86,6 +92,9 @@ app.UseCors("AllowClient");
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
 // Tạo database và seed dữ liệu mẫu
 using (var scope = app.Services.CreateScope())

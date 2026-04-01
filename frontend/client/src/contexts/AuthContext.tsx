@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User } from '../types'
 import { authApi } from '../services/api'
 
@@ -13,36 +13,34 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem(USER_KEY)
+    return storedUser ? JSON.parse(storedUser) : null
+  })
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    if (storedToken) {
+    const storedToken = localStorage.getItem(TOKEN_KEY)
+    const storedUser = localStorage.getItem(USER_KEY)
+    
+    if (storedToken && storedUser) {
       setToken(storedToken)
-      // Validate token and get user info
-      fetchUser()
-    } else {
-      setLoading(false)
+      setUser(JSON.parse(storedUser))
     }
+    setLoading(false)
   }, [])
-
-  const fetchUser = async () => {
-    try {
-      // TODO: Implement get current user API
-      setLoading(false)
-    } catch {
-      logout()
-    }
-  }
 
   const login = async (username: string, password: string) => {
     const response = await authApi.login(username, password)
     if (response.success && response.data) {
       const authData = response.data as any
-      localStorage.setItem('token', authData.token)
+      localStorage.setItem(TOKEN_KEY, authData.token)
+      localStorage.setItem(USER_KEY, JSON.stringify(authData.user))
       setToken(authData.token)
       setUser(authData.user)
     } else {
@@ -55,7 +53,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.register({ username, email, password, firstName, lastName })
       if (response.success && response.data) {
         const authData = response.data as any
-        localStorage.setItem('token', authData.token)
+        localStorage.setItem(TOKEN_KEY, authData.token)
+        localStorage.setItem(USER_KEY, JSON.stringify(authData.user))
         setToken(authData.token)
         setUser(authData.user)
       } else {
@@ -64,13 +63,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw error
       }
     } catch (err: any) {
-      // Preserve axios error response
       throw err
     }
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
     setToken(null)
     setUser(null)
   }

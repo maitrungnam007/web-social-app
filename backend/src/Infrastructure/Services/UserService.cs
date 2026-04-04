@@ -72,7 +72,10 @@ public class UserService : IUserService
             if (dto.Bio != null)
                 user.Bio = dto.Bio;
             
-            if (dto.AvatarUrl != null)
+            // Empty string = xóa avatar (set null)
+            if (dto.AvatarUrl == "")
+                user.AvatarUrl = null;
+            else if (dto.AvatarUrl != null)
                 user.AvatarUrl = dto.AvatarUrl;
             
             if (dto.CoverImageUrl != null)
@@ -166,6 +169,7 @@ public class UserService : IUserService
             FirstName = user.FirstName,
             LastName = user.LastName,
             AvatarUrl = user.AvatarUrl,
+            CoverImageUrl = user.CoverImageUrl,
             Bio = user.Bio,
             FriendsCount = friendsCount
         };

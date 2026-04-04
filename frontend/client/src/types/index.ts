@@ -5,6 +5,7 @@ export interface User {
   firstName?: string
   lastName?: string
   avatarUrl?: string
+  coverImageUrl?: string
   bio?: string
   friendsCount?: number
 }

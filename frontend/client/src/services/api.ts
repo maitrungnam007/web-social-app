@@ -252,6 +252,25 @@ export const usersApi = {
     })
     return response.data
   },
+  
+  deleteAvatar: async (): Promise<ApiResponse<User>> => {
+    const response = await api.delete('/users/avatar')
+    return response.data
+  },
+  
+  uploadCover: async (file: File): Promise<ApiResponse<{ coverUrl: string; fullUrl: string; user: User }>> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const response = await api.post('/users/cover', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  },
+  
+  deleteCover: async (): Promise<ApiResponse<User>> => {
+    const response = await api.delete('/users/cover')
+    return response.data
+  },
 }
 
 // Files API

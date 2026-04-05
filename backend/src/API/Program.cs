@@ -107,7 +107,11 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Chỉ bật HTTPS redirection trong production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowClient");
 
 app.UseAuthentication();
@@ -134,8 +138,8 @@ using (var scope = app.Services.CreateScope())
         await SeedData.SeedAsync(dbContext, userManager, roleManager);
         
         // Warmup EF Core - thực hiện query đơn giản để cache execution plan
-        await dbContext.Users.AsNoTracking().Take(1).ToListAsync();
-        await dbContext.Posts.AsNoTracking().Take(1).ToListAsync();
+        await dbContext.Users.AsNoTracking().OrderBy(u => u.Id).Take(1).ToListAsync();
+        await dbContext.Posts.AsNoTracking().OrderBy(p => p.Id).Take(1).ToListAsync();
         
         Console.WriteLine("✅ Database đã được tạo và seed dữ liệu thành công!");
         Console.WriteLine("🔥 EF Core warmup completed!");

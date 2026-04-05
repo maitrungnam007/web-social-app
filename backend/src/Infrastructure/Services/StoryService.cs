@@ -101,16 +101,29 @@ public class StoryService : IStoryService
         }
     }
 
-    // Lấy danh sách stories đang hoạt động (chưa hết hạn)
+    // Lấy danh sách stories đang hoạt động (chưa hết hạn) - chỉ của bạn bè
     public async Task<ApiResponse<List<StoryResponseDto>>> GetActiveStoriesAsync(string? currentUserId)
     {
         try
         {
             var now = DateTime.UtcNow;
 
+            // Lấy danh sách bạn bè (accepted)
+            var friendIds = await _context.Friendships
+                .AsNoTracking()
+                .Where(f => (f.RequesterId == currentUserId || f.AddresseeId == currentUserId) && f.Status == Core.Enums.FriendshipStatus.Accepted)
+                .Select(f => f.RequesterId == currentUserId ? f.AddresseeId : f.RequesterId)
+                .ToListAsync();
+
+            // Thêm chính mình vào danh sách để hiện story của mình
+            if (currentUserId != null)
+            {
+                friendIds.Add(currentUserId);
+            }
+
             var stories = await _context.Stories
                 .AsNoTracking()
-                .Where(s => !s.IsDeleted && s.ExpiresAt > now)
+                .Where(s => !s.IsDeleted && s.ExpiresAt > now && friendIds.Contains(s.UserId))
                 .Select(s => new StoryResponseDto
                 {
                     Id = s.Id,
@@ -237,5 +250,274 @@ public class StoryService : IStoryService
             IsViewedByCurrentUser = currentUserId != null && 
                 story.StoryViews?.Any(sv => sv.ViewerId == currentUserId) == true
         };
+    }
+
+    // Lấy danh sách story đã lưu trữ (Archive)
+    public async Task<ApiResponse<List<ArchivedStoryResponseDto>>> GetArchivedStoriesAsync(string userId)
+    {
+        try
+        {
+            var archivedStories = await _context.Stories
+                .AsNoTracking()
+                .Include(s => s.StoryViews)
+                .Where(s => s.UserId == userId && s.IsArchived && s.IsDeleted)
+                .OrderByDescending(s => s.CreatedAt)
+                .Select(s => new ArchivedStoryResponseDto
+                {
+                    Id = s.Id,
+                    Content = s.Content,
+                    MediaUrl = s.MediaUrl,
+                    MediaType = s.MediaType,
+                    CreatedAt = s.CreatedAt,
+                    ExpiresAt = s.ExpiresAt,
+                    ViewCount = s.StoryViews.Count
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<ArchivedStoryResponseDto>>.SuccessResult(archivedStories);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy story đã lưu trữ của user {UserId}", userId);
+            return ApiResponse<List<ArchivedStoryResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy story đã lưu trữ");
+        }
+    }
+
+    // Lấy danh sách highlights của user
+    public async Task<ApiResponse<List<HighlightResponseDto>>> GetUserHighlightsAsync(string userId)
+    {
+        try
+        {
+            var highlights = await _context.StoryHighlights
+                .AsNoTracking()
+                .Include(h => h.Items)
+                    .ThenInclude(i => i.Story)
+                        .ThenInclude(s => s.User)
+                .Where(h => h.UserId == userId)
+                .OrderByDescending(h => h.CreatedAt)
+                .Select(h => new HighlightResponseDto
+                {
+                    Id = h.Id,
+                    Name = h.Name,
+                    CoverImageUrl = h.CoverImageUrl,
+                    StoryCount = h.Items.Count,
+                    Stories = h.Items.OrderBy(i => i.Order).Select(i => new StoryResponseDto
+                    {
+                        Id = i.Story.Id,
+                        Content = i.Story.Content,
+                        MediaUrl = i.Story.MediaUrl,
+                        MediaType = i.Story.MediaType,
+                        UserId = i.Story.UserId,
+                        UserName = i.Story.User != null ? i.Story.User.UserName : "",
+                        UserAvatar = i.Story.User != null ? i.Story.User.AvatarUrl : null,
+                        CreatedAt = i.Story.CreatedAt,
+                        ExpiresAt = i.Story.ExpiresAt,
+                        ViewCount = i.Story.StoryViews.Count,
+                        IsViewedByCurrentUser = false
+                    }).ToList(),
+                    CreatedAt = h.CreatedAt
+                })
+                .ToListAsync();
+
+            return ApiResponse<List<HighlightResponseDto>>.SuccessResult(highlights);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy highlights của user {UserId}", userId);
+            return ApiResponse<List<HighlightResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy highlights");
+        }
+    }
+
+    // Tạo highlight mới
+    public async Task<ApiResponse<HighlightResponseDto>> CreateHighlightAsync(CreateHighlightDto dto, string userId)
+    {
+        try
+        {
+            var highlight = new StoryHighlight
+            {
+                Name = dto.Name,
+                CoverImageUrl = dto.CoverImageUrl,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.StoryHighlights.Add(highlight);
+            await _context.SaveChangesAsync();
+
+            // Thêm các story vào highlight
+            if (dto.StoryIds.Any())
+            {
+                var order = 0;
+                foreach (var storyId in dto.StoryIds)
+                {
+                    var story = await _context.Stories.FindAsync(storyId);
+                    if (story != null && story.UserId == userId)
+                    {
+                        _context.StoryHighlightItems.Add(new StoryHighlightItem
+                        {
+                            HighlightId = highlight.Id,
+                            StoryId = storyId,
+                            Order = order++,
+                            AddedAt = DateTime.UtcNow
+                        });
+                    }
+                }
+                await _context.SaveChangesAsync();
+            }
+
+            return await GetUserHighlightsAsync(userId)
+                .ContinueWith(t => {
+                    var result = t.Result.Data?.FirstOrDefault(h => h.Id == highlight.Id);
+                    return result != null
+                        ? ApiResponse<HighlightResponseDto>.SuccessResult(result, "Tạo highlight thành công")
+                        : ApiResponse<HighlightResponseDto>.ErrorResult("Không tìm thấy highlight vừa tạo");
+                });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi tạo highlight cho user {UserId}", userId);
+            return ApiResponse<HighlightResponseDto>.ErrorResult("Có lỗi xảy ra khi tạo highlight");
+        }
+    }
+
+    // Cập nhật highlight
+    public async Task<ApiResponse<HighlightResponseDto>> UpdateHighlightAsync(int highlightId, UpdateHighlightDto dto, string userId)
+    {
+        try
+        {
+            var highlight = await _context.StoryHighlights.FindAsync(highlightId);
+            if (highlight == null)
+            {
+                return ApiResponse<HighlightResponseDto>.ErrorResult("Không tìm thấy highlight");
+            }
+
+            if (highlight.UserId != userId)
+            {
+                return ApiResponse<HighlightResponseDto>.ErrorResult("Bạn không có quyền sửa highlight này");
+            }
+
+            highlight.Name = dto.Name;
+            highlight.CoverImageUrl = dto.CoverImageUrl;
+            await _context.SaveChangesAsync();
+
+            var highlights = await GetUserHighlightsAsync(userId);
+            var result = highlights.Data?.FirstOrDefault(h => h.Id == highlightId);
+            return result != null
+                ? ApiResponse<HighlightResponseDto>.SuccessResult(result, "Cập nhật highlight thành công")
+                : ApiResponse<HighlightResponseDto>.ErrorResult("Không tìm thấy highlight");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi cập nhật highlight {HighlightId}", highlightId);
+            return ApiResponse<HighlightResponseDto>.ErrorResult("Có lỗi xảy ra khi cập nhật highlight");
+        }
+    }
+
+    // Xóa highlight
+    public async Task<ApiResponse<bool>> DeleteHighlightAsync(int highlightId, string userId)
+    {
+        try
+        {
+            var highlight = await _context.StoryHighlights.FindAsync(highlightId);
+            if (highlight == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy highlight");
+            }
+
+            if (highlight.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn không có quyền xóa highlight này");
+            }
+
+            _context.StoryHighlights.Remove(highlight);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xóa highlight");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xóa highlight {HighlightId}", highlightId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa highlight");
+        }
+    }
+
+    // Thêm story vào highlight
+    public async Task<ApiResponse<bool>> AddStoryToHighlightAsync(int highlightId, AddStoryToHighlightDto dto, string userId)
+    {
+        try
+        {
+            var highlight = await _context.StoryHighlights
+                .Include(h => h.Items)
+                .FirstOrDefaultAsync(h => h.Id == highlightId);
+
+            if (highlight == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy highlight");
+            }
+
+            if (highlight.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn không có quyền sửa highlight này");
+            }
+
+            var story = await _context.Stories.FindAsync(dto.StoryId);
+            if (story == null || story.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Story không tồn tại hoặc không thuộc về bạn");
+            }
+
+            // Kiểm tra đã có trong highlight chưa
+            if (highlight.Items.Any(i => i.StoryId == dto.StoryId))
+            {
+                return ApiResponse<bool>.ErrorResult("Story đã có trong highlight");
+            }
+
+            _context.StoryHighlightItems.Add(new StoryHighlightItem
+            {
+                HighlightId = highlightId,
+                StoryId = dto.StoryId,
+                Order = highlight.Items.Count,
+                AddedAt = DateTime.UtcNow
+            });
+
+            await _context.SaveChangesAsync();
+            return ApiResponse<bool>.SuccessResult(true, "Đã thêm story vào highlight");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi thêm story vào highlight {HighlightId}", highlightId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi thêm story vào highlight");
+        }
+    }
+
+    // Xóa story khỏi highlight
+    public async Task<ApiResponse<bool>> RemoveStoryFromHighlightAsync(int highlightId, int storyId, string userId)
+    {
+        try
+        {
+            var highlight = await _context.StoryHighlights.FindAsync(highlightId);
+            if (highlight == null || highlight.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy highlight hoặc không có quyền");
+            }
+
+            var item = await _context.StoryHighlightItems
+                .FirstOrDefaultAsync(i => i.HighlightId == highlightId && i.StoryId == storyId);
+
+            if (item == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Story không có trong highlight");
+            }
+
+            _context.StoryHighlightItems.Remove(item);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xóa story khỏi highlight");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xóa story khỏi highlight {HighlightId}", highlightId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa story khỏi highlight");
+        }
     }
 }

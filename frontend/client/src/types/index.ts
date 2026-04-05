@@ -44,6 +44,7 @@ export interface Story {
   content?: string
   mediaUrl?: string
   mediaType?: string
+  duration?: number // seconds
   userId: string
   userName: string
   userAvatar?: string
@@ -51,6 +52,25 @@ export interface Story {
   expiresAt: string
   viewCount: number
   isViewedByCurrentUser: boolean
+}
+
+export interface ArchivedStory {
+  id: number
+  content?: string
+  mediaUrl?: string
+  mediaType?: string
+  createdAt: string
+  expiresAt: string
+  viewCount: number
+}
+
+export interface StoryHighlight {
+  id: number
+  name: string
+  coverImageUrl?: string
+  storyCount: number
+  stories: Story[]
+  createdAt: string
 }
 
 export interface Notification {

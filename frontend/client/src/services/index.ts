@@ -1,0 +1,10 @@
+// Export all APIs from a single entry point
+export { default as api, createCancelToken } from './apiClient'
+export { authApi } from './authApi'
+export { postsApi } from './postsApi'
+export { commentsApi } from './commentsApi'
+export { friendsApi } from './friendsApi'
+export { storiesApi } from './storiesApi'
+export { notificationsApi } from './notificationsApi'
+export { usersApi } from './usersApi'
+export { filesApi } from './filesApi'

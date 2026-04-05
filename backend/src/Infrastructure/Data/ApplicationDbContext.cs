@@ -16,6 +16,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Friendship> Friendships => Set<Friendship>();
     public DbSet<Story> Stories => Set<Story>();
     public DbSet<StoryView> StoryViews => Set<StoryView>();
+    public DbSet<StoryHighlight> StoryHighlights => Set<StoryHighlight>();
+    public DbSet<StoryHighlightItem> StoryHighlightItems => Set<StoryHighlightItem>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Hashtag> Hashtags => Set<Hashtag>();
     public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
@@ -144,6 +146,33 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .WithMany()
                 .HasForeignKey(e => e.ViewerId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+        
+        // Cấu hình StoryHighlight
+        builder.Entity<StoryHighlight>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(50);
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(e => e.UserId);
+        });
+        
+        // Cấu hình StoryHighlightItem
+        builder.Entity<StoryHighlightItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasOne(e => e.Highlight)
+                .WithMany(h => h.Items)
+                .HasForeignKey(e => e.HighlightId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Story)
+                .WithMany(s => s.HighlightItems)
+                .HasForeignKey(e => e.StoryId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(e => new { e.HighlightId, e.StoryId }).IsUnique();
         });
         
         // Cấu hình Notification

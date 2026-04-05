@@ -2,26 +2,39 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
-import { usersApi, postsApi } from '../services/api'
-import { User, Post } from '../types'
+import { usersApi, postsApi, storiesApi } from '../services'
+import { User, Post, Story, StoryHighlight } from '../types'
+import StoryViewer from '../components/StoryViewer'
+import ProfileCover from '../components/ProfileCover'
+import ProfileAvatar from '../components/ProfileAvatar'
+import ProfileHighlights from '../components/ProfileHighlights'
 
 export default function Profile() {
   const { userId } = useParams()
   const { user: currentUser, updateUser } = useAuth()
   const [user, setUser] = useState<User | null>(null)
   const [posts, setPosts] = useState<Post[]>([])
+  const [stories, setStories] = useState<Story[]>([])
+  const [highlights, setHighlights] = useState<StoryHighlight[]>([])
   const [friendsCount, setFriendsCount] = useState(0)
   const [loadingUser, setLoadingUser] = useState(true)
   const [loadingPosts, setLoadingPosts] = useState(false)
   const [hasMorePosts, setHasMorePosts] = useState(true)
   const [currentPage, setCurrentPage] = useState(1)
+  const [showAvatarActions, setShowAvatarActions] = useState(false)
+  const [showCoverActions, setShowCoverActions] = useState(false)
+  const [viewImage, setViewImage] = useState<{ url: string; type: 'avatar' | 'cover' } | null>(null)
+  const [viewingStory, setViewingStory] = useState<Story | null>(null)
+  const [currentStoryIndex, setCurrentStoryIndex] = useState(0)
+  const [viewingHighlight, setViewingHighlight] = useState<StoryHighlight | null>(null)
+  const [showHighlightModal, setShowHighlightModal] = useState(false)
+  const [newHighlightName, setNewHighlightName] = useState('')
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     bio: ''
   })
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const requestIdRef = useRef(0)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -48,6 +61,51 @@ export default function Profile() {
       }
     }
   }, [userId])
+
+  // Load stories của user này
+  useEffect(() => {
+    if (user) {
+      loadUserStories()
+      loadHighlights()
+    }
+  }, [user?.id])
+
+  const handleDeleteStory = async (storyId: number) => {
+    try {
+      const response = await storiesApi.deleteStory(storyId)
+      if (response.success) {
+        toast.success('Đã xóa tin')
+        setViewingStory(null)
+        loadUserStories()
+      }
+    } catch (error) {
+      toast.error('Không thể xóa tin')
+    }
+  }
+
+  const loadUserStories = async () => {
+    if (!user) return
+    try {
+      const response = await storiesApi.getUserStories(user.id)
+      if (response.success && response.data) {
+        setStories(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to load user stories')
+    }
+  }
+
+  const loadHighlights = async () => {
+    if (!user) return
+    try {
+      const response = await storiesApi.getUserHighlights(user.id)
+      if (response.success && response.data) {
+        setHighlights(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to load highlights')
+    }
+  }
 
   // Load posts sau khi có user
   useEffect(() => {
@@ -146,8 +204,45 @@ export default function Profile() {
     }
   }, [loadingPosts, hasMorePosts, currentPage, loadPosts])
 
-  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
+  const handleDeleteAvatar = async () => {
+    // Hiển thị toast xác nhận
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-medium">Bạn có chắc muốn xóa avatar?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id)
+              try {
+                const response = await usersApi.deleteAvatar()
+                if (response.success) {
+                  setUser(prev => prev ? { ...prev, avatarUrl: undefined } : null)
+                  updateUser({ avatarUrl: undefined })
+                  toast.success('Đã xóa avatar thành công')
+                } else {
+                  toast.error(response.message || 'Không thể xóa avatar')
+                }
+              } catch (error: any) {
+                const message = error.response?.data?.message || error.message || 'Không thể xóa avatar'
+                toast.error(message)
+              }
+            }}
+            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity })
+  }
+
+  const handleAvatarUpload = async (file: File) => {
     if (!file) return
 
     if (file.size > 5 * 1024 * 1024) {
@@ -162,18 +257,92 @@ export default function Profile() {
     }
 
     try {
-      toast.loading('Đang tải lên...')
+      const loadingToast = toast.loading('Đang tải lên...')
       const response = await usersApi.uploadAvatar(file)
-      if (response.success && response.data) {
-        const newAvatarUrl = response.data.avatarUrl
+      toast.dismiss(loadingToast)
+      
+      if (response.success) {
+        const newAvatarUrl = response.data?.avatarUrl
         setUser(prev => prev ? { ...prev, avatarUrl: newAvatarUrl } : null)
-        // Cập nhật user trong AuthContext và localStorage
         updateUser({ avatarUrl: newAvatarUrl })
         toast.success('Cập nhật avatar thành công')
+      } else {
+        toast.error(response.message || 'Không thể tải lên avatar')
       }
-    } catch (error) {
-      toast.error('Không thể tải lên avatar')
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Không thể tải lên avatar'
+      toast.error(message)
     }
+  }
+
+  const handleCoverUpload = async (file: File) => {
+    if (!file) return
+
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error('File không được vượt quá 10MB')
+      return
+    }
+
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+    if (!allowedTypes.includes(file.type)) {
+      toast.error('Chỉ chấp nhận file ảnh (jpg, png, gif, webp)')
+      return
+    }
+
+    try {
+      const loadingToast = toast.loading('Đang tải lên...')
+      const response = await usersApi.uploadCover(file)
+      toast.dismiss(loadingToast)
+      
+      if (response.success) {
+        const newCoverUrl = response.data?.coverUrl
+        setUser(prev => prev ? { ...prev, coverImageUrl: newCoverUrl } : null)
+        updateUser({ coverImageUrl: newCoverUrl })
+        toast.success('Cập nhật ảnh bìa thành công')
+      } else {
+        toast.error(response.message || 'Không thể tải lên ảnh bìa')
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Không thể tải lên ảnh bìa'
+      toast.error(message)
+    }
+  }
+
+  const handleDeleteCover = async () => {
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-medium">Bạn có chắc muốn xóa ảnh bìa?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
+          >
+            Hủy
+          </button>
+          <button
+            onClick={async () => {
+              toast.dismiss(t.id)
+              try {
+                const response = await usersApi.deleteCover()
+                if (response.success) {
+                  setUser(prev => prev ? { ...prev, coverImageUrl: undefined } : null)
+                  updateUser({ coverImageUrl: undefined })
+                  toast.success('Đã xóa ảnh bìa thành công')
+                } else {
+                  toast.error(response.message || 'Không thể xóa ảnh bìa')
+                }
+              } catch (error: any) {
+                const message = error.response?.data?.message || error.message || 'Không thể xóa ảnh bìa'
+                toast.error(message)
+              }
+            }}
+            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
+          >
+            Xóa
+          </button>
+        </div>
+      </div>
+    ), { duration: Infinity })
   }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -242,37 +411,33 @@ export default function Profile() {
   return (
     <div className="max-w-4xl mx-auto">
       {/* Cover Image */}
-      <div className="h-48 bg-gradient-to-r from-blue-500 to-purple-600 rounded-t-lg"></div>
+      <ProfileCover
+        user={user}
+        isOwnProfile={isOwnProfile}
+        showCoverActions={showCoverActions}
+        onShowCoverActions={setShowCoverActions}
+        onCoverUpload={handleCoverUpload}
+        onDeleteCover={handleDeleteCover}
+        onViewImage={(url, type) => setViewImage({ url, type })}
+      />
 
       {/* Profile Header */}
       <div className="bg-white rounded-b-lg shadow p-6">
         <div className="flex flex-col md:flex-row items-start md:items-end gap-4 -mt-20">
           {/* Avatar */}
-          <div className="relative">
-            <img
-              src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=128`}
-              alt={user.userName}
-              className="w-32 h-32 rounded-full border-4 border-white object-cover bg-gray-200"
-            />
-            {isOwnProfile && (
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                className="absolute bottom-0 right-0 bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600 shadow-lg"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-              </button>
-            )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              onChange={handleAvatarUpload}
-              className="hidden"
-            />
-          </div>
+          <ProfileAvatar
+            user={user}
+            stories={stories}
+            isOwnProfile={isOwnProfile}
+            showAvatarActions={showAvatarActions}
+            onShowAvatarActions={setShowAvatarActions}
+            onAvatarUpload={handleAvatarUpload}
+            onDeleteAvatar={handleDeleteAvatar}
+            onViewStory={(story) => {
+              setViewingStory(story)
+              setCurrentStoryIndex(0)
+            }}
+          />
 
           {/* User Info */}
           <div className="flex-1">
@@ -290,7 +455,7 @@ export default function Profile() {
               onClick={() => setEditing(!editing)}
               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
             >
-              {editing ? 'Hủy' : 'Chỉnh sửa'}
+              {editing ? 'Hủy' : 'Chỉnh sửa hồ sơ'}
             </button>
           )}
         </div>
@@ -354,6 +519,25 @@ export default function Profile() {
         </div>
       </div>
 
+      {/* Stories & Highlights */}
+      <ProfileHighlights
+        stories={stories}
+        highlights={highlights}
+        userName={user?.userName}
+        userAvatar={user?.avatarUrl}
+        onViewStory={(story) => {
+          setViewingStory(story)
+          setCurrentStoryIndex(0)
+        }}
+        onViewHighlight={(highlight) => {
+          setViewingHighlight(highlight)
+          if (highlight.stories.length > 0) {
+            setViewingStory(highlight.stories[0])
+            setCurrentStoryIndex(0)
+          }
+        }}
+      />
+
       {/* Posts Grid */}
       <div className="mt-6">
         <h2 className="text-xl font-bold mb-4">Bài đăng</h2>
@@ -396,6 +580,151 @@ export default function Profile() {
           </>
         )}
       </div>
+
+      {/* Image Viewer Modal - Chỉ cho ảnh bìa */}
+      {viewImage && viewImage.type === 'cover' && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4"
+          onClick={() => setViewImage(null)}
+        >
+          <button
+            onClick={() => setViewImage(null)}
+            className="absolute top-4 right-4 text-white hover:text-gray-300 transition-colors"
+          >
+            <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+          <img
+            src={viewImage.url}
+            alt="Cover"
+            className="max-w-full max-h-full object-contain rounded-lg"
+            onClick={(e) => e.stopPropagation()}
+          />
+        </div>
+      )}
+
+      {/* Story Viewer Modal */}
+      {viewingStory && (
+        <StoryViewer
+          stories={viewingHighlight?.stories || stories}
+          initialIndex={currentStoryIndex}
+          onClose={() => {
+            setViewingStory(null)
+            setViewingHighlight(null)
+          }}
+          showDeleteButton={isOwnProfile && !viewingHighlight}
+          onDeleteStory={handleDeleteStory}
+          showAddToHighlight={isOwnProfile && !viewingHighlight}
+          onAddToHighlight={() => setShowHighlightModal(true)}
+          userName={user?.userName}
+          userAvatar={user?.avatarUrl}
+        />
+      )}
+
+      {/* Highlight Modal */}
+      {showHighlightModal && viewingStory && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Thêm vào Tin nổi bật</h3>
+            
+            {/* Tạo highlight mới */}
+            <div className="mb-4">
+              <input
+                type="text"
+                placeholder="Tên highlight mới..."
+                value={newHighlightName}
+                onChange={(e) => setNewHighlightName(e.target.value)}
+                className="w-full border rounded-lg px-3 py-2 mb-2"
+              />
+              <button
+                onClick={async () => {
+                  if (!newHighlightName.trim()) {
+                    toast.error('Vui lòng nhập tên highlight')
+                    return
+                  }
+                  try {
+                    const response = await storiesApi.createHighlight({
+                      name: newHighlightName.trim(),
+                      storyIds: [viewingStory.id]
+                    })
+                    if (response.success) {
+                      toast.success('Đã tạo highlight mới')
+                      setNewHighlightName('')
+                      setShowHighlightModal(false)
+                      loadHighlights()
+                    } else {
+                      toast.error(response.message || 'Lỗi khi tạo highlight')
+                    }
+                  } catch (error) {
+                    toast.error('Có lỗi xảy ra')
+                  }
+                }}
+                className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600"
+              >
+                Tạo highlight mới
+              </button>
+            </div>
+
+            {/* Hoặc chọn highlight có sẵn */}
+            {highlights.length > 0 && (
+              <>
+                <div className="border-t pt-4 mb-2">
+                  <p className="text-sm text-gray-500 mb-2">Hoặc thêm vào highlight có sẵn:</p>
+                </div>
+                <div className="max-h-48 overflow-y-auto space-y-2">
+                  {highlights.map((h) => (
+                    <button
+                      key={h.id}
+                      onClick={async () => {
+                        try {
+                          const response = await storiesApi.addStoryToHighlight(h.id, viewingStory.id)
+                          if (response.success) {
+                            toast.success(`Đã thêm vào "${h.name}"`)
+                            setShowHighlightModal(false)
+                            loadHighlights()
+                          } else {
+                            toast.error(response.message || 'Lỗi khi thêm vào highlight')
+                          }
+                        } catch (error) {
+                          toast.error('Có lỗi xảy ra')
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-2 border rounded-lg hover:bg-gray-50 text-left"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 p-0.5">
+                        <img
+                          src={h.coverImageUrl 
+                            ? `http://localhost:5259/api/files/${h.coverImageUrl}` 
+                            : (h.stories[0]?.mediaUrl 
+                              ? `http://localhost:5259/api/files/${h.stories[0].mediaUrl}` 
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name)}&background=random&size=40`)}
+                          alt={h.name}
+                          className="w-full h-full rounded-full object-cover border border-white"
+                        />
+                      </div>
+                      <div>
+                        <p className="font-medium">{h.name}</p>
+                        <p className="text-xs text-gray-500">{h.storyCount} tin</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            <button
+              onClick={() => {
+                setShowHighlightModal(false)
+                setNewHighlightName('')
+              }}
+              className="w-full mt-4 border py-2 rounded-lg hover:bg-gray-50"
+            >
+              Đóng
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

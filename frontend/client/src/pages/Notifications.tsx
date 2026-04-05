@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { notificationsApi } from '../services/api'
+import { notificationsApi } from '../services'
 import { Notification } from '../types'
 
 export default function Notifications() {

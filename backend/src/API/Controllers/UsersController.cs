@@ -1,4 +1,5 @@
 using Core.DTOs.Auth;
+using Core.DTOs.Post;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -13,11 +14,13 @@ public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IFileStorageService _fileStorageService;
+    private readonly IPostService _postService;
     
-    public UsersController(IUserService userService, IFileStorageService fileStorageService)
+    public UsersController(IUserService userService, IFileStorageService fileStorageService, IPostService postService)
     {
         _userService = userService;
         _fileStorageService = fileStorageService;
+        _postService = postService;
     }
     
     [HttpGet("{id}")]
@@ -86,6 +89,13 @@ public class UsersController : ControllerBase
             return BadRequest(updateResult);
         }
 
+        // Tạo bài đăng tự động khi thay avatar
+        var post = await _postService.CreatePostAsync(new CreatePostDto
+        {
+            Content = "đã thay đổi ảnh đại diện",
+            ImageUrl = filePath
+        }, userId);
+
         return Ok(new
         {
             success = true,
@@ -94,9 +104,158 @@ public class UsersController : ControllerBase
             {
                 avatarUrl = filePath,
                 fullUrl = fileUrl,
-                user = updateResult.Data
+                user = updateResult.Data,
+                post = post.Success ? post.Data : null
             }
         });
+    }
+    
+    // Xóa avatar và hiện lại avatar mặc định
+    [HttpDelete("avatar")]
+    public async Task<ActionResult> DeleteAvatar()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        try
+        {
+            // Lấy thông tin user để xóa file avatar cũ
+            var userResult = await _userService.GetUserByIdAsync(userId);
+            if (userResult.Success && userResult.Data?.AvatarUrl != null)
+            {
+                // Xóa file avatar cũ
+                await _fileStorageService.DeleteFileAsync(userResult.Data.AvatarUrl);
+            }
+            
+            // Cập nhật avatarUrl thành null
+            var updateResult = await _userService.UpdateProfileAsync(userId, new UpdateProfileDto
+            {
+                AvatarUrl = "" // Empty string để set null
+            });
+            
+            if (!updateResult.Success)
+            {
+                return BadRequest(updateResult);
+            }
+            
+            return Ok(new
+            {
+                success = true,
+                message = "Đã xóa avatar thành công",
+                data = updateResult.Data
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Lỗi server: " + ex.Message });
+        }
+    }
+    
+    // Upload ảnh bìa
+    [HttpPost("cover")]
+    public async Task<ActionResult> UploadCover(IFormFile file)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        if (file == null || file.Length == 0)
+        {
+            return BadRequest(new { success = false, message = "Không có file được chọn" });
+        }
+
+        // Kiểm tra kích thước file (max 10MB cho cover)
+        if (file.Length > 10 * 1024 * 1024)
+        {
+            return BadRequest(new { success = false, message = "File không được vượt quá 10MB" });
+        }
+
+        // Kiểm tra loại file
+        var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+        var fileExtension = Path.GetExtension(file.FileName).ToLowerInvariant();
+        if (!allowedExtensions.Contains(fileExtension))
+        {
+            return BadRequest(new { success = false, message = "Chỉ chấp nhận file ảnh (jpg, jpeg, png, gif, webp)" });
+        }
+
+        // Upload file
+        using var stream = file.OpenReadStream();
+        var filePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, "covers");
+        var fileUrl = _fileStorageService.GetFileUrl(Path.GetFileName(filePath), "covers");
+
+        // Cập nhật cover cho user
+        var updateResult = await _userService.UpdateProfileAsync(userId, new UpdateProfileDto
+        {
+            CoverImageUrl = filePath
+        });
+
+        if (!updateResult.Success)
+        {
+            return BadRequest(updateResult);
+        }
+
+        // Tạo bài đăng tự động khi thay ảnh bìa
+        var post = await _postService.CreatePostAsync(new CreatePostDto
+        {
+            Content = "đã thay đổi ảnh bìa",
+            ImageUrl = filePath
+        }, userId);
+
+        return Ok(new
+        {
+            success = true,
+            message = "Cập nhật ảnh bìa thành công",
+            data = new
+            {
+                coverUrl = filePath,
+                fullUrl = fileUrl,
+                user = updateResult.Data,
+                post = post.Success ? post.Data : null
+            }
+        });
+    }
+    
+    // Xóa ảnh bìa
+    [HttpDelete("cover")]
+    public async Task<ActionResult> DeleteCover()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        try
+        {
+            // Lấy thông tin user để xóa file cover cũ
+            var userResult = await _userService.GetUserByIdAsync(userId);
+            if (userResult.Success && userResult.Data?.CoverImageUrl != null)
+            {
+                // Xóa file cover cũ
+                await _fileStorageService.DeleteFileAsync(userResult.Data.CoverImageUrl);
+            }
+            
+            // Cập nhật coverUrl thành null
+            var updateResult = await _userService.UpdateProfileAsync(userId, new UpdateProfileDto
+            {
+                CoverImageUrl = "" // Empty string để set null
+            });
+            
+            if (!updateResult.Success)
+            {
+                return BadRequest(updateResult);
+            }
+            
+            return Ok(new
+            {
+                success = true,
+                message = "Đã xóa ảnh bìa thành công",
+                data = updateResult.Data
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { success = false, message = "Lỗi server: " + ex.Message });
+        }
     }
     
     [HttpGet("search")]

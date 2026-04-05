@@ -346,6 +346,7 @@ public class FriendService : IFriendService
                     LastName = u.LastName,
                     AvatarUrl = u.AvatarUrl
                 })
+                .OrderBy(u => u.UserName)
                 .Take(5) // Giới hạn 5 bạn chung để hiển thị
                 .ToListAsync();
 

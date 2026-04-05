@@ -110,6 +110,7 @@ public class UserService : IUserService
                             u.Email!.Contains(searchTerm) ||
                             (u.FirstName != null && u.FirstName.Contains(searchTerm)) ||
                             (u.LastName != null && u.LastName.Contains(searchTerm)))
+                .OrderBy(u => u.UserName)
                 .Take(20)
                 .ToListAsync();
 

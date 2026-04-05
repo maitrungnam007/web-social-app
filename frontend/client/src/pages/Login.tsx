@@ -1,64 +1,53 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import TextInput from '../components/TextInput'
+
+const loginSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
+    .nonempty('Vui lòng nhập tên đăng nhập'),
+  password: z
+    .string()
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .nonempty('Vui lòng nhập mật khẩu')
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
 
 export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
-  const [errors, setErrors] = useState<{ username?: string; password?: string }>({})
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const validateForm = (): boolean => {
-    const newErrors: { username?: string; password?: string } = {}
-    
-    if (!username.trim()) {
-      newErrors.username = 'Vui lòng nhập tên đăng nhập'
-    } else if (username.trim().length < 3) {
-      newErrors.username = 'Tên đăng nhập phải có ít nhất 3 ký tự'
-    }
-    
-    if (!password) {
-      newErrors.password = 'Vui lòng nhập mật khẩu'
-    } else if (password.length < 6) {
-      newErrors.password = 'Mật khẩu phải có ít nhất 6 ký tự'
-    }
-    
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
-  }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange'
+  })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    
-    if (!validateForm()) {
-      return
-    }
-    
+  const onSubmit = async (data: LoginFormData) => {
     setLoading(true)
-    setErrors({})
 
     try {
-      await login(username, password)
+      await login(data.username, data.password)
       toast.success('Đăng nhập thành công!')
       setTimeout(() => {
         navigate('/')
       }, 1000)
     } catch (err: any) {
-      // Debug: xem error structure
-      console.log('Full error:', err)
-      console.log('Error response:', err.response)
-      console.log('Error response data:', err.response?.data)
-      console.log('Error message:', err.message)
-      
-      // Axios error structure: err.response.data chứa ApiResponse từ backend
       const apiResponse = err.response?.data
       let errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.'
       
-      // Ưu tiên message từ API response
       if (apiResponse?.message) {
         errorMessage = apiResponse.message
       } else if (apiResponse?.errors && Array.isArray(apiResponse.errors) && apiResponse.errors.length > 0) {
@@ -67,55 +56,31 @@ export default function Login() {
         errorMessage = err.message
       }
       
-      console.log('Final errorMessage:', errorMessage)
       toast.error(errorMessage)
-      
-      // Highlight fields on error
-      setErrors({ 
-        username: ' ', 
-        password: ' ' 
-      })
     } finally {
       setLoading(false)
     }
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Tên đăng nhập</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => {
-            setUsername(e.target.value)
-            if (errors.username) setErrors(prev => ({ ...prev, username: undefined }))
-          }}
-          className={`mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 ${
-            errors.username ? 'border-red-500 bg-red-50' : 'border-gray-300'
-          }`}
-          placeholder="Nhập tên đăng nhập"
-        />
-        {errors.username && (
-          <p className="mt-1 text-sm text-red-500">{errors.username}</p>
-        )}
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <TextInput
+        label="Tên đăng nhập"
+        placeholder="Nhập tên đăng nhập"
+        error={errors.username?.message}
+        {...register('username')}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value)
-              if (errors.password) setErrors(prev => ({ ...prev, password: undefined }))
-            }}
+            placeholder="Nhập mật khẩu"
             className={`mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10 ${
               errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
             }`}
-            placeholder="Nhập mật khẩu"
+            {...register('password')}
           />
           <button
             type="button"
@@ -135,7 +100,7 @@ export default function Login() {
           </button>
         </div>
         {errors.password && (
-          <p className="mt-1 text-sm text-red-500">{errors.password}</p>
+          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
         )}
       </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
-import { friendsApi, usersApi } from '../services/api'
+import { friendsApi, usersApi } from '../services'
 import { Friendship, User, Friend, MutualFriend, FriendSuggestion } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -16,6 +17,7 @@ interface ConfirmState {
 
 export default function Friends() {
   const { user: currentUser } = useAuth()
+  const navigate = useNavigate()
   const [friends, setFriends] = useState<Friend[]>([])
   const [pendingRequests, setPendingRequests] = useState<Friendship[]>([])
   const [sentRequests, setSentRequests] = useState<Friendship[]>([])
@@ -611,6 +613,12 @@ export default function Friends() {
                           )}
                         </div>
                         <div className="flex gap-2">
+                          <button
+                            onClick={() => navigate(`/profile/${suggestion.id}`)}
+                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+                          >
+                            Xem trang
+                          </button>
                           {isFriend ? (
                             <span className="px-4 py-2 text-green-500 text-sm">Đã là bạn</span>
                           ) : hasPendingRequest ? (
@@ -697,6 +705,12 @@ export default function Friends() {
                       )}
                     </div>
                     <div className="flex gap-2">
+                      <button
+                        onClick={() => navigate(`/profile/${user.id}`)}
+                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
+                      >
+                        Xem trang
+                      </button>
                       {isFriend ? (
                         <span className="px-4 py-2 text-green-500 text-sm">Đã là bạn</span>
                       ) : hasPendingRequest ? (

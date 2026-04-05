@@ -1,62 +1,83 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { lazy, Suspense } from 'react'
 import { Toaster } from 'react-hot-toast'
-import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { AuthProvider } from './contexts/AuthContext'
 import MainLayout from './layouts/MainLayout'
 import AuthLayout from './layouts/AuthLayout'
-import Home from './pages/Home'
-import Login from './pages/Login'
-import Register from './pages/Register'
-import Profile from './pages/Profile'
-import Stories from './pages/Stories'
-import Notifications from './pages/Notifications'
-import Friends from './pages/Friends'
+import ProtectedRoute from './components/ProtectedRoute'
+import LoadingSkeleton from './components/LoadingSkeleton'
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const { user, loading } = useAuth()
-  
-  if (loading) {
-    return <div className="flex justify-center items-center min-h-screen">Loading...</div>
-  }
-  
-  if (!user) {
-    return <Navigate to="/login" replace />
-  }
-  
-  return <>{children}</>
+// Lazy load pages for better performance
+const Home = lazy(() => import('./pages/Home'))
+const Login = lazy(() => import('./pages/Login'))
+const Register = lazy(() => import('./pages/Register'))
+const Profile = lazy(() => import('./pages/Profile'))
+const Stories = lazy(() => import('./pages/Stories'))
+const Notifications = lazy(() => import('./pages/Notifications'))
+const Friends = lazy(() => import('./pages/Friends'))
+
+// Loading fallback component
+function PageLoader() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <div className="text-center space-y-4">
+        <LoadingSkeleton variant="circular" width={48} height={48} className="mx-auto" />
+        <p className="text-gray-500">Đang tải...</p>
+      </div>
+    </div>
+  )
 }
 
 function AppRoutes() {
   return (
     <Routes>
       <Route element={<AuthLayout />}>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/login" element={
+          <Suspense fallback={<PageLoader />}>
+            <Login />
+          </Suspense>
+        } />
+        <Route path="/register" element={
+          <Suspense fallback={<PageLoader />}>
+            <Register />
+          </Suspense>
+        } />
       </Route>
       
       <Route path="/" element={<MainLayout />}>
         <Route index element={
           <ProtectedRoute>
-            <Home />
+            <Suspense fallback={<PageLoader />}>
+              <Home />
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="profile/:userId?" element={
           <ProtectedRoute>
-            <Profile />
+            <Suspense fallback={<PageLoader />}>
+              <Profile />
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="stories" element={
           <ProtectedRoute>
-            <Stories />
+            <Suspense fallback={<PageLoader />}>
+              <Stories />
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="notifications" element={
           <ProtectedRoute>
-            <Notifications />
+            <Suspense fallback={<PageLoader />}>
+              <Notifications />
+            </Suspense>
           </ProtectedRoute>
         } />
         <Route path="friends" element={
           <ProtectedRoute>
-            <Friends />
+            <Suspense fallback={<PageLoader />}>
+              <Friends />
+            </Suspense>
           </ProtectedRoute>
         } />
       </Route>

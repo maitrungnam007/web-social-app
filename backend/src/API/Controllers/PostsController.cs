@@ -9,7 +9,7 @@ namespace API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-// [Authorize] // Tạm thời tắt để test
+[Authorize]
 public class PostsController : ControllerBase
 {
     private readonly IPostService _postService;
@@ -20,6 +20,7 @@ public class PostsController : ControllerBase
     }
     
     [HttpGet]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PagedResult<PostResponseDto>>>> GetPosts([FromQuery] PostFilterDto filter)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -28,6 +29,7 @@ public class PostsController : ControllerBase
     }
     
     [HttpGet("{id}")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<PostResponseDto>>> GetPost(int id)
     {
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -40,8 +42,10 @@ public class PostsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<ApiResponse<PostResponseDto>>> CreatePost([FromBody] CreatePostDto dto)
     {
-        // Tạm thời dùng userId từ seeded data để test
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
         var result = await _postService.CreatePostAsync(dto, userId);
         if (!result.Success)
             return BadRequest(result);

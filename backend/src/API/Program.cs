@@ -5,6 +5,9 @@ using Infrastructure.Repositories;
 using Infrastructure.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -45,6 +48,15 @@ builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IPostService, PostService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IFriendService, FriendService>();
+builder.Services.AddScoped<IStoryService, StoryService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IHashtagService, HashtagService>();
+builder.Services.AddScoped<IReportService, ReportService>();
+
+// Cấu hình SignalR
+builder.Services.AddSignalR();
 
 // Cấu hình CORS
 builder.Services.AddCors(options =>
@@ -58,9 +70,28 @@ builder.Services.AddCors(options =>
     });
 });
 
-// Cấu hình JWT Authentication (chưa triển khai)
-// builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-//     .AddJwtBearer(options => { ... });
+// Cấu hình JWT Authentication
+var jwtSettings = builder.Configuration.GetSection("JwtSettings");
+var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = true,
+        ValidateAudience = true,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        ValidIssuer = jwtSettings["Issuer"] ?? "InteractHub",
+        ValidAudience = jwtSettings["Audience"] ?? "InteractHubClient",
+        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+    };
+});
 
 // Cấu hình Identity
 // builder.Services.AddIdentity<User, IdentityRole>()
@@ -76,13 +107,20 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// Chỉ bật HTTPS redirection trong production
+if (!app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
+}
 app.UseCors("AllowClient");
 
-// app.UseAuthentication();
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Map SignalR hub
+app.MapHub<Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
 // Tạo database và seed dữ liệu mẫu
 using (var scope = app.Services.CreateScope())
@@ -99,7 +137,12 @@ using (var scope = app.Services.CreateScope())
         // Seed dữ liệu mẫu
         await SeedData.SeedAsync(dbContext, userManager, roleManager);
         
+        // Warmup EF Core - thực hiện query đơn giản để cache execution plan
+        await dbContext.Users.AsNoTracking().OrderBy(u => u.Id).Take(1).ToListAsync();
+        await dbContext.Posts.AsNoTracking().OrderBy(p => p.Id).Take(1).ToListAsync();
+        
         Console.WriteLine("✅ Database đã được tạo và seed dữ liệu thành công!");
+        Console.WriteLine("🔥 EF Core warmup completed!");
     }
     catch (Exception ex)
     {

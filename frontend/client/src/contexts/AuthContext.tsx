@@ -1,6 +1,6 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, ReactNode } from 'react'
 import { User } from '../types'
-import { authApi } from '../services/api'
+import { authApi } from '../services'
 
 interface AuthContextType {
   user: User | null
@@ -9,44 +9,51 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   register: (username: string, email: string, password: string, firstName?: string, lastName?: string) => Promise<void>
   logout: () => void
+  updateUser: (userData: Partial<User>) => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const TOKEN_KEY = 'token'
+const USER_KEY = 'user'
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null)
-  const [token, setToken] = useState<string | null>(localStorage.getItem('token'))
+  const [user, setUser] = useState<User | null>(() => {
+    const storedUser = localStorage.getItem(USER_KEY)
+    return storedUser ? JSON.parse(storedUser) : null
+  })
+  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('token')
-    if (storedToken) {
+    const storedToken = localStorage.getItem(TOKEN_KEY)
+    const storedUser = localStorage.getItem(USER_KEY)
+    
+    if (storedToken && storedUser) {
       setToken(storedToken)
-      // Validate token and get user info
-      fetchUser()
-    } else {
-      setLoading(false)
+      setUser(JSON.parse(storedUser))
     }
+    setLoading(false)
   }, [])
 
-  const fetchUser = async () => {
-    try {
-      // TODO: Implement get current user API
-      setLoading(false)
-    } catch {
-      logout()
-    }
-  }
-
   const login = async (username: string, password: string) => {
-    const response = await authApi.login(username, password)
-    if (response.success && response.data) {
-      const authData = response.data as any
-      localStorage.setItem('token', authData.token)
-      setToken(authData.token)
-      setUser(authData.user)
-    } else {
-      throw new Error(response.message)
+    try {
+      const response = await authApi.login(username, password)
+      if (response.success && response.data) {
+        const authData = response.data as any
+        const userData = authData.user || authData.User
+        const tokenValue = authData.token || authData.Token
+        
+        localStorage.setItem(TOKEN_KEY, tokenValue)
+        localStorage.setItem(USER_KEY, JSON.stringify(userData))
+        setToken(tokenValue)
+        setUser(userData)
+      }
+    } catch (err: any) {
+      // Axios throw error khi status 401
+      // Lấy message từ response.data
+      const message = err.response?.data?.message || err.message || 'Đăng nhập thất bại'
+      throw new Error(message)
     }
   }
 
@@ -55,28 +62,39 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authApi.register({ username, email, password, firstName, lastName })
       if (response.success && response.data) {
         const authData = response.data as any
-        localStorage.setItem('token', authData.token)
-        setToken(authData.token)
-        setUser(authData.user)
-      } else {
-        const error: any = new Error(response.message)
-        error.response = { data: { message: response.message, errors: response.errors } }
-        throw error
+        const userData = authData.user || authData.User
+        const tokenValue = authData.token || authData.Token
+        
+        localStorage.setItem(TOKEN_KEY, tokenValue)
+        localStorage.setItem(USER_KEY, JSON.stringify(userData))
+        setToken(tokenValue)
+        setUser(userData)
       }
     } catch (err: any) {
-      // Preserve axios error response
-      throw err
+      // Axios throw error khi status 400/401
+      const message = err.response?.data?.message || err.message || 'Đăng ký thất bại'
+      throw new Error(message)
     }
   }
 
   const logout = () => {
-    localStorage.removeItem('token')
+    localStorage.removeItem(TOKEN_KEY)
+    localStorage.removeItem(USER_KEY)
     setToken(null)
     setUser(null)
   }
 
+  const updateUser = (userData: Partial<User>) => {
+    setUser(prev => {
+      if (!prev) return null
+      const updatedUser = { ...prev, ...userData }
+      localStorage.setItem(USER_KEY, JSON.stringify(updatedUser))
+      return updatedUser
+    })
+  }
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   )

@@ -4,6 +4,7 @@ using Core.Entities;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
@@ -11,175 +12,238 @@ namespace Infrastructure.Services;
 public class CommentService : ICommentService
 {
     private readonly ApplicationDbContext _context;
+    private readonly ILogger<CommentService> _logger;
 
-    public CommentService(ApplicationDbContext context)
+    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger)
     {
         _context = context;
+        _logger = logger;
     }
 
     // Tạo bình luận mới
     public async Task<ApiResponse<CommentResponseDto>> CreateCommentAsync(CreateCommentDto dto, string userId)
     {
-        // Kiểm tra bài đăng tồn tại
-        var post = await _context.Posts.FindAsync(dto.PostId);
-        if (post == null || post.IsDeleted)
+        try
         {
-            return ApiResponse<CommentResponseDto>.ErrorResult("Không tìm thấy bài đăng");
-        }
-
-        // Kiểm tra comment cha nếu có
-        if (dto.ParentCommentId.HasValue)
-        {
-            var parentComment = await _context.Comments.FindAsync(dto.ParentCommentId.Value);
-            if (parentComment == null || parentComment.IsDeleted || parentComment.PostId != dto.PostId)
+            // Kiểm tra bài đăng tồn tại
+            var post = await _context.Posts.FindAsync(dto.PostId);
+            if (post == null || post.IsDeleted)
             {
-                return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận cha không hợp lệ");
+                return ApiResponse<CommentResponseDto>.ErrorResult("Không tìm thấy bài đăng");
             }
+
+            // Kiểm tra comment cha nếu có
+            if (dto.ParentCommentId.HasValue)
+            {
+                var parentComment = await _context.Comments.FindAsync(dto.ParentCommentId.Value);
+                if (parentComment == null || parentComment.IsDeleted || parentComment.PostId != dto.PostId)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận cha không hợp lệ");
+                }
+            }
+
+            var comment = new Comment
+            {
+                Content = dto.Content,
+                PostId = dto.PostId,
+                UserId = userId,
+                ParentCommentId = dto.ParentCommentId,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            };
+
+            _context.Comments.Add(comment);
+            await _context.SaveChangesAsync();
+
+            return await GetCommentByIdAsync(comment.Id, userId);
         }
-
-        var comment = new Comment
+        catch (Exception ex)
         {
-            Content = dto.Content,
-            PostId = dto.PostId,
-            UserId = userId,
-            ParentCommentId = dto.ParentCommentId,
-            CreatedAt = DateTime.UtcNow,
-            IsDeleted = false
-        };
-
-        _context.Comments.Add(comment);
-        await _context.SaveChangesAsync();
-
-        return await GetCommentByIdAsync(comment.Id, userId);
+            _logger.LogError(ex, "Lỗi khi tạo bình luận cho bài đăng {PostId}", dto.PostId);
+            return ApiResponse<CommentResponseDto>.ErrorResult("Có lỗi xảy ra khi tạo bình luận");
+        }
     }
 
     // Cập nhật bình luận
     public async Task<ApiResponse<CommentResponseDto>> UpdateCommentAsync(int commentId, UpdateCommentDto dto, string userId)
     {
-        var comment = await _context.Comments.FindAsync(commentId);
-        if (comment == null || comment.IsDeleted)
+        try
         {
-            return ApiResponse<CommentResponseDto>.ErrorResult("Không tìm thấy bình luận");
-        }
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return ApiResponse<CommentResponseDto>.ErrorResult("Không tìm thấy bình luận");
+            }
 
-        if (comment.UserId != userId)
+            if (comment.UserId != userId)
+            {
+                return ApiResponse<CommentResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bình luận này");
+            }
+
+            comment.Content = dto.Content;
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return await GetCommentByIdAsync(commentId, userId);
+        }
+        catch (Exception ex)
         {
-            return ApiResponse<CommentResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bình luận này");
+            _logger.LogError(ex, "Lỗi khi cập nhật bình luận {CommentId}", commentId);
+            return ApiResponse<CommentResponseDto>.ErrorResult("Có lỗi xảy ra khi cập nhật bình luận");
         }
-
-        comment.Content = dto.Content;
-        comment.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return await GetCommentByIdAsync(commentId, userId);
     }
 
     // Xóa bình luận
     public async Task<ApiResponse<bool>> DeleteCommentAsync(int commentId, string userId)
     {
-        var comment = await _context.Comments.FindAsync(commentId);
-        if (comment == null || comment.IsDeleted)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
-        }
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+            }
 
-        if (comment.UserId != userId)
+            if (comment.UserId != userId)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn không có quyền xóa bình luận này");
+            }
+
+            comment.IsDeleted = true;
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xóa bình luận thành công");
+        }
+        catch (Exception ex)
         {
-            return ApiResponse<bool>.ErrorResult("Bạn không có quyền xóa bình luận này");
+            _logger.LogError(ex, "Lỗi khi xóa bình luận {CommentId}", commentId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa bình luận");
         }
-
-        comment.IsDeleted = true;
-        comment.UpdatedAt = DateTime.UtcNow;
-
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã xóa bình luận thành công");
     }
 
     // Lấy danh sách bình luận theo bài đăng
     public async Task<ApiResponse<List<CommentResponseDto>>> GetCommentsByPostIdAsync(int postId, string? currentUserId)
     {
-        var post = await _context.Posts.FindAsync(postId);
-        if (post == null || post.IsDeleted)
+        try
         {
-            return ApiResponse<List<CommentResponseDto>>.ErrorResult("Không tìm thấy bài đăng");
-        }
-
-        var comments = await _context.Comments
-            .Include(c => c.User)
-            .Include(c => c.Likes)
-            .Where(c => c.PostId == postId && !c.IsDeleted)
-            .OrderByDescending(c => c.CreatedAt)
-            .ToListAsync();
-
-        // Xây dựng cây bình luận
-        var commentDict = comments.ToDictionary(c => c.Id, c => MapToResponse(c, currentUserId));
-        var rootComments = new List<CommentResponseDto>();
-
-        foreach (var comment in comments.Where(c => !c.ParentCommentId.HasValue))
-        {
-            rootComments.Add(commentDict[comment.Id]);
-        }
-
-        // Thêm replies vào comment cha
-        foreach (var comment in comments.Where(c => c.ParentCommentId.HasValue))
-        {
-            if (commentDict.TryGetValue(comment.ParentCommentId.Value, out var parent))
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
             {
-                parent.Replies.Add(commentDict[comment.Id]);
+                return ApiResponse<List<CommentResponseDto>>.ErrorResult("Không tìm thấy bài đăng");
             }
-        }
 
-        return ApiResponse<List<CommentResponseDto>>.SuccessResult(rootComments);
+            // Dùng projection để tránh N+1
+            var comments = await _context.Comments
+                .AsNoTracking()
+                .Where(c => c.PostId == postId && !c.IsDeleted)
+                .Select(c => new CommentResponseDto
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    PostId = c.PostId,
+                    UserId = c.UserId,
+                    UserName = c.User != null ? c.User.UserName : "",
+                    UserAvatar = c.User != null ? c.User.AvatarUrl : null,
+                    ParentCommentId = c.ParentCommentId,
+                    CreatedAt = c.CreatedAt,
+                    LikeCount = c.Likes.Count,
+                    IsLikedByCurrentUser = currentUserId != null && c.Likes.Any(l => l.UserId == currentUserId)
+                })
+                .OrderByDescending(c => c.CreatedAt)
+                .ToListAsync();
+
+            // Xây dựng cây bình luận
+            var commentDict = comments.ToDictionary(c => c.Id, c => c);
+            var rootComments = new List<CommentResponseDto>();
+
+            foreach (var comment in comments.Where(c => !c.ParentCommentId.HasValue))
+            {
+                rootComments.Add(commentDict[comment.Id]);
+            }
+
+            // Thêm replies vào comment cha
+            foreach (var comment in comments.Where(c => c.ParentCommentId.HasValue))
+            {
+                if (commentDict.TryGetValue(comment.ParentCommentId.Value, out var parent))
+                {
+                    parent.Replies.Add(commentDict[comment.Id]);
+                }
+            }
+
+            return ApiResponse<List<CommentResponseDto>>.SuccessResult(rootComments);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy danh sách bình luận của bài đăng {PostId}", postId);
+            return ApiResponse<List<CommentResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách bình luận");
+        }
     }
 
     // Thích bình luận
     public async Task<ApiResponse<bool>> LikeCommentAsync(int commentId, string userId)
     {
-        var comment = await _context.Comments.FindAsync(commentId);
-        if (comment == null || comment.IsDeleted)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+            }
+
+            // Kiểm tra đã thích chưa
+            var existingLike = await _context.Likes
+                .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId);
+
+            if (existingLike != null)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn đã thích bình luận này rồi");
+            }
+
+            var like = new Like
+            {
+                CommentId = commentId,
+                UserId = userId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Likes.Add(like);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã thích bình luận");
         }
-
-        // Kiểm tra đã thích chưa
-        var existingLike = await _context.Likes
-            .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId);
-
-        if (existingLike != null)
+        catch (Exception ex)
         {
-            return ApiResponse<bool>.ErrorResult("Bạn đã thích bình luận này rồi");
+            _logger.LogError(ex, "Lỗi khi thích bình luận {CommentId}", commentId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi thích bình luận");
         }
-
-        var like = new Like
-        {
-            CommentId = commentId,
-            UserId = userId,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _context.Likes.Add(like);
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã thích bình luận");
     }
 
     // Bỏ thích bình luận
     public async Task<ApiResponse<bool>> UnlikeCommentAsync(int commentId, string userId)
     {
-        var like = await _context.Likes
-            .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId);
-
-        if (like == null)
+        try
         {
-            return ApiResponse<bool>.ErrorResult("Bạn chưa thích bình luận này");
+            var like = await _context.Likes
+                .FirstOrDefaultAsync(l => l.CommentId == commentId && l.UserId == userId);
+
+            if (like == null)
+            {
+                return ApiResponse<bool>.ErrorResult("Bạn chưa thích bình luận này");
+            }
+
+            _context.Likes.Remove(like);
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã bỏ thích bình luận");
         }
-
-        _context.Likes.Remove(like);
-        await _context.SaveChangesAsync();
-
-        return ApiResponse<bool>.SuccessResult(true, "Đã bỏ thích bình luận");
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi bỏ thích bình luận {CommentId}", commentId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi bỏ thích bình luận");
+        }
     }
 
     // Helper: Lấy comment theo ID

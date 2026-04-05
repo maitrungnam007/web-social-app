@@ -56,11 +56,15 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("ParentCommentId");
 
                     b.HasIndex("PostId");
 
                     b.HasIndex("UserId");
+
+                    b.HasIndex("PostId", "IsDeleted");
 
                     b.ToTable("Comments");
                 });
@@ -95,6 +99,12 @@ namespace Infrastructure.Migrations
                     b.HasIndex("AddresseeId");
 
                     b.HasIndex("RequesterId");
+
+                    b.HasIndex("Status");
+
+                    b.HasIndex("AddresseeId", "Status");
+
+                    b.HasIndex("RequesterId", "Status");
 
                     b.ToTable("Friendships");
                 });
@@ -155,6 +165,10 @@ namespace Infrastructure.Migrations
 
                     b.HasIndex("UserId");
 
+                    b.HasIndex("CommentId", "UserId");
+
+                    b.HasIndex("PostId", "UserId");
+
                     b.ToTable("Likes");
                 });
 
@@ -195,7 +209,13 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsRead");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("UserId", "IsRead");
 
                     b.ToTable("Notifications");
                 });
@@ -231,7 +251,15 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("UserId");
+
+                    b.HasIndex("IsDeleted", "CreatedAt");
+
+                    b.HasIndex("UserId", "IsDeleted");
 
                     b.ToTable("Posts");
                 });
@@ -311,6 +339,9 @@ namespace Infrastructure.Migrations
                     b.Property<DateTime>("ExpiresAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<bool>("IsArchived")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -326,9 +357,75 @@ namespace Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ExpiresAt");
+
+                    b.HasIndex("IsDeleted");
+
                     b.HasIndex("UserId");
 
+                    b.HasIndex("IsDeleted", "ExpiresAt");
+
                     b.ToTable("Stories");
+                });
+
+            modelBuilder.Entity("Core.Entities.StoryHighlight", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("CoverImageUrl")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("StoryHighlights");
+                });
+
+            modelBuilder.Entity("Core.Entities.StoryHighlightItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("HighlightId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoryId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StoryId");
+
+                    b.HasIndex("HighlightId", "StoryId")
+                        .IsUnique();
+
+                    b.ToTable("StoryHighlightItems");
                 });
 
             modelBuilder.Entity("Core.Entities.StoryView", b =>
@@ -735,6 +832,36 @@ namespace Infrastructure.Migrations
                     b.Navigation("User");
                 });
 
+            modelBuilder.Entity("Core.Entities.StoryHighlight", b =>
+                {
+                    b.HasOne("Core.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("Core.Entities.StoryHighlightItem", b =>
+                {
+                    b.HasOne("Core.Entities.StoryHighlight", "Highlight")
+                        .WithMany("Items")
+                        .HasForeignKey("HighlightId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Core.Entities.Story", "Story")
+                        .WithMany("HighlightItems")
+                        .HasForeignKey("StoryId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("Highlight");
+
+                    b.Navigation("Story");
+                });
+
             modelBuilder.Entity("Core.Entities.StoryView", b =>
                 {
                     b.HasOne("Core.Entities.Story", "Story")
@@ -830,7 +957,14 @@ namespace Infrastructure.Migrations
 
             modelBuilder.Entity("Core.Entities.Story", b =>
                 {
+                    b.Navigation("HighlightItems");
+
                     b.Navigation("StoryViews");
+                });
+
+            modelBuilder.Entity("Core.Entities.StoryHighlight", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("Core.Entities.User", b =>

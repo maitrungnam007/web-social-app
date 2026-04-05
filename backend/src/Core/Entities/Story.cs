@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+ï»¿using System.ComponentModel.DataAnnotations;
 
 namespace Core.Entities;
 
@@ -10,7 +10,7 @@ public class Story
     public string? Content { get; set; }
     
     public string? MediaUrl { get; set; }
-    public string? MediaType { get; set; } // "image" ho?c "video"
+    public string? MediaType { get; set; }
     
     public string UserId { get; set; } = string.Empty;
     public virtual User User { get; set; } = null!;
@@ -18,7 +18,8 @@ public class Story
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime ExpiresAt { get; set; } = DateTime.UtcNow.AddHours(24);
     public bool IsDeleted { get; set; } = false;
+    public bool IsArchived { get; set; } = true;
     
-    // Các thu?c tính di?u hu?ng
     public virtual ICollection<StoryView> StoryViews { get; set; } = new List<StoryView>();
+    public virtual ICollection<StoryHighlightItem> HighlightItems { get; set; } = new List<StoryHighlightItem>();
 }

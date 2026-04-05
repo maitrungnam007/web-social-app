@@ -4,6 +4,7 @@ using Core.Entities;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -16,127 +17,153 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<User> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly ILogger<AuthService> _logger;
 
-    public AuthService(UserManager<User> userManager, IConfiguration configuration)
+    public AuthService(UserManager<User> userManager, IConfiguration configuration, ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _configuration = configuration;
+        _logger = logger;
     }
 
     // Đăng ký người dùng mới
     public async Task<ApiResponse<AuthResponseDto>> RegisterAsync(RegisterDto dto)
     {
-        // Kiểm tra username đã tồn tại
-        var existingUser = await _userManager.FindByNameAsync(dto.UserName);
-        if (existingUser != null)
+        try
         {
-            return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập đã tồn tại");
-        }
-
-        // Kiểm tra email đã tồn tại
-        var existingEmail = await _userManager.FindByEmailAsync(dto.Email);
-        if (existingEmail != null)
-        {
-            return ApiResponse<AuthResponseDto>.ErrorResult("Email đã được sử dụng");
-        }
-
-        // Tạo user mới
-        var user = new User
-        {
-            UserName = dto.UserName,
-            Email = dto.Email,
-            FirstName = dto.FirstName ?? "",
-            LastName = dto.LastName ?? "",
-            CreatedAt = DateTime.UtcNow,
-            EmailConfirmed = true
-        };
-
-        var result = await _userManager.CreateAsync(user, dto.Password);
-
-        if (!result.Succeeded)
-        {
-            var errors = result.Errors.Select(e => e.Description).ToList();
-            return ApiResponse<AuthResponseDto>.ErrorResult("Đăng ký thất bại", errors);
-        }
-
-        // Gán role User
-        await _userManager.AddToRoleAsync(user, "User");
-
-        // Tạo token
-        var token = GenerateJwtToken(user);
-        var refreshToken = GenerateRefreshToken();
-
-        // Trả về kết quả
-        return ApiResponse<AuthResponseDto>.SuccessResult(
-            new AuthResponseDto
+            // Kiểm tra username đã tồn tại
+            var existingUser = await _userManager.FindByNameAsync(dto.UserName);
+            if (existingUser != null)
             {
-                Success = true,
-                Message = "Đăng ký thành công",
-                Token = token,
-                RefreshToken = refreshToken,
-                User = new UserDto
+                return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập đã tồn tại");
+            }
+
+            // Kiểm tra email đã tồn tại
+            var existingEmail = await _userManager.FindByEmailAsync(dto.Email);
+            if (existingEmail != null)
+            {
+                return ApiResponse<AuthResponseDto>.ErrorResult("Email đã được sử dụng");
+            }
+
+            // Tạo user mới
+            var user = new User
+            {
+                UserName = dto.UserName,
+                Email = dto.Email,
+                FirstName = dto.FirstName ?? "",
+                LastName = dto.LastName ?? "",
+                CreatedAt = DateTime.UtcNow,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, dto.Password);
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return ApiResponse<AuthResponseDto>.ErrorResult("Đăng ký thất bại", errors);
+            }
+
+            // Gán role User
+            await _userManager.AddToRoleAsync(user, "User");
+
+            // Tạo token
+            var token = GenerateJwtToken(user);
+            var refreshToken = GenerateRefreshToken();
+
+            // Trả về kết quả
+            return ApiResponse<AuthResponseDto>.SuccessResult(
+                new AuthResponseDto
                 {
-                    Id = user.Id,
-                    UserName = user.UserName ?? "",
-                    Email = user.Email ?? "",
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    AvatarUrl = user.AvatarUrl,
-                    Bio = user.Bio
-                }
-            },
-            "Đăng ký thành công"
-        );
+                    Success = true,
+                    Message = "Đăng ký thành công",
+                    Token = token,
+                    RefreshToken = refreshToken,
+                    User = new UserDto
+                    {
+                        Id = user.Id,
+                        UserName = user.UserName ?? "",
+                        Email = user.Email ?? "",
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        AvatarUrl = user.AvatarUrl,
+                        Bio = user.Bio
+                    }
+                },
+                "Đăng ký thành công"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi đăng ký người dùng {UserName}", dto.UserName);
+            return ApiResponse<AuthResponseDto>.ErrorResult("Có lỗi xảy ra khi đăng ký");
+        }
     }
 
     // Đăng nhập
     public async Task<ApiResponse<AuthResponseDto>> LoginAsync(LoginDto dto)
     {
-        // Tìm user theo username
-        var user = await _userManager.FindByNameAsync(dto.UserName);
-        if (user == null)
+        try
         {
-            return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
-        }
-
-        // Kiểm tra mật khẩu
-        var result = await _userManager.CheckPasswordAsync(user, dto.Password);
-        if (!result)
-        {
-            return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
-        }
-
-        // Tạo token
-        var token = GenerateJwtToken(user);
-        var refreshToken = GenerateRefreshToken();
-
-        return ApiResponse<AuthResponseDto>.SuccessResult(
-            new AuthResponseDto
+            // Tìm user theo username
+            var user = await _userManager.FindByNameAsync(dto.UserName);
+            if (user == null)
             {
-                Success = true,
-                Message = "Đăng nhập thành công",
-                Token = token,
-                RefreshToken = refreshToken,
-                User = new UserDto
+                return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
+            }
+
+            // Kiểm tra mật khẩu
+            var result = await _userManager.CheckPasswordAsync(user, dto.Password);
+            if (!result)
+            {
+                return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
+            }
+
+            // Tạo token
+            var token = GenerateJwtToken(user);
+            var refreshToken = GenerateRefreshToken();
+
+            return ApiResponse<AuthResponseDto>.SuccessResult(
+                new AuthResponseDto
                 {
-                    Id = user.Id,
-                    UserName = user.UserName ?? "",
-                    Email = user.Email ?? "",
-                    FirstName = user.FirstName,
-                    LastName = user.LastName,
-                    AvatarUrl = user.AvatarUrl,
-                    Bio = user.Bio
-                }
-            },
-            "Đăng nhập thành công"
-        );
+                    Success = true,
+                    Message = "Đăng nhập thành công",
+                    Token = token,
+                    RefreshToken = refreshToken,
+                    User = new UserDto
+                    {
+                        Id = user.Id,
+                        UserName = user.UserName ?? "",
+                        Email = user.Email ?? "",
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
+                        AvatarUrl = user.AvatarUrl,
+                        Bio = user.Bio
+                    }
+                },
+                "Đăng nhập thành công"
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi đăng nhập với username {UserName}", dto.UserName);
+            return ApiResponse<AuthResponseDto>.ErrorResult("Có lỗi xảy ra khi đăng nhập");
+        }
     }
 
     // Làm mới token
     public Task<ApiResponse<AuthResponseDto>> RefreshTokenAsync(string token, string refreshToken)
     {
-        // TODO: Implement refresh token logic với database storage
-        return Task.FromResult(ApiResponse<AuthResponseDto>.ErrorResult("Chức năng chưa được triển khai"));
+        try
+        {
+            // TODO: Implement refresh token logic với database storage
+            return Task.FromResult(ApiResponse<AuthResponseDto>.ErrorResult("Chức năng chưa được triển khai"));
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi làm mới token");
+            return Task.FromResult(ApiResponse<AuthResponseDto>.ErrorResult("Có lỗi xảy ra khi làm mới token"));
+        }
     }
 
     // Tạo JWT token

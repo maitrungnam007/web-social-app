@@ -1,8 +1,38 @@
 import { Link } from 'react-router-dom'
+import { useState, useEffect } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { storiesApi } from '../services'
+import { Story } from '../types'
+import StoryViewer from './StoryViewer'
 
 export default function Sidebar() {
   const { user } = useAuth()
+  const [userStories, setUserStories] = useState<Story[]>([])
+  const [viewingStory, setViewingStory] = useState<Story | null>(null)
+
+  const hasActiveStory = userStories.length > 0
+
+  useEffect(() => {
+    const loadUserStories = async () => {
+      if (!user) return
+      try {
+        const response = await storiesApi.getActiveStories()
+        if (response.success && response.data) {
+          const stories = response.data.filter((s: Story) => s.userId === user.id)
+          setUserStories(stories)
+        }
+      } catch (error) {
+        console.error('Failed to check user stories')
+      }
+    }
+    loadUserStories()
+  }, [user])
+
+  const handleViewStory = () => {
+    if (hasActiveStory) {
+      setViewingStory(userStories[0])
+    }
+  }
 
   const menuItems = [
     { icon: 'home', label: 'Trang chủ', path: '/' },
@@ -42,33 +72,53 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white shadow-lg hidden md:block">
-      <div className="p-4">
-        <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-100 rounded-lg">
-          <img
-            src={user?.avatarUrl || `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
-            alt={user?.userName}
-            className="w-12 h-12 rounded-full"
-          />
-          <div>
-            <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
-            <p className="text-sm text-gray-500">@{user?.userName}</p>
-          </div>
-        </div>
-
-        <nav className="space-y-2">
-          {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
+    <>
+      <aside className="fixed left-0 top-16 bottom-0 w-64 bg-white shadow-lg hidden md:block">
+        <div className="p-4">
+          <div className="flex items-center space-x-3 mb-6 p-3 bg-gray-100 rounded-lg">
+            <div 
+              onClick={handleViewStory}
+              className={`w-13 h-13 rounded-full p-0.5 cursor-pointer ${hasActiveStory ? 'bg-gradient-to-tr from-blue-500 to-purple-500' : ''}`}
             >
-              {icons[item.icon]}
-              <span>{item.label}</span>
-            </Link>
-          ))}
-        </nav>
-      </div>
-    </aside>
+              <img
+                src={user?.avatarUrl 
+                  ? `http://localhost:5259/api/files/${user.avatarUrl}` 
+                  : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                alt={user?.userName}
+                className="w-12 h-12 rounded-full object-cover border-2 border-white"
+              />
+            </div>
+            <div>
+              <p className="font-semibold">{user?.firstName} {user?.lastName}</p>
+              <p className="text-sm text-gray-500">@{user?.userName}</p>
+            </div>
+          </div>
+
+          <nav className="space-y-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-100 transition-colors"
+              >
+                {icons[item.icon]}
+                <span>{item.label}</span>
+              </Link>
+            ))}
+          </nav>
+        </div>
+      </aside>
+
+      {/* Story Viewer Modal */}
+      {viewingStory && (
+        <StoryViewer
+          stories={userStories}
+          initialIndex={0}
+          onClose={() => setViewingStory(null)}
+          userName={user?.userName}
+          userAvatar={user?.avatarUrl}
+        />
+      )}
+    </>
   )
 }

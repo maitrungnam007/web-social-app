@@ -24,25 +24,24 @@ public static class SeedData
         // Seed Users
         if (!context.Users.Any())
         {
-            var users = new List<User>();
-            var passwordHasher = new PasswordHasher<User>();
-
             for (int i = 1; i <= 20; i++)
             {
                 var user = new User
                 {
                     UserName = $"user{i}",
                     Email = $"user{i}@example.com",
-                    NormalizedEmail = $"USER{i}@EXAMPLE.COM",
-                    NormalizedUserName = $"USER{i}",
                     FirstName = GetFirstName(i),
                     LastName = GetLastName(i),
                     Bio = $"Xin chào! Tôi là user số {i}.",
                     CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 365)),
                     EmailConfirmed = true
                 };
-                user.PasswordHash = passwordHasher.HashPassword(user, "Password123!");
-                users.Add(user);
+                
+                var result = await userManager.CreateAsync(user, "Password123!");
+                if (!result.Succeeded)
+                {
+                    // Log error if needed
+                }
             }
 
             // Thêm admin
@@ -50,19 +49,13 @@ public static class SeedData
             {
                 UserName = "admin",
                 Email = "admin@interacthub.com",
-                NormalizedEmail = "ADMIN@INTERACTHUB.COM",
-                NormalizedUserName = "ADMIN",
                 FirstName = "Admin",
                 LastName = "System",
                 Bio = "Quản trị viên hệ thống",
                 CreatedAt = DateTime.Now.AddDays(-500),
                 EmailConfirmed = true
             };
-            admin.PasswordHash = passwordHasher.HashPassword(admin, "Admin123!");
-            users.Add(admin);
-
-            context.Users.AddRange(users);
-            await context.SaveChangesAsync();
+            await userManager.CreateAsync(admin, "Admin123!");
         }
 
         // Seed Posts

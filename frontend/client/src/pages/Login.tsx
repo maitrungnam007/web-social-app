@@ -1,30 +1,61 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { z } from 'zod'
 import toast from 'react-hot-toast'
 import { useAuth } from '../contexts/AuthContext'
+import TextInput from '../components/TextInput'
+
+const loginSchema = z.object({
+  username: z
+    .string()
+    .min(3, 'Tên đăng nhập phải có ít nhất 3 ký tự')
+    .nonempty('Vui lòng nhập tên đăng nhập'),
+  password: z
+    .string()
+    .min(6, 'Mật khẩu phải có ít nhất 6 ký tự')
+    .nonempty('Vui lòng nhập mật khẩu')
+})
+
+type LoginFormData = z.infer<typeof loginSchema>
 
 export default function Login() {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const { login } = useAuth()
   const navigate = useNavigate()
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    mode: 'onChange'
+  })
+
+  const onSubmit = async (data: LoginFormData) => {
     setLoading(true)
 
     try {
-      await login(username, password)
+      await login(data.username, data.password)
       toast.success('Đăng nhập thành công!')
       setTimeout(() => {
         navigate('/')
       }, 1000)
     } catch (err: any) {
-      const errorMessage = err.response?.data?.message 
-        || err.message 
-        || 'Tên đăng nhập hoặc mật khẩu không đúng'
+      const apiResponse = err.response?.data
+      let errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.'
+      
+      if (apiResponse?.message) {
+        errorMessage = apiResponse.message
+      } else if (apiResponse?.errors && Array.isArray(apiResponse.errors) && apiResponse.errors.length > 0) {
+        errorMessage = apiResponse.errors.join(', ')
+      } else if (err.message) {
+        errorMessage = err.message
+      }
+      
       toast.error(errorMessage)
     } finally {
       setLoading(false)
@@ -32,28 +63,24 @@ export default function Login() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      
-      <div>
-        <label className="block text-sm font-medium text-gray-700">Tên đăng nhập</label>
-        <input
-          type="text"
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
-          className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500"
-          required
-        />
-      </div>
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      <TextInput
+        label="Tên đăng nhập"
+        placeholder="Nhập tên đăng nhập"
+        error={errors.username?.message}
+        {...register('username')}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700">Mật khẩu</label>
         <div className="relative">
           <input
             type={showPassword ? 'text' : 'password'}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10"
-            required
+            placeholder="Nhập mật khẩu"
+            className={`mt-1 block w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 pr-10 ${
+              errors.password ? 'border-red-500 bg-red-50' : 'border-gray-300'
+            }`}
+            {...register('password')}
           />
           <button
             type="button"
@@ -72,14 +99,25 @@ export default function Login() {
             )}
           </button>
         </div>
+        {errors.password && (
+          <p className="mt-1 text-sm text-red-500">{errors.password.message}</p>
+        )}
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+        className="w-full py-2 px-4 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
-        {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+        {loading ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+            </svg>
+            Đang đăng nhập...
+          </span>
+        ) : 'Đăng nhập'}
       </button>
 
       <p className="text-center text-sm text-gray-600">

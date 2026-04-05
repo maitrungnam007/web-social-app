@@ -5,7 +5,9 @@ export interface User {
   firstName?: string
   lastName?: string
   avatarUrl?: string
+  coverImageUrl?: string
   bio?: string
+  friendsCount?: number
 }
 
 export interface Post {
@@ -42,6 +44,7 @@ export interface Story {
   content?: string
   mediaUrl?: string
   mediaType?: string
+  duration?: number // seconds
   userId: string
   userName: string
   userAvatar?: string
@@ -49,6 +52,25 @@ export interface Story {
   expiresAt: string
   viewCount: number
   isViewedByCurrentUser: boolean
+}
+
+export interface ArchivedStory {
+  id: number
+  content?: string
+  mediaUrl?: string
+  mediaType?: string
+  createdAt: string
+  expiresAt: string
+  viewCount: number
+}
+
+export interface StoryHighlight {
+  id: number
+  name: string
+  coverImageUrl?: string
+  storyCount: number
+  stories: Story[]
+  createdAt: string
 }
 
 export interface Notification {
@@ -74,6 +96,33 @@ export interface Friendship {
   addresseeAvatar?: string
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Blocked'
   createdAt: string
+}
+
+export interface Friend {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+  status: 'Pending' | 'Accepted' | 'Rejected' | 'Blocked'
+  mutualFriendsCount?: number
+}
+
+export interface MutualFriend {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+}
+
+export interface FriendSuggestion {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+  mutualFriendsCount: number
 }
 
 export interface ApiResponse<T> {

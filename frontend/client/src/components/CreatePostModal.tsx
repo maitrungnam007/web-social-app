@@ -3,20 +3,18 @@ import { postService } from "../services/postService";
 
 export default function CreatePostModal({ onClose, onSuccess }: any) {
     const [content, setContent] = useState("");
-    const [image, setImage] = useState<File | null>(null);
     const [preview, setPreview] = useState("");
     const [error, setError] = useState("");
 
-    // preview ảnh
+    // xử lý ảnh preview
     const handleImageChange = (file: File) => {
-        setImage(file);
-        setPreview(URL.createObjectURL(file));
+        const url = URL.createObjectURL(file);
+        setPreview(url);
     };
 
     const handleSubmit = async () => {
-        // VALIDATION
         if (!content.trim()) {
-            setError("Không được để trống nội dung");
+            setError("Không được để trống");
             return;
         }
 
@@ -25,13 +23,12 @@ export default function CreatePostModal({ onClose, onSuccess }: any) {
             return;
         }
 
-        // lấy hashtag
         const hashtags = content.match(/#\w+/g) || [];
 
         try {
             await postService.createPost({
                 content,
-                imageUrl: preview, // demo (backend thật thì upload riêng)
+                imageUrl: preview,
                 hashtags,
             });
 
@@ -47,19 +44,23 @@ export default function CreatePostModal({ onClose, onSuccess }: any) {
             <h2>Tạo bài viết</h2>
 
             <textarea
-                placeholder="Bạn đang nghĩ gì?"
                 value={content}
-                onChange={(e) => setContent(e.target.value)}
+                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                    setContent(e.target.value)
+                }
+                placeholder="Bạn đang nghĩ gì?"
             />
 
             <input
                 type="file"
-                onChange={(e) =>
-                    e.target.files && handleImageChange(e.target.files[0])
-                }
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                    if (e.target.files && e.target.files[0]) {
+                        handleImageChange(e.target.files[0]);
+                    }
+                }}
             />
 
-            {preview && <img src={preview} width={200} />}
+            {preview && <img src={preview} alt="preview" width={200} />}
 
             {error && <p style={{ color: "red" }}>{error}</p>}
 

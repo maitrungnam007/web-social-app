@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import PostItem from "../components/PostItem";
-import { postService } from "../services/postService";
+import PostItem from "../components/PostItem.tsx";
+import { postService } from "../services/postService.ts";
 
 const PAGE_SIZE = 5;
 

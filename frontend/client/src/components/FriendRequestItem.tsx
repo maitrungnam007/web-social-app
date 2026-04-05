@@ -19,7 +19,7 @@ export default function FriendRequestItem({
   // Dùng thông tin từ Friendship trực tiếp
   const userName = type === 'received' ? friendship.requesterName : friendship.addresseeName
   const userAvatar = type === 'received' ? friendship.requesterAvatar : friendship.addresseeAvatar
-  const userId = type === 'received' ? friendship.requesterId : friendship.addresseeId
+  // const userId = type === 'received' ? friendship.requesterId : friendship.addresseeId
 
   return (
     <div className="bg-white rounded-lg shadow p-4 flex items-center gap-3">

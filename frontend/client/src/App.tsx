@@ -1,5 +1,5 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { lazy, Suspense } from 'react'
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import MainLayout from './layouts/MainLayout'
@@ -28,9 +28,48 @@ function PageLoader() {
   )
 }
 
+// Scroll restoration component
+function ScrollRestoration() {
+  const location = useLocation()
+  
+  // Save scroll position continuously while on home page
+  useEffect(() => {
+    if (location.pathname !== '/') return
+    
+    const handleScroll = () => {
+      sessionStorage.setItem('scrollPosition', String(window.scrollY))
+    }
+    
+    // Save on scroll
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    
+    return () => {
+      window.removeEventListener('scroll', handleScroll)
+    }
+  }, [location.pathname])
+  
+  // Restore scroll position when coming back to home
+  useEffect(() => {
+    if (location.pathname === '/') {
+      const savedPosition = sessionStorage.getItem('scrollPosition')
+      if (savedPosition) {
+        // Wait longer for content to load (infinite scroll needs time)
+        const timer = setTimeout(() => {
+          window.scrollTo(0, parseInt(savedPosition))
+        }, 500)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [location.pathname])
+  
+  return null
+}
+
 function AppRoutes() {
   return (
-    <Routes>
+    <>
+      <ScrollRestoration />
+      <Routes>
       <Route element={<AuthLayout />}>
         <Route path="/login" element={
           <Suspense fallback={<PageLoader />}>
@@ -82,6 +121,7 @@ function AppRoutes() {
         } />
       </Route>
     </Routes>
+    </>
   )
 }
 

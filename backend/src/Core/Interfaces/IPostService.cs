@@ -12,4 +12,7 @@ public interface IPostService
     Task<ApiResponse<PagedResult<PostResponseDto>>> GetPostsAsync(PostFilterDto filter, string? currentUserId);
     Task<ApiResponse<bool>> LikePostAsync(int postId, string userId);
     Task<ApiResponse<bool>> UnlikePostAsync(int postId, string userId);
+    Task<ApiResponse<bool>> HidePostAsync(int postId, string userId);
+    Task<ApiResponse<bool>> UnhidePostAsync(int postId, string userId);
+    Task<ApiResponse<List<int>>> GetHiddenPostIdsAsync(string userId);
 }

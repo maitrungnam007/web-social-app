@@ -17,7 +17,7 @@ export const postsApi = {
     return response.data
   },
   
-  createPost: async (data: { content: string; imageUrl?: string }): Promise<ApiResponse<Post>> => {
+  createPost: async (data: { content: string; imageUrl?: string; hashtags?: string[] }): Promise<ApiResponse<Post>> => {
     const response = await api.post('/posts', data)
     return response.data
   },
@@ -39,6 +39,24 @@ export const postsApi = {
   
   unlikePost: async (id: number): Promise<ApiResponse<boolean>> => {
     const response = await api.delete(`/posts/${id}/like`)
+    return response.data
+  },
+  
+  // Ẩn bài viết cho user hiện tại
+  hidePost: async (id: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.post(`/posts/${id}/hide`)
+    return response.data
+  },
+  
+  // Bỏ ẩn bài viết cho user hiện tại
+  unhidePost: async (id: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.delete(`/posts/${id}/hide`)
+    return response.data
+  },
+  
+  // Lấy danh sách ID bài viết đã ẩn
+  getHiddenPosts: async (): Promise<ApiResponse<number[]>> => {
+    const response = await api.get('/posts/hidden')
     return response.data
   },
 }

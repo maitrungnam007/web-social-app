@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+ï»¿using System.ComponentModel.DataAnnotations;
 
 namespace Core.Entities;
 
@@ -19,9 +19,10 @@ public class Post
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
     
-    // Các thu?c tính di?u hu?ng
+    // CÃ¡c thu?c tÃ­nh di?u hu?ng
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
     public virtual ICollection<PostHashtag> PostHashtags { get; set; } = new List<PostHashtag>();
-    public virtual ICollection<PostReport> Reports { get; set; } = new List<PostReport>();
+    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 }
+

@@ -317,6 +317,132 @@ public class PostService : IPostService
         await _context.SaveChangesAsync();
     }
 
+    // Ẩn bài viết cho user
+    public async Task<ApiResponse<bool>> HidePostAsync(int postId, string userId)
+    {
+        try
+        {
+            // Kiểm tra bài viết tồn tại
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không tìm thấy bài viết"
+                };
+            }
+
+            // Kiểm tra đã ẩn chưa
+            var existing = await _context.HiddenPosts
+                .FirstOrDefaultAsync(h => h.UserId == userId && h.PostId == postId);
+            
+            if (existing != null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Bài viết đã được ẩn trước đó",
+                    Data = true
+                };
+            }
+
+            // Tạo record ẩn bài viết
+            var hiddenPost = new HiddenPost
+            {
+                UserId = userId,
+                PostId = postId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.HiddenPosts.Add(hiddenPost);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Đã ẩn bài viết thành công",
+                Data = true
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi ẩn bài viết {PostId} cho user {UserId}", postId, userId);
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi ẩn bài viết"
+            };
+        }
+    }
+
+    // Bỏ ẩn bài viết cho user
+    public async Task<ApiResponse<bool>> UnhidePostAsync(int postId, string userId)
+    {
+        try
+        {
+            var hiddenPost = await _context.HiddenPosts
+                .FirstOrDefaultAsync(h => h.UserId == userId && h.PostId == postId);
+            
+            if (hiddenPost == null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không tìm thấy bài viết đã ẩn"
+                };
+            }
+
+            _context.HiddenPosts.Remove(hiddenPost);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Đã bỏ ẩn bài viết thành công",
+                Data = true
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi bỏ ẩn bài viết {PostId} cho user {UserId}", postId, userId);
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi bỏ ẩn bài viết"
+            };
+        }
+    }
+
+    // Lấy danh sách ID bài viết đã ẩn bởi user
+    public async Task<ApiResponse<List<int>>> GetHiddenPostIdsAsync(string userId)
+    {
+        try
+        {
+            var hiddenPostIds = await _context.HiddenPosts
+                .Where(h => h.UserId == userId)
+                .Select(h => h.PostId)
+                .ToListAsync();
+
+            return new ApiResponse<List<int>>
+            {
+                Success = true,
+                Message = "Lấy danh sách bài viết đã ẩn thành công",
+                Data = hiddenPostIds
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy danh sách bài viết đã ẩn cho user {UserId}", userId);
+            return new ApiResponse<List<int>>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi lấy danh sách bài viết đã ẩn",
+                Data = new List<int>()
+            };
+        }
+    }
+
     // Map entity to DTO
     private PostResponseDto MapToResponse(Post post, string? currentUserId)
     {

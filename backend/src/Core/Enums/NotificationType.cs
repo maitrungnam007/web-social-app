@@ -7,6 +7,5 @@ public enum NotificationType
     FriendRequest = 2,
     FriendAccepted = 3,
     StoryView = 4,
-    Mention = 5,
-    Share = 6
+    Mention = 5
 }

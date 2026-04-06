@@ -1,6 +1,7 @@
 using Core.DTOs.Common;
 using Core.DTOs.Comment;
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ public class CommentService : ICommentService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CommentService> _logger;
+    private readonly INotificationService _notificationService;
 
-    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger)
+    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger, INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     // Tạo bình luận mới
@@ -26,7 +29,9 @@ public class CommentService : ICommentService
         try
         {
             // Kiểm tra bài đăng tồn tại
-            var post = await _context.Posts.FindAsync(dto.PostId);
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == dto.PostId);
             if (post == null || post.IsDeleted)
             {
                 return ApiResponse<CommentResponseDto>.ErrorResult("Không tìm thấy bài đăng");
@@ -54,6 +59,26 @@ public class CommentService : ICommentService
 
             _context.Comments.Add(comment);
             await _context.SaveChangesAsync();
+
+            // Lấy thông tin commenter
+            var commenter = await _context.Users.FindAsync(userId);
+
+            // Tạo thông báo cho chủ bài viết (không thông báo khi tự comment bài mình)
+            if (post.UserId != userId)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    userId: post.UserId,
+                    type: NotificationType.Comment,
+                    title: "Bình luận mới",
+                    message: $"{commenter?.UserName ?? "Ai đó"} đã bình luận bài viết của bạn",
+                    relatedEntityId: dto.PostId.ToString(),
+                    relatedEntityType: "Post",
+                    actorId: userId
+                );
+            }
+
+            // Xử lý mentions (@username) trong nội dung comment
+            await ProcessMentions(comment.Id, dto.Content, userId, "Comment");
 
             return await GetCommentByIdAsync(comment.Id, userId);
         }
@@ -279,5 +304,47 @@ public class CommentService : ICommentService
             IsLikedByCurrentUser = currentUserId != null && comment.Likes?.Any(l => l.UserId == currentUserId) == true,
             Replies = new List<CommentResponseDto>()
         };
+    }
+
+    // Xử lý mentions (@username) trong nội dung comment
+    private async Task ProcessMentions(int commentId, string content, string authorId, string entityType)
+    {
+        try
+        {
+            // Tìm tất cả @username trong content
+            var mentionPattern = @"@(\w+)";
+            var matches = System.Text.RegularExpressions.Regex.Matches(content, mentionPattern);
+
+            if (matches.Count == 0) return;
+
+            // Lấy thông tin author
+            var author = await _context.Users.FindAsync(authorId);
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var username = match.Groups[1].Value;
+
+                // Tìm user được mention
+                var mentionedUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.UserName.ToLower() == username.ToLower());
+
+                if (mentionedUser != null && mentionedUser.Id != authorId)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        userId: mentionedUser.Id,
+                        type: NotificationType.Mention,
+                        title: "Bạn được nhắc đến",
+                        message: $"{author?.UserName ?? "Ai đó"} đã nhắc đến bạn trong một bình luận",
+                        relatedEntityId: commentId.ToString(),
+                        relatedEntityType: entityType,
+                        actorId: authorId
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xử lý mentions cho bình luận {CommentId}", commentId);
+        }
     }
 }

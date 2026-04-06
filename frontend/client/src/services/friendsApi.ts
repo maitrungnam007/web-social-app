@@ -1,5 +1,5 @@
 import api from './apiClient'
-import { ApiResponse, Friendship, Friend, MutualFriend, FriendSuggestion } from '../types'
+import { ApiResponse, Friendship, Friend, MutualFriend, FriendSuggestion, MentionUser } from '../types'
 
 export const friendsApi = {
   getFriends: async (): Promise<ApiResponse<Friend[]>> => {
@@ -49,6 +49,13 @@ export const friendsApi = {
   
   getFriendSuggestions: async (count: number = 10, signal?: AbortSignal): Promise<ApiResponse<FriendSuggestion[]>> => {
     const response = await api.get(`/friends/suggestions?count=${count}`, { signal })
+    return response.data
+  },
+
+  // Tìm kiếm bạn bè cho mention autocomplete
+  searchFriendsForMention: async (query: string, signal?: AbortSignal): Promise<ApiResponse<MentionUser[]>> => {
+    const url = query ? `/friends/search?query=${encodeURIComponent(query)}` : '/friends/search'
+    const response = await api.get(url, { signal })
     return response.data
   },
 }

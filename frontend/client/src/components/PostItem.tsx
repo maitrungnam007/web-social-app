@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../contexts/AuthContext";
 import Comments from "./Comments.tsx";
 import ReportModal from "./ReportModal.tsx";
+import MentionDisplay from "./MentionDisplay.tsx";
 
 interface Props {
     post: Post;
@@ -165,23 +166,9 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
         });
     };
 
-    // Highlight hashtags trong content
-    const renderContentWithHashtags = (content: string) => {
-        // Escape HTML để tránh XSS
-        const escapeHtml = (text: string) => {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        };
-
-        // Tìm và thay thế hashtags bằng span có màu
-        return escapeHtml(content).replace(
-            /#\w+/g, 
-            '<span class="text-blue-500 hover:text-blue-700 cursor-pointer">$&</span>'
-        );
-    };
-
-    const displayName = post.userName;
+    const displayName = post.userFirstName && post.userLastName 
+        ? `${post.userFirstName} ${post.userLastName}` 
+        : post.userName;
     const avatarUrl = post.userAvatar
         ? post.userAvatar.startsWith("http")
             ? post.userAvatar
@@ -287,7 +274,9 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
 
                     {/* Content */}
                     <div className="px-3 sm:px-4 pb-2">
-                        <p className="text-gray-800 whitespace-pre-wrap text-sm sm:text-base" dangerouslySetInnerHTML={{ __html: renderContentWithHashtags(post.content) }} />
+                        <p className="text-gray-800 whitespace-pre-wrap text-sm sm:text-base">
+                            <MentionDisplay content={post.content} />
+                        </p>
                     </div>
 
                     {/* Image */}

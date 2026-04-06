@@ -15,4 +15,5 @@ public interface IFriendService
     Task<ApiResponse<bool>> UnfriendAsync(string userId, string friendId);
     Task<ApiResponse<List<MutualFriendDto>>> GetMutualFriendsAsync(string userId, string otherUserId);
     Task<ApiResponse<List<FriendSuggestionDto>>> GetFriendSuggestionsAsync(string userId, int count = 10);
+    Task<ApiResponse<List<MentionUserDto>>> SearchFriendsForMentionAsync(string userId, string query);
 }

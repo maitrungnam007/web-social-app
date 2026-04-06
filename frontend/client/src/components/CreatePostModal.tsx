@@ -1,6 +1,8 @@
 import { useState, useRef } from "react";
 import { postsApi, filesApi } from "../services";
 import toast from "react-hot-toast";
+import MentionInput from "./MentionInput";
+import { MentionUser } from "../types";
 
 interface CreatePostModalProps {
     onClose: () => void;
@@ -9,10 +11,17 @@ interface CreatePostModalProps {
 
 export default function CreatePostModal({ onClose, onSuccess }: CreatePostModalProps) {
     const [content, setContent] = useState("");
+    const [mentions, setMentions] = useState<MentionUser[]>([]);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    // Xử lý thay đổi content với mentions
+    const handleContentChange = (newContent: string, newMentions: MentionUser[]) => {
+        setContent(newContent);
+        setMentions(newMentions);
+    };
 
     // Xử lý chọn file ảnh
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,12 +132,11 @@ export default function CreatePostModal({ onClose, onSuccess }: CreatePostModalP
 
                 {/* Content */}
                 <div className="p-4">
-                    <textarea
+                    <MentionInput
                         value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Bạn đang nghĩ gì?"
-                        className="w-full h-32 p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        maxLength={5000}
+                        onChange={handleContentChange}
+                        placeholder="Bạn đang nghĩ gì? Gõ @ để nhắc bạn bè"
+                        className="h-32"
                     />
                     
                     {/* Preview ảnh */}

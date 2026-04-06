@@ -1,6 +1,7 @@
 using Core.DTOs.Common;
 using Core.DTOs.Post;
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ public class PostService : IPostService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PostService> _logger;
+    private readonly INotificationService _notificationService;
 
-    public PostService(ApplicationDbContext context, ILogger<PostService> logger)
+    public PostService(ApplicationDbContext context, ILogger<PostService> logger, INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     // Tạo bài đăng mới
@@ -42,6 +45,9 @@ public class PostService : IPostService
             {
                 await ProcessHashtags(post.Id, dto.Hashtags);
             }
+
+            // Xử lý mentions (@username)
+            await ProcessMentions(post.Id, dto.Content, userId, "Post");
 
             return await GetPostByIdAsync(post.Id, userId);
         }
@@ -129,6 +135,8 @@ public class PostService : IPostService
                     ImageUrl = p.ImageUrl,
                     UserId = p.UserId,
                     UserName = p.User != null ? p.User.UserName : "",
+                    UserFirstName = p.User != null ? p.User.FirstName : null,
+                    UserLastName = p.User != null ? p.User.LastName : null,
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -195,6 +203,8 @@ public class PostService : IPostService
                     ImageUrl = p.ImageUrl,
                     UserId = p.UserId,
                     UserName = p.User != null ? p.User.UserName : "",
+                    UserFirstName = p.User != null ? p.User.FirstName : null,
+                    UserLastName = p.User != null ? p.User.LastName : null,
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -227,7 +237,10 @@ public class PostService : IPostService
     {
         try
         {
-            var post = await _context.Posts.FindAsync(postId);
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+                
             if (post == null || post.IsDeleted)
             {
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
@@ -242,6 +255,9 @@ public class PostService : IPostService
                 return ApiResponse<bool>.ErrorResult("Bạn đã thích bài đăng này rồi");
             }
 
+            // Lấy thông tin user like
+            var liker = await _context.Users.FindAsync(userId);
+
             var like = new Like
             {
                 PostId = postId,
@@ -251,6 +267,20 @@ public class PostService : IPostService
 
             _context.Likes.Add(like);
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho chủ bài viết (không thông báo khi tự like bài mình)
+            if (post.UserId != userId)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    userId: post.UserId,
+                    type: NotificationType.Like,
+                    title: "Lượt thích mới",
+                    message: $"{liker?.UserName ?? "Ai đó"} đã thích bài viết của bạn",
+                    relatedEntityId: postId.ToString(),
+                    relatedEntityType: "Post",
+                    actorId: userId
+                );
+            }
 
             return ApiResponse<bool>.SuccessResult(true, "Đã thích bài đăng");
         }
@@ -315,6 +345,48 @@ public class PostService : IPostService
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    // Xử lý mentions (@username) trong content
+    private async Task ProcessMentions(int postId, string content, string authorId, string entityType)
+    {
+        try
+        {
+            // Tìm tất cả @username trong content
+            var mentionPattern = @"@(\w+)";
+            var matches = System.Text.RegularExpressions.Regex.Matches(content, mentionPattern);
+            
+            if (matches.Count == 0) return;
+
+            // Lấy thông tin author
+            var author = await _context.Users.FindAsync(authorId);
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var username = match.Groups[1].Value;
+                
+                // Tìm user được mention
+                var mentionedUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.UserName.ToLower() == username.ToLower());
+
+                if (mentionedUser != null && mentionedUser.Id != authorId)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        userId: mentionedUser.Id,
+                        type: NotificationType.Mention,
+                        title: "Bạn được nhắc đến",
+                        message: $"{author?.UserName ?? "Ai đó"} đã nhắc đến bạn trong bài viết",
+                        relatedEntityId: postId.ToString(),
+                        relatedEntityType: entityType,
+                        actorId: authorId
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xử lý mentions cho bài đăng {PostId}", postId);
+        }
     }
 
     // Ẩn bài viết cho user
@@ -453,6 +525,8 @@ public class PostService : IPostService
             ImageUrl = post.ImageUrl,
             UserId = post.UserId,
             UserName = post.User?.UserName ?? "",
+            UserFirstName = post.User?.FirstName,
+            UserLastName = post.User?.LastName,
             UserAvatar = post.User?.AvatarUrl,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt,

@@ -14,11 +14,13 @@ public class FriendService : IFriendService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<FriendService> _logger;
+    private readonly INotificationService _notificationService;
 
-    public FriendService(ApplicationDbContext context, ILogger<FriendService> logger)
+    public FriendService(ApplicationDbContext context, ILogger<FriendService> logger, INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     // Gửi lời mời kết bạn
@@ -56,6 +58,9 @@ public class FriendService : IFriendService
                 };
             }
 
+            // Lấy thông tin người gửi
+            var requester = await _context.Users.FindAsync(requesterId);
+
             // Tạo lời mời kết bạn mới
             var friendship = new Friendship
             {
@@ -67,6 +72,17 @@ public class FriendService : IFriendService
 
             _context.Friendships.Add(friendship);
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho người được mời kết bạn
+            await _notificationService.CreateNotificationAsync(
+                userId: addresseeId,
+                type: NotificationType.FriendRequest,
+                title: "Lời mời kết bạn mới",
+                message: $"{requester?.UserName ?? "Ai đó"} muốn kết bạn với bạn",
+                relatedEntityId: friendship.Id.ToString(),
+                relatedEntityType: "Friendship",
+                actorId: requesterId
+            );
 
             return ApiResponse<bool>.SuccessResult(true, "Đã gửi lời mời kết bạn");
         }
@@ -82,7 +98,9 @@ public class FriendService : IFriendService
     {
         try
         {
-            var friendship = await _context.Friendships.FindAsync(friendshipId);
+            var friendship = await _context.Friendships
+                .Include(f => f.Requester)
+                .FirstOrDefaultAsync(f => f.Id == friendshipId);
             if (friendship == null)
             {
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy lời mời kết bạn");
@@ -100,10 +118,24 @@ public class FriendService : IFriendService
                 return ApiResponse<bool>.ErrorResult("Lời mời kết bạn không còn hiệu lực");
             }
 
+            // Lấy thông tin người chấp nhận
+            var accepter = await _context.Users.FindAsync(userId);
+
             // Cập nhật trạng thái
             friendship.Status = FriendshipStatus.Accepted;
             friendship.UpdatedAt = DateTime.UtcNow;
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho người gửi lời mời
+            await _notificationService.CreateNotificationAsync(
+                userId: friendship.RequesterId,
+                type: NotificationType.FriendAccepted,
+                title: "Lời mời kết bạn đã được chấp nhận",
+                message: $"{accepter?.UserName ?? "Ai đó"} đã chấp nhận lời mời kết bạn của bạn",
+                relatedEntityId: friendshipId.ToString(),
+                relatedEntityType: "Friendship",
+                actorId: userId
+            );
 
             return ApiResponse<bool>.SuccessResult(true, "Đã chấp nhận lời mời kết bạn");
         }
@@ -458,6 +490,64 @@ public class FriendService : IFriendService
         {
             _logger.LogError(ex, "Lỗi khi lấy gợi ý bạn bè cho user {UserId}", userId);
             return ApiResponse<List<FriendSuggestionDto>>.ErrorResult("Có lỗi xảy ra khi lấy gợi ý bạn bè");
+        }
+    }
+
+    // Tìm kiếm bạn bè cho mention (autocomplete @username)
+    public async Task<ApiResponse<List<MentionUserDto>>> SearchFriendsForMentionAsync(string userId, string query)
+    {
+        try
+        {
+            _logger.LogInformation("SearchFriendsForMention called for user {UserId} with query '{Query}'", userId, query);
+            
+            // Lấy danh sách bạn bè (accepted) - chia làm 2 query để tránh ternary operator
+            var friendIds1 = await _context.Friendships
+                .AsNoTracking()
+                .Where(f => f.RequesterId == userId && f.Status == FriendshipStatus.Accepted)
+                .Select(f => f.AddresseeId)
+                .ToListAsync();
+                
+            var friendIds2 = await _context.Friendships
+                .AsNoTracking()
+                .Where(f => f.AddresseeId == userId && f.Status == FriendshipStatus.Accepted)
+                .Select(f => f.RequesterId)
+                .ToListAsync();
+            
+            var allFriendIds = friendIds1.Concat(friendIds2).ToList();
+
+            // Query users từ friend IDs
+            var friendsQuery = _context.Users
+                .AsNoTracking()
+                .Where(u => allFriendIds.Contains(u.Id));
+
+            // Lọc theo query nếu có
+            if (!string.IsNullOrWhiteSpace(query))
+            {
+                var lowerQuery = query.ToLower();
+                friendsQuery = friendsQuery.Where(u => 
+                    u.UserName != null && u.UserName.ToLower().Contains(lowerQuery));
+            }
+
+            var friends = await friendsQuery
+                .OrderBy(u => u.UserName)
+                .Take(10)
+                .Select(u => new MentionUserDto
+                {
+                    Id = u.Id,
+                    UserName = u.UserName ?? "",
+                    FirstName = u.FirstName,
+                    LastName = u.LastName,
+                    AvatarUrl = u.AvatarUrl
+                })
+                .ToListAsync();
+
+            _logger.LogInformation("Found {Count} friends for user {UserId}", friends.Count, userId);
+            return ApiResponse<List<MentionUserDto>>.SuccessResult(friends);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi tìm kiếm bạn bè cho mention user {UserId}", userId);
+            return ApiResponse<List<MentionUserDto>>.ErrorResult("Có lỗi xảy ra khi tìm kiếm bạn bè: " + ex.Message);
         }
     }
 }

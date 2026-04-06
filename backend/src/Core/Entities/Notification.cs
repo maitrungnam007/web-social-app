@@ -17,6 +17,10 @@ public class Notification
     public string? RelatedEntityId { get; set; }
     public string? RelatedEntityType { get; set; } // "Post", "Comment", "Friendship", v.v.
     
+    // ID của người thực hiện hành động tạo thông báo
+    public string? ActorId { get; set; }
+    public virtual User? Actor { get; set; }
+    
     public bool IsRead { get; set; } = false;
     
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;

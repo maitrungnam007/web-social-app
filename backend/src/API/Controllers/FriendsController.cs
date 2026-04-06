@@ -138,4 +138,16 @@ public class FriendsController : ControllerBase
         var result = await _friendService.GetFriendSuggestionsAsync(userId, count);
         return Ok(result);
     }
+
+    // Tìm kiếm bạn bè theo username cho mention
+    [HttpGet("search")]
+    public async Task<ActionResult<ApiResponse<List<MentionUserDto>>>> SearchFriendsForMention([FromQuery] string? query = null)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _friendService.SearchFriendsForMentionAsync(userId, query ?? "");
+        return Ok(result);
+    }
 }

@@ -4,6 +4,9 @@ import { commentsApi } from "../services";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import ReportModal from "./ReportModal";
+import MentionDisplay from "./MentionDisplay";
+import MentionInput from "./MentionInput";
+import { MentionUser } from "../types";
 
 interface Comment {
     id: number;
@@ -27,13 +30,25 @@ export default function Comments({ postId }: Props) {
     const { user } = useAuth();
     const [comments, setComments] = useState<Comment[]>([]);
     const [text, setText] = useState("");
+    const [mentions, setMentions] = useState<MentionUser[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [replyTo, setReplyTo] = useState<Comment | null>(null);
     const [replyText, setReplyText] = useState("");
+    const [replyMentions, setReplyMentions] = useState<MentionUser[]>([]);
     const [likingComments, setLikingComments] = useState<Set<number>>(new Set());
     const [showMenuFor, setShowMenuFor] = useState<number | null>(null);
     const [reportComment, setReportComment] = useState<Comment | null>(null);
+
+    const handleTextChange = (newText: string, newMentions: MentionUser[]) => {
+        setText(newText);
+        setMentions(newMentions);
+    };
+
+    const handleReplyTextChange = (newText: string, newMentions: MentionUser[]) => {
+        setReplyText(newText);
+        setReplyMentions(newMentions);
+    };
 
     const fetchComments = async () => {
         setLoading(true);
@@ -131,7 +146,9 @@ export default function Comments({ postId }: Props) {
     };
 
     const formatTime = (dateString: string) => {
-        const date = new Date(dateString);
+        // Thêm Z nếu thiếu để đảm bảo parse đúng UTC
+        const dateStr = dateString.endsWith('Z') ? dateString : dateString + 'Z';
+        const date = new Date(dateStr);
         const now = new Date();
         const diff = now.getTime() - date.getTime();
         const minutes = Math.floor(diff / 60000);
@@ -199,7 +216,7 @@ export default function Comments({ postId }: Props) {
                             </>
                         )}
                     </div>
-                    <p className="text-sm text-gray-700">{comment.content}</p>
+                    <p className="text-sm text-gray-700"><MentionDisplay content={comment.content} /></p>
                 </div>
                 <div className="flex items-center gap-3 mt-1 px-2 text-xs text-gray-500">
                     <span>{formatTime(comment.createdAt)}</span>
@@ -232,14 +249,12 @@ export default function Comments({ postId }: Props) {
                             className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                         />
                         <div className="flex-1 flex gap-2">
-                            <input
+                            <MentionInput
                                 value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && addReply(comment)}
+                                onChange={handleReplyTextChange}
                                 placeholder={`Trả lời ${comment.userName}...`}
                                 className="flex-1 bg-gray-100 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                                 disabled={submitting}
-                                autoFocus
                             />
                             <button
                                 onClick={() => addReply(comment)}
@@ -280,12 +295,11 @@ export default function Comments({ postId }: Props) {
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />
                 <div className="flex-1 flex gap-2">
-                    <input
+                    <MentionInput
                         value={text}
-                        onChange={(e) => setText(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && addComment()}
-                        placeholder="Viết bình luận..."
-                        className="flex-1 bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
+                        onChange={handleTextChange}
+                        placeholder="Viết bình luận... Gõ @ để nhắc bạn bè"
+                        className="bg-gray-100 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                         disabled={submitting}
                     />
                     {text.trim() && (

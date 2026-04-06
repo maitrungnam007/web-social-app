@@ -1,6 +1,7 @@
 using Core.DTOs.Common;
 using Core.DTOs.Story;
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ public class StoryService : IStoryService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<StoryService> _logger;
+    private readonly INotificationService _notificationService;
 
-    public StoryService(ApplicationDbContext context, ILogger<StoryService> logger)
+    public StoryService(ApplicationDbContext context, ILogger<StoryService> logger, INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     // Tạo story mới
@@ -191,7 +194,9 @@ public class StoryService : IStoryService
     {
         try
         {
-            var story = await _context.Stories.FindAsync(storyId);
+            var story = await _context.Stories
+                .Include(s => s.User)
+                .FirstOrDefaultAsync(s => s.Id == storyId);
             if (story == null || story.IsDeleted)
             {
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy story");
@@ -212,6 +217,9 @@ public class StoryService : IStoryService
                 return ApiResponse<bool>.SuccessResult(true, "Đã xem story này");
             }
 
+            // Lấy thông tin viewer
+            var viewer = await _context.Users.FindAsync(viewerId);
+
             // Tạo view mới
             var storyView = new StoryView
             {
@@ -222,6 +230,17 @@ public class StoryService : IStoryService
 
             _context.StoryViews.Add(storyView);
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho chủ story
+            await _notificationService.CreateNotificationAsync(
+                userId: story.UserId,
+                type: NotificationType.StoryView,
+                title: "Lượt xem story mới",
+                message: $"{viewer?.UserName ?? "Ai đó"} đã xem story của bạn",
+                relatedEntityId: storyId.ToString(),
+                relatedEntityType: "Story",
+                actorId: viewerId
+            );
 
             return ApiResponse<bool>.SuccessResult(true, "Đã đánh dấu xem story");
         }

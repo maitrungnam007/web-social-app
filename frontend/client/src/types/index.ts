@@ -16,6 +16,8 @@ export interface Post {
   imageUrl?: string
   userId: string
   userName: string
+  userFirstName?: string
+  userLastName?: string
   userAvatar?: string
   createdAt: string
   updatedAt?: string
@@ -123,6 +125,16 @@ export interface FriendSuggestion {
   lastName?: string
   avatarUrl?: string
   mutualFriendsCount: number
+}
+
+// User được mention trong bài viết/comment
+export interface MentionUser {
+  id: string
+  userName: string
+  firstName?: string
+  lastName?: string
+  avatarUrl?: string
+  displayName: string
 }
 
 export interface ApiResponse<T> {

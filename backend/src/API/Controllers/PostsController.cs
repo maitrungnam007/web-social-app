@@ -89,4 +89,40 @@ public class PostsController : ControllerBase
         var result = await _postService.UnlikePostAsync(id, userId);
         return Ok(result);
     }
+    
+    // Ẩn bài viết cho user hiện tại
+    [HttpPost("{id}/hide")]
+    public async Task<ActionResult<ApiResponse<bool>>> HidePost(int id)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _postService.HidePostAsync(id, userId);
+        return Ok(result);
+    }
+    
+    // Bỏ ẩn bài viết cho user hiện tại
+    [HttpDelete("{id}/hide")]
+    public async Task<ActionResult<ApiResponse<bool>>> UnhidePost(int id)
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _postService.UnhidePostAsync(id, userId);
+        return Ok(result);
+    }
+    
+    // Lấy danh sách ID bài viết đã ẩn bởi user hiện tại
+    [HttpGet("hidden")]
+    public async Task<ActionResult<ApiResponse<List<int>>>> GetHiddenPosts()
+    {
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userId == null)
+            return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
+        
+        var result = await _postService.GetHiddenPostIdsAsync(userId);
+        return Ok(result);
+    }
 }

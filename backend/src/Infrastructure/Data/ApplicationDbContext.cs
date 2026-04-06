@@ -21,7 +21,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<Hashtag> Hashtags => Set<Hashtag>();
     public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
-    public DbSet<PostReport> PostReports => Set<PostReport>();
+    public DbSet<Report> Reports => Set<Report>();
+    public DbSet<HiddenPost> HiddenPosts => Set<HiddenPost>();
     
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -213,18 +214,75 @@ public class ApplicationDbContext : IdentityDbContext<User>
                 .OnDelete(DeleteBehavior.Cascade);
         });
         
-        // Cấu hình PostReport
-        builder.Entity<PostReport>(entity =>
+        // Cấu hình Report (Báo cáo nội dung)
+        builder.Entity<Report>(entity =>
         {
             entity.HasKey(e => e.Id);
+            entity.Property(e => e.TargetType).IsRequired();
+            entity.Property(e => e.TargetId).IsRequired();
+            
+            // Quan hệ với Post (optional) - dùng Cascade vì Post là primary target
             entity.HasOne(e => e.Post)
                 .WithMany(p => p.Reports)
                 .HasForeignKey(e => e.PostId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired(false);
+            
+            // Quan hệ với Comment (optional) - dùng NoAction để tránh cascade cycle
+            entity.HasOne(e => e.Comment)
+                .WithMany()
+                .HasForeignKey(e => e.CommentId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
+            
+            // Quan hệ với ReportedUser (optional) - dùng NoAction để tránh cascade cycle
+            entity.HasOne(e => e.ReportedUser)
+                .WithMany()
+                .HasForeignKey(e => e.ReportedUserId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .IsRequired(false);
+            
+            // Quan hệ với Reporter
             entity.HasOne(e => e.Reporter)
-                .WithMany(u => u.PostReports)
+                .WithMany(u => u.Reports)
                 .HasForeignKey(e => e.ReporterId)
                 .OnDelete(DeleteBehavior.Restrict);
+            
+            // Quan hệ với Admin xử lý (optional)
+            entity.HasOne(e => e.ResolvedByUser)
+                .WithMany()
+                .HasForeignKey(e => e.ResolvedBy)
+                .OnDelete(DeleteBehavior.Restrict)
+                .IsRequired(false);
+            
+            // Indexes
+            entity.HasIndex(e => e.TargetType);
+            entity.HasIndex(e => e.TargetId);
+            entity.HasIndex(e => e.Status);
+            entity.HasIndex(e => e.ReporterId);
+            entity.HasIndex(e => e.CreatedAt);
+            entity.HasIndex(e => new { e.TargetType, e.TargetId, e.ReporterId });
+        });
+        
+        // Cấu hình HiddenPost (Bài viết bị ẩn bởi user)
+        builder.Entity<HiddenPost>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            
+            // Quan hệ với User
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            
+            // Quan hệ với Post - dùng NoAction để tránh cascade cycle
+            entity.HasOne(e => e.Post)
+                .WithMany()
+                .HasForeignKey(e => e.PostId)
+                .OnDelete(DeleteBehavior.NoAction);
+            
+            // Unique index để mỗi user chỉ ẩn một bài viết một lần
+            entity.HasIndex(e => new { e.UserId, e.PostId }).IsUnique();
         });
         
         // Thêm dữ liệu Roles mặc định

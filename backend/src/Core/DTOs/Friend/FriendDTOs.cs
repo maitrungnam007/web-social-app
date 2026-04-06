@@ -49,3 +49,16 @@ public class FriendSuggestionDto
     public string? AvatarUrl { get; set; }
     public int MutualFriendsCount { get; set; }
 }
+
+// DTO cho user được mention
+public class MentionUserDto
+{
+    public string Id { get; set; } = string.Empty;
+    public string UserName { get; set; } = string.Empty;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? AvatarUrl { get; set; }
+    public string DisplayName => FirstName != null && LastName != null 
+        ? $"{FirstName} {LastName}" 
+        : UserName;
+}

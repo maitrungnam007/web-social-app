@@ -8,6 +8,8 @@ import StoryViewer from '../components/StoryViewer'
 import ProfileCover from '../components/ProfileCover'
 import ProfileAvatar from '../components/ProfileAvatar'
 import ProfileHighlights from '../components/ProfileHighlights'
+import PostItem from '../components/PostItem'
+import ReportModal from '../components/ReportModal'
 
 export default function Profile() {
   const { userId } = useParams()
@@ -35,6 +37,7 @@ export default function Profile() {
     lastName: '',
     bio: ''
   })
+  const [showReportModal, setShowReportModal] = useState(false)
   const requestIdRef = useRef(0)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -365,6 +368,11 @@ export default function Profile() {
     }
   }
 
+  // Xử lý khi bài viết bị xóa
+  const handlePostDelete = (postId: string | number) => {
+    setPosts((prev) => prev.filter((p) => p.id !== postId))
+  }
+
   if (loadingUser) {
     return (
       <div className="max-w-4xl mx-auto">
@@ -409,7 +417,7 @@ export default function Profile() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-3 sm:px-4 pt-16 sm:pt-0">
       {/* Cover Image */}
       <ProfileCover
         user={user}
@@ -422,8 +430,8 @@ export default function Profile() {
       />
 
       {/* Profile Header */}
-      <div className="bg-white rounded-b-lg shadow p-6">
-        <div className="flex flex-col md:flex-row items-start md:items-end gap-4 -mt-20">
+      <div className="bg-white rounded-b-lg shadow p-4 sm:p-6">
+        <div className="flex flex-col md:flex-row items-start md:items-end gap-3 sm:gap-4 -mt-16 sm:-mt-20">
           {/* Avatar */}
           <ProfileAvatar
             user={user}
@@ -441,28 +449,38 @@ export default function Profile() {
 
           {/* User Info */}
           <div className="flex-1">
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-xl sm:text-2xl font-bold">
               {user.firstName && user.lastName 
                 ? `${user.firstName} ${user.lastName}` 
                 : user.userName}
             </h1>
-            <p className="text-gray-500">@{user.userName}</p>
+            <p className="text-gray-500 text-sm sm:text-base">@{user.userName}</p>
           </div>
 
           {/* Edit Button */}
-          {isOwnProfile && (
+          {isOwnProfile ? (
             <button
               onClick={() => setEditing(!editing)}
-              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+              className="px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm sm:text-base"
             >
               {editing ? 'Hủy' : 'Chỉnh sửa hồ sơ'}
+            </button>
+          ) : (
+            <button
+              onClick={() => setShowReportModal(true)}
+              className="px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+              </svg>
+              Báo cáo
             </button>
           )}
         </div>
 
         {/* Bio */}
         {!editing && user.bio && (
-          <p className="mt-4 text-gray-700">{user.bio}</p>
+          <p className="mt-3 sm:mt-4 text-gray-700 text-sm sm:text-base">{user.bio}</p>
         )}
 
         {/* Edit Form */}
@@ -507,14 +525,14 @@ export default function Profile() {
         )}
 
         {/* Stats */}
-        <div className="flex gap-6 mt-6 pt-6 border-t">
+        <div className="flex gap-4 sm:gap-6 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t">
           <div className="text-center">
-            <p className="text-2xl font-bold">{posts.length}</p>
-            <p className="text-gray-500 text-sm">Bài đăng</p>
+            <p className="text-xl sm:text-2xl font-bold">{posts.length}</p>
+            <p className="text-gray-500 text-xs sm:text-sm">Bài đăng</p>
           </div>
           <div className="text-center">
-            <p className="text-2xl font-bold">{friendsCount}</p>
-            <p className="text-gray-500 text-sm">Bạn bè</p>
+            <p className="text-xl sm:text-2xl font-bold">{friendsCount}</p>
+            <p className="text-gray-500 text-xs sm:text-sm">Bạn bè</p>
           </div>
         </div>
       </div>
@@ -538,31 +556,22 @@ export default function Profile() {
         }}
       />
 
-      {/* Posts Grid */}
-      <div className="mt-6">
-        <h2 className="text-xl font-bold mb-4">Bài đăng</h2>
+      {/* Posts List - Dùng PostItem giống trang feed */}
+      <div className="mt-4 sm:mt-6">
+        <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Bài đăng</h2>
         {posts.length === 0 && !loadingPosts ? (
           <div className="bg-white rounded-lg shadow p-6 text-center">
             <p className="text-gray-500">Chưa có bài đăng nào</p>
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-4">
               {posts.map(post => (
-                <div key={post.id} className="bg-white rounded-lg shadow p-4">
-                  <p className="text-gray-700 line-clamp-3">{post.content}</p>
-                  {post.imageUrl && (
-                    <img 
-                      src={`http://localhost:5259/api/files/${post.imageUrl}`} 
-                      alt="Post" 
-                      className="mt-2 rounded-lg w-full h-40 object-cover"
-                    />
-                  )}
-                  <div className="flex items-center gap-4 mt-3 text-gray-500 text-sm">
-                    <span>❤️ {post.likeCount}</span>
-                    <span>💬 {post.commentCount}</span>
-                  </div>
-                </div>
+                <PostItem 
+                  key={post.id} 
+                  post={post} 
+                  onPostDelete={handlePostDelete}
+                />
               ))}
             </div>
             
@@ -725,6 +734,15 @@ export default function Profile() {
           </div>
         </div>
       )}
+
+      {/* Modal báo cáo người dùng */}
+      <ReportModal
+        isOpen={showReportModal}
+        onClose={() => setShowReportModal(false)}
+        targetType="user"
+        targetId={user?.id || ''}
+        targetName={user?.userName}
+      />
     </div>
   )
 }

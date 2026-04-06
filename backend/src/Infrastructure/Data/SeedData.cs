@@ -274,17 +274,19 @@ public static class SeedData
             await context.SaveChangesAsync();
         }
 
-        // Seed PostReports
-        if (!context.PostReports.Any())
+        // Seed Reports
+        if (!context.Reports.Any())
         {
             var userIds = await context.Users.Select(u => u.Id).ToListAsync();
             var postIds = await context.Posts.Select(p => p.Id).ToListAsync();
-            var postReports = new List<PostReport>();
+            var reports = new List<Report>();
 
             for (int i = 1; i <= 10; i++)
             {
-                var postReport = new PostReport
+                var report = new Report
                 {
+                    TargetType = ReportTargetType.Post,
+                    TargetId = postIds[Random.Shared.Next(postIds.Count)],
                     PostId = postIds[Random.Shared.Next(postIds.Count)],
                     ReporterId = userIds[Random.Shared.Next(userIds.Count)],
                     Reason = (ReportReason)Random.Shared.Next(0, 5),
@@ -292,12 +294,12 @@ public static class SeedData
                     Status = (ReportStatus)Random.Shared.Next(0, 3),
                     CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 30)),
                     ResolvedAt = i % 3 == 0 ? DateTime.Now.AddDays(-Random.Shared.Next(1, 10)) : null,
-                    ResolvedBy = i % 3 == 0 ? "Admin" : null
+                    ResolvedBy = i % 3 == 0 ? userIds[0] : null
                 };
-                postReports.Add(postReport);
+                reports.Add(report);
             }
 
-            context.PostReports.AddRange(postReports);
+            context.Reports.AddRange(reports);
             await context.SaveChangesAsync();
         }
     }

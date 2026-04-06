@@ -1,6 +1,7 @@
 using Core.DTOs.Common;
 using Core.DTOs.Notification;
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -20,13 +21,48 @@ public class NotificationService : INotificationService
         _logger = logger;
     }
 
+    // Tạo thông báo mới
+    public async Task CreateNotificationAsync(
+        string userId,
+        NotificationType type,
+        string title,
+        string message,
+        string? relatedEntityId = null,
+        string? relatedEntityType = null,
+        string? actorId = null
+    )
+    {
+        try
+        {
+            var notification = new Notification
+            {
+                UserId = userId,
+                Type = type,
+                Title = title,
+                Message = message,
+                RelatedEntityId = relatedEntityId,
+                RelatedEntityType = relatedEntityType,
+                ActorId = actorId,
+                IsRead = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Notifications.Add(notification);
+            await _context.SaveChangesAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi tạo thông báo cho user {UserId}", userId);
+        }
+    }
+
     // Lấy danh sách thông báo có phân trang
     public async Task<ApiResponse<PagedResult<NotificationResponseDto>>> GetNotificationsAsync(string userId, NotificationFilterDto filter)
     {
         try
         {
             var query = _context.Notifications
-                .Include(n => n.User)
+                .Include(n => n.Actor)
                 .Where(n => n.UserId == userId);
 
             // Lọc theo trạng thái đã đọc
@@ -156,8 +192,8 @@ public class NotificationService : INotificationService
             RelatedEntityType = notification.RelatedEntityType,
             IsRead = notification.IsRead,
             CreatedAt = notification.CreatedAt,
-            ActorName = notification.User?.UserName,
-            ActorAvatar = notification.User?.AvatarUrl
+            ActorName = notification.Actor?.UserName,
+            ActorAvatar = notification.Actor?.AvatarUrl
         };
     }
 }

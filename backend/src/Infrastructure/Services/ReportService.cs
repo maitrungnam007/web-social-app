@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Infrastructure.Services;
 
-// Service xử lý báo cáo nội dung
+// Service xử lý báo cáo nội dung (Post, Comment, User)
 public class ReportService : IReportService
 {
     private readonly ApplicationDbContext _context;
@@ -26,26 +26,56 @@ public class ReportService : IReportService
     {
         try
         {
-            // Kiểm tra post có tồn tại không
-            var post = await _context.Posts.FindAsync(dto.PostId);
-            if (post == null)
+            // Kiểm tra đối tượng bị báo cáo có tồn tại không
+            string? reportedUserId = null;
+            int? postId = null;
+            int? commentId = null;
+
+            switch (dto.TargetType)
             {
-                return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+                case ReportTargetType.Post:
+                    var post = await _context.Posts.FindAsync(dto.TargetId);
+                    if (post == null)
+                        return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+                    reportedUserId = post.UserId;
+                    postId = post.Id;
+                    break;
+
+                case ReportTargetType.Comment:
+                    var comment = await _context.Comments.FindAsync(dto.TargetId);
+                    if (comment == null)
+                        return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+                    reportedUserId = comment.UserId;
+                    commentId = comment.Id;
+                    break;
+
+                case ReportTargetType.User:
+                    var user = await _context.Users.FindAsync(dto.TargetId.ToString());
+                    if (user == null)
+                        return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
+                    reportedUserId = user.Id;
+                    break;
             }
 
             // Kiểm tra đã báo cáo chưa
-            var existingReport = await _context.PostReports
-                .FirstOrDefaultAsync(r => r.PostId == dto.PostId && r.ReporterId == reporterId);
+            var existingReport = await _context.Reports
+                .FirstOrDefaultAsync(r => r.TargetType == dto.TargetType 
+                    && r.TargetId == dto.TargetId 
+                    && r.ReporterId == reporterId);
 
             if (existingReport != null)
             {
-                return ApiResponse<bool>.ErrorResult("Bạn đã báo cáo bài đăng này rồi");
+                return ApiResponse<bool>.ErrorResult("Bạn đã báo cáo nội dung này rồi");
             }
 
             // Tạo báo cáo mới
-            var report = new PostReport
+            var report = new Report
             {
-                PostId = dto.PostId,
+                TargetType = dto.TargetType,
+                TargetId = dto.TargetId,
+                PostId = postId,
+                CommentId = commentId,
+                ReportedUserId = reportedUserId,
                 ReporterId = reporterId,
                 Reason = dto.Reason,
                 Description = dto.Description,
@@ -53,14 +83,14 @@ public class ReportService : IReportService
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.PostReports.Add(report);
+            _context.Reports.Add(report);
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.SuccessResult(true, "Đã gửi báo cáo");
+            return ApiResponse<bool>.SuccessResult(true, "Đã gửi báo cáo thành công");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi tạo báo cáo cho bài đăng {PostId}", dto.PostId);
+            _logger.LogError(ex, "Lỗi khi tạo báo cáo {TargetType} {TargetId}", dto.TargetType, dto.TargetId);
             return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi gửi báo cáo");
         }
     }
@@ -70,15 +100,23 @@ public class ReportService : IReportService
     {
         try
         {
-            var query = _context.PostReports
-                .Include(r => r.Post)
+            var query = _context.Reports
                 .Include(r => r.Reporter)
+                .Include(r => r.Post)
+                .Include(r => r.Comment)
+                .Include(r => r.ReportedUser)
                 .AsQueryable();
 
             // Lọc theo trạng thái
             if (filter.Status.HasValue)
             {
                 query = query.Where(r => r.Status == filter.Status.Value);
+            }
+
+            // Lọc theo loại đối tượng
+            if (filter.TargetType.HasValue)
+            {
+                query = query.Where(r => r.TargetType == filter.TargetType.Value);
             }
 
             // Đếm tổng số
@@ -113,8 +151,10 @@ public class ReportService : IReportService
     {
         try
         {
-            var report = await _context.PostReports
+            var report = await _context.Reports
                 .Include(r => r.Post)
+                .Include(r => r.Comment)
+                .Include(r => r.ReportedUser)
                 .FirstOrDefaultAsync(r => r.Id == reportId);
 
             if (report == null)
@@ -127,16 +167,9 @@ public class ReportService : IReportService
             report.ResolvedAt = DateTime.UtcNow;
             report.ResolvedBy = adminId;
 
-            // Nếu approved và có notes, có thể xóa post
-            if (dto.Status == ReportStatus.Resolved && report.Post != null)
-            {
-                // Có thể thêm logic xóa post ở đây
-                // _context.Posts.Remove(report.Post);
-            }
-
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.SuccessResult(true, "Đã xử lý báo cáo");
+            return ApiResponse<bool>.SuccessResult(true, "Đã xử lý báo cáo thành công");
         }
         catch (Exception ex)
         {
@@ -146,13 +179,34 @@ public class ReportService : IReportService
     }
 
     // Helper: Map entity to DTO
-    private ReportResponseDto MapToDto(PostReport report)
+    private ReportResponseDto MapToDto(Report report)
     {
+        string? postContent = null;
+        string? commentContent = null;
+        string? reportedUserName = null;
+
+        // Lấy nội dung dựa trên loại đối tượng
+        switch (report.TargetType)
+        {
+            case ReportTargetType.Post:
+                postContent = report.Post?.Content;
+                break;
+            case ReportTargetType.Comment:
+                commentContent = report.Comment?.Content;
+                break;
+            case ReportTargetType.User:
+                reportedUserName = report.ReportedUser?.UserName;
+                break;
+        }
+
         return new ReportResponseDto
         {
             Id = report.Id,
-            PostId = report.PostId,
-            PostContent = report.Post?.Content ?? "",
+            TargetType = report.TargetType,
+            TargetId = report.TargetId,
+            PostContent = postContent,
+            CommentContent = commentContent,
+            ReportedUserName = reportedUserName,
             ReporterId = report.ReporterId,
             ReporterName = report.Reporter?.UserName ?? "",
             Reason = report.Reason,
@@ -160,7 +214,7 @@ public class ReportService : IReportService
             Status = report.Status,
             CreatedAt = report.CreatedAt,
             ResolvedAt = report.ResolvedAt,
-            ResolvedByName = null // Cần join thêm nếu muốn lấy tên admin
+            ResolutionNotes = null
         };
     }
 }

@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Post } from '../types'
+import MentionDisplay from './MentionDisplay'
 
 interface PostCardProps {
   post: Post
@@ -45,12 +46,16 @@ export default function PostCard({
           <img
             src={post.userAvatar 
               ? `http://localhost:5259/api/files/${post.userAvatar}` 
-              : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.userName)}&background=random&size=40`}
+              : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.userFirstName && post.userLastName ? `${post.userFirstName} ${post.userLastName}` : post.userName)}&background=random&size=40`}
             alt={post.userName}
             className="w-10 h-10 rounded-full"
           />
           <div>
-            <p className="font-medium text-gray-900">{post.userName}</p>
+            <p className="font-medium text-gray-900">
+              {post.userFirstName && post.userLastName 
+                ? `${post.userFirstName} ${post.userLastName}` 
+                : post.userName}
+            </p>
             <p className="text-xs text-gray-500">{formatDate(post.createdAt)}</p>
           </div>
         </div>
@@ -105,7 +110,9 @@ export default function PostCard({
       </div>
 
       {/* Content */}
-      <p className="text-gray-700 mb-3 line-clamp-3">{post.content}</p>
+      <p className="text-gray-700 mb-3 line-clamp-3">
+        <MentionDisplay content={post.content} />
+      </p>
 
       {/* Image */}
       {post.imageUrl && (

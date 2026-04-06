@@ -18,11 +18,14 @@ public class ReportsController : ControllerBase
         _reportService = reportService;
     }
 
-    // Báo cáo bài đăng
+    // Báo cáo nội dung (Post, Comment, User)
     [HttpPost]
     public async Task<ActionResult> CreateReport([FromBody] CreateReportDto dto)
     {
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userId))
+            return Unauthorized();
+
         var result = await _reportService.CreateReportAsync(dto, userId);
         if (!result.Success)
             return BadRequest(result);
@@ -32,13 +35,14 @@ public class ReportsController : ControllerBase
     // Lấy danh sách báo cáo (Admin)
     [HttpGet]
     // [Authorize(Roles = "Admin")]
-    public async Task<ActionResult> GetReports([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? status = null)
+    public async Task<ActionResult> GetReports([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? status = null, [FromQuery] int? targetType = null)
     {
         var filter = new ReportFilterDto
         {
             Page = page,
             PageSize = pageSize,
-            Status = status.HasValue ? (Core.Enums.ReportStatus)status.Value : null
+            Status = status.HasValue ? (Core.Enums.ReportStatus)status.Value : null,
+            TargetType = targetType.HasValue ? (Core.Enums.ReportTargetType)targetType.Value : null
         };
         var result = await _reportService.GetReportsAsync(filter);
         return Ok(result);
@@ -49,7 +53,10 @@ public class ReportsController : ControllerBase
     // [Authorize(Roles = "Admin")]
     public async Task<ActionResult> ResolveReport(int id, [FromBody] ResolveReportDto dto)
     {
-        var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
+        var adminId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(adminId))
+            return Unauthorized();
+
         var result = await _reportService.ResolveReportAsync(id, adminId, dto);
         if (!result.Success)
             return BadRequest(result);

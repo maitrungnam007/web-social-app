@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Identity;
+ï»¿using Microsoft.AspNetCore.Identity;
 
 namespace Core.Entities;
 
@@ -13,7 +13,7 @@ public class User : IdentityUser
     public DateTime? UpdatedAt { get; set; }
     public bool IsActive { get; set; } = true;
 
-    // Các thu?c tính di?u hu?ng
+    // CÃ¡c thu?c tÃ­nh di?u hu?ng
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
@@ -21,5 +21,6 @@ public class User : IdentityUser
     public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
     public virtual ICollection<Friendship> FriendshipsInitiated { get; set; } = new List<Friendship>();
     public virtual ICollection<Friendship> FriendshipsReceived { get; set; } = new List<Friendship>();
-    public virtual ICollection<PostReport> PostReports { get; set; } = new List<PostReport>();
+    public virtual ICollection<Report> Reports { get; set; } = new List<Report>();
 }
+

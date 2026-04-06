@@ -1,6 +1,7 @@
 using Core.DTOs.Common;
 using Core.DTOs.Post;
 using Core.Entities;
+using Core.Enums;
 using Core.Interfaces;
 using Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
@@ -13,11 +14,13 @@ public class PostService : IPostService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PostService> _logger;
+    private readonly INotificationService _notificationService;
 
-    public PostService(ApplicationDbContext context, ILogger<PostService> logger)
+    public PostService(ApplicationDbContext context, ILogger<PostService> logger, INotificationService notificationService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     // Tạo bài đăng mới
@@ -42,6 +45,9 @@ public class PostService : IPostService
             {
                 await ProcessHashtags(post.Id, dto.Hashtags);
             }
+
+            // Xử lý mentions (@username)
+            await ProcessMentions(post.Id, dto.Content, userId, "Post");
 
             return await GetPostByIdAsync(post.Id, userId);
         }
@@ -129,6 +135,8 @@ public class PostService : IPostService
                     ImageUrl = p.ImageUrl,
                     UserId = p.UserId,
                     UserName = p.User != null ? p.User.UserName : "",
+                    UserFirstName = p.User != null ? p.User.FirstName : null,
+                    UserLastName = p.User != null ? p.User.LastName : null,
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -195,6 +203,8 @@ public class PostService : IPostService
                     ImageUrl = p.ImageUrl,
                     UserId = p.UserId,
                     UserName = p.User != null ? p.User.UserName : "",
+                    UserFirstName = p.User != null ? p.User.FirstName : null,
+                    UserLastName = p.User != null ? p.User.LastName : null,
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
@@ -227,7 +237,10 @@ public class PostService : IPostService
     {
         try
         {
-            var post = await _context.Posts.FindAsync(postId);
+            var post = await _context.Posts
+                .Include(p => p.User)
+                .FirstOrDefaultAsync(p => p.Id == postId);
+                
             if (post == null || post.IsDeleted)
             {
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
@@ -242,6 +255,9 @@ public class PostService : IPostService
                 return ApiResponse<bool>.ErrorResult("Bạn đã thích bài đăng này rồi");
             }
 
+            // Lấy thông tin user like
+            var liker = await _context.Users.FindAsync(userId);
+
             var like = new Like
             {
                 PostId = postId,
@@ -251,6 +267,20 @@ public class PostService : IPostService
 
             _context.Likes.Add(like);
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho chủ bài viết (không thông báo khi tự like bài mình)
+            if (post.UserId != userId)
+            {
+                await _notificationService.CreateNotificationAsync(
+                    userId: post.UserId,
+                    type: NotificationType.Like,
+                    title: "Lượt thích mới",
+                    message: $"{liker?.UserName ?? "Ai đó"} đã thích bài viết của bạn",
+                    relatedEntityId: postId.ToString(),
+                    relatedEntityType: "Post",
+                    actorId: userId
+                );
+            }
 
             return ApiResponse<bool>.SuccessResult(true, "Đã thích bài đăng");
         }
@@ -317,6 +347,174 @@ public class PostService : IPostService
         await _context.SaveChangesAsync();
     }
 
+    // Xử lý mentions (@username) trong content
+    private async Task ProcessMentions(int postId, string content, string authorId, string entityType)
+    {
+        try
+        {
+            // Tìm tất cả @username trong content
+            var mentionPattern = @"@(\w+)";
+            var matches = System.Text.RegularExpressions.Regex.Matches(content, mentionPattern);
+            
+            if (matches.Count == 0) return;
+
+            // Lấy thông tin author
+            var author = await _context.Users.FindAsync(authorId);
+
+            foreach (System.Text.RegularExpressions.Match match in matches)
+            {
+                var username = match.Groups[1].Value;
+                
+                // Tìm user được mention
+                var mentionedUser = await _context.Users
+                    .FirstOrDefaultAsync(u => u.UserName.ToLower() == username.ToLower());
+
+                if (mentionedUser != null && mentionedUser.Id != authorId)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        userId: mentionedUser.Id,
+                        type: NotificationType.Mention,
+                        title: "Bạn được nhắc đến",
+                        message: $"{author?.UserName ?? "Ai đó"} đã nhắc đến bạn trong bài viết",
+                        relatedEntityId: postId.ToString(),
+                        relatedEntityType: entityType,
+                        actorId: authorId
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi xử lý mentions cho bài đăng {PostId}", postId);
+        }
+    }
+
+    // Ẩn bài viết cho user
+    public async Task<ApiResponse<bool>> HidePostAsync(int postId, string userId)
+    {
+        try
+        {
+            // Kiểm tra bài viết tồn tại
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không tìm thấy bài viết"
+                };
+            }
+
+            // Kiểm tra đã ẩn chưa
+            var existing = await _context.HiddenPosts
+                .FirstOrDefaultAsync(h => h.UserId == userId && h.PostId == postId);
+            
+            if (existing != null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = true,
+                    Message = "Bài viết đã được ẩn trước đó",
+                    Data = true
+                };
+            }
+
+            // Tạo record ẩn bài viết
+            var hiddenPost = new HiddenPost
+            {
+                UserId = userId,
+                PostId = postId,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.HiddenPosts.Add(hiddenPost);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Đã ẩn bài viết thành công",
+                Data = true
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi ẩn bài viết {PostId} cho user {UserId}", postId, userId);
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi ẩn bài viết"
+            };
+        }
+    }
+
+    // Bỏ ẩn bài viết cho user
+    public async Task<ApiResponse<bool>> UnhidePostAsync(int postId, string userId)
+    {
+        try
+        {
+            var hiddenPost = await _context.HiddenPosts
+                .FirstOrDefaultAsync(h => h.UserId == userId && h.PostId == postId);
+            
+            if (hiddenPost == null)
+            {
+                return new ApiResponse<bool>
+                {
+                    Success = false,
+                    Message = "Không tìm thấy bài viết đã ẩn"
+                };
+            }
+
+            _context.HiddenPosts.Remove(hiddenPost);
+            await _context.SaveChangesAsync();
+
+            return new ApiResponse<bool>
+            {
+                Success = true,
+                Message = "Đã bỏ ẩn bài viết thành công",
+                Data = true
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi bỏ ẩn bài viết {PostId} cho user {UserId}", postId, userId);
+            return new ApiResponse<bool>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi bỏ ẩn bài viết"
+            };
+        }
+    }
+
+    // Lấy danh sách ID bài viết đã ẩn bởi user
+    public async Task<ApiResponse<List<int>>> GetHiddenPostIdsAsync(string userId)
+    {
+        try
+        {
+            var hiddenPostIds = await _context.HiddenPosts
+                .Where(h => h.UserId == userId)
+                .Select(h => h.PostId)
+                .ToListAsync();
+
+            return new ApiResponse<List<int>>
+            {
+                Success = true,
+                Message = "Lấy danh sách bài viết đã ẩn thành công",
+                Data = hiddenPostIds
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy danh sách bài viết đã ẩn cho user {UserId}", userId);
+            return new ApiResponse<List<int>>
+            {
+                Success = false,
+                Message = "Có lỗi xảy ra khi lấy danh sách bài viết đã ẩn",
+                Data = new List<int>()
+            };
+        }
+    }
+
     // Map entity to DTO
     private PostResponseDto MapToResponse(Post post, string? currentUserId)
     {
@@ -327,6 +525,8 @@ public class PostService : IPostService
             ImageUrl = post.ImageUrl,
             UserId = post.UserId,
             UserName = post.User?.UserName ?? "",
+            UserFirstName = post.User?.FirstName,
+            UserLastName = post.User?.LastName,
             UserAvatar = post.User?.AvatarUrl,
             CreatedAt = post.CreatedAt,
             UpdatedAt = post.UpdatedAt,

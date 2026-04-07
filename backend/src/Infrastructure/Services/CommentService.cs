@@ -77,8 +77,29 @@ public class CommentService : ICommentService
                 );
             }
 
+            // Thông báo cho người được trả lời bình luận
+            if (dto.ParentCommentId.HasValue)
+            {
+                var parentComment = await _context.Comments
+                    .Include(c => c.User)
+                    .FirstOrDefaultAsync(c => c.Id == dto.ParentCommentId.Value);
+                
+                if (parentComment != null && parentComment.UserId != userId)
+                {
+                    await _notificationService.CreateNotificationAsync(
+                        userId: parentComment.UserId,
+                        type: NotificationType.Comment,
+                        title: "Trả lời bình luận",
+                        message: $"{commenter?.UserName ?? "Ai đó"} đã trả lời bình luận của bạn",
+                        relatedEntityId: dto.PostId.ToString(),
+                        relatedEntityType: "Post",
+                        actorId: userId
+                    );
+                }
+            }
+
             // Xử lý mentions (@username) trong nội dung comment
-            await ProcessMentions(comment.Id, dto.Content, userId, "Comment");
+            await ProcessMentions(comment.Id, dto.PostId, dto.Content, userId, "Comment");
 
             return await GetCommentByIdAsync(comment.Id, userId);
         }
@@ -171,6 +192,8 @@ public class CommentService : ICommentService
                     PostId = c.PostId,
                     UserId = c.UserId,
                     UserName = c.User != null ? c.User.UserName : "",
+                    UserFirstName = c.User != null ? c.User.FirstName : null,
+                    UserLastName = c.User != null ? c.User.LastName : null,
                     UserAvatar = c.User != null ? c.User.AvatarUrl : null,
                     ParentCommentId = c.ParentCommentId,
                     CreatedAt = c.CreatedAt,
@@ -297,6 +320,8 @@ public class CommentService : ICommentService
             PostId = comment.PostId,
             UserId = comment.UserId,
             UserName = comment.User?.UserName ?? "",
+            UserFirstName = comment.User?.FirstName,
+            UserLastName = comment.User?.LastName,
             UserAvatar = comment.User?.AvatarUrl,
             ParentCommentId = comment.ParentCommentId,
             CreatedAt = comment.CreatedAt,
@@ -307,7 +332,7 @@ public class CommentService : ICommentService
     }
 
     // Xử lý mentions (@username) trong nội dung comment
-    private async Task ProcessMentions(int commentId, string content, string authorId, string entityType)
+    private async Task ProcessMentions(int commentId, int postId, string content, string authorId, string entityType)
     {
         try
         {
@@ -335,7 +360,7 @@ public class CommentService : ICommentService
                         type: NotificationType.Mention,
                         title: "Bạn được nhắc đến",
                         message: $"{author?.UserName ?? "Ai đó"} đã nhắc đến bạn trong một bình luận",
-                        relatedEntityId: commentId.ToString(),
+                        relatedEntityId: postId.ToString(),
                         relatedEntityType: entityType,
                         actorId: authorId
                     );

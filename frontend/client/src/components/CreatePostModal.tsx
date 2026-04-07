@@ -116,88 +116,65 @@ export default function CreatePostModal({ onClose, onSuccess }: CreatePostModalP
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
-                {/* Header */}
-                <div className="flex items-center justify-between p-4 border-b">
-                    <h2 className="text-xl font-semibold">Tạo bài viết</h2>
-                    <button 
-                        onClick={handleClose}
-                        className="text-gray-400 hover:text-gray-600"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
+            <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4">
+                <h2 className="text-xl font-bold mb-4">Tạo bài viết</h2>
 
-                {/* Content */}
-                <div className="p-4">
-                    <MentionInput
-                        value={content}
-                        onChange={handleContentChange}
-                        placeholder="Bạn đang nghĩ gì? Gõ @ để nhắc bạn bè"
-                        className="h-32"
-                    />
-                    
-                    {/* Preview ảnh */}
-                    {previewUrl && (
-                        <div className="mt-3 relative">
-                            <img 
-                                src={previewUrl} 
-                                alt="Preview" 
-                                className="max-h-64 rounded-lg object-cover w-full"
-                            />
-                            <button
-                                onClick={handleRemoveImage}
-                                className="absolute top-2 right-2 bg-gray-800 bg-opacity-60 text-white rounded-full p-1 hover:bg-opacity-80"
-                            >
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Nút chọn ảnh */}
-                    <div className="mt-3">
-                        <input
-                            ref={fileInputRef}
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileSelect}
-                            className="hidden"
+                {/* Preview ảnh */}
+                {previewUrl && (
+                    <div className="relative mb-4">
+                        <img 
+                            src={previewUrl} 
+                            alt="Preview" 
+                            className="w-full h-48 object-cover rounded-lg"
                         />
                         <button
-                            onClick={() => fileInputRef.current?.click()}
-                            className="flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors text-gray-700"
+                            onClick={handleRemoveImage}
+                            className="absolute top-2 right-2 bg-gray-800 bg-opacity-60 text-white rounded-full p-1 hover:bg-opacity-80"
                         >
-                            <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                             </svg>
-                            {selectedFile ? "Thay đổi ảnh" : "Thêm ảnh"}
                         </button>
-                        {selectedFile && (
-                            <span className="ml-2 text-sm text-gray-500">
-                                {selectedFile.name}
-                            </span>
-                        )}
                     </div>
-                </div>
+                )}
 
-                {/* Footer */}
-                <div className="flex justify-end gap-2 p-4 border-t">
+                {/* Content Input */}
+                <MentionInput
+                    value={content}
+                    onChange={handleContentChange}
+                    placeholder="Bạn đang nghĩ gì? Gõ @ để nhắc bạn bè"
+                    className="h-32 mb-4"
+                />
+
+                {/* File Input */}
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    className="hidden"
+                />
+                <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full px-4 py-2 border-2 border-dashed border-gray-300 rounded-lg mb-4 text-gray-500 hover:border-blue-500 hover:text-blue-500"
+                >
+                    {selectedFile ? 'Đổi hình ảnh' : '+ Thêm hình ảnh'}
+                </button>
+
+                {/* Actions */}
+                <div className="flex gap-2">
                     <button
                         onClick={handleClose}
-                        className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50"
                     >
                         Hủy
                     </button>
                     <button
                         onClick={handleSubmit}
                         disabled={loading}
-                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors disabled:opacity-50"
+                        className={`flex-1 px-4 py-2 text-white rounded-lg ${loading ? 'bg-gray-400 cursor-not-allowed' : 'bg-blue-500 hover:bg-blue-600'}`}
                     >
-                        {loading ? "Đang đăng..." : "Đăng"}
+                        {loading ? 'Đang đăng...' : 'Đăng bài'}
                     </button>
                 </div>
             </div>

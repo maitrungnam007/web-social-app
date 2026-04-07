@@ -23,6 +23,15 @@ public class UsersController : ControllerBase
         _postService = postService;
     }
     
+    // Lấy danh sách người dùng (Admin only)
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> GetAllUsers([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null)
+    {
+        var result = await _userService.GetAllUsersAsync(page, pageSize, search);
+        return Ok(result);
+    }
+    
     [HttpGet("{id}")]
     [AllowAnonymous] // Cho phép xem profile của user khác
     public async Task<ActionResult> GetUser(string id)

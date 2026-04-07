@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { friendsApi, usersApi } from '../services'
 import { Friendship, User, Friend, MutualFriend, FriendSuggestion } from '../types'
@@ -18,12 +18,17 @@ interface ConfirmState {
 export default function Friends() {
   const { user: currentUser } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [friends, setFriends] = useState<Friend[]>([])
   const [pendingRequests, setPendingRequests] = useState<Friendship[]>([])
   const [sentRequests, setSentRequests] = useState<Friendship[]>([])
   const [loading, setLoading] = useState(true)
-  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'sent' | 'search'>('friends')
-  const [searchTerm, setSearchTerm] = useState('')
+  const [activeTab, setActiveTab] = useState<'friends' | 'requests' | 'sent' | 'search'>(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'requests' || tab === 'sent' || tab === 'search') return tab
+    return 'friends'
+  })
+  const [searchTerm, setSearchTerm] = useState(() => searchParams.get('term') || '')
   const [searchResults, setSearchResults] = useState<User[]>([])
   const [searching, setSearching] = useState(false)
   const [mutualFriends, setMutualFriends] = useState<{ [key: string]: MutualFriend[] }>({})

@@ -20,18 +20,34 @@ public class HashtagService : IHashtagService
         _logger = logger;
     }
 
-    // Lấy trending hashtags (sắp xếp theo UsageCount)
+    // Lấy trending hashtags (sắp xếp theo UsageCount trong 7 ngày qua)
     public async Task<ApiResponse<List<HashtagResponseDto>>> GetTrendingHashtagsAsync(int count = 10)
     {
         try
         {
-            var hashtags = await _context.Hashtags
-                .OrderByDescending(h => h.UsageCount)
-                .ThenByDescending(h => h.CreatedAt)
+            var sevenDaysAgo = DateTime.UtcNow.AddDays(-7);
+            
+            // Lấy hashtags được sử dụng trong bài viết 7 ngày qua
+            var hashtags = await _context.PostHashtags
+                .Where(ph => ph.Post.CreatedAt >= sevenDaysAgo && !ph.Post.IsDeleted)
+                .GroupBy(ph => ph.HashtagId)
+                .Select(g => new
+                {
+                    HashtagId = g.Key,
+                    RecentCount = g.Count(),
+                    Hashtag = g.First().Hashtag
+                })
+                .OrderByDescending(x => x.RecentCount)
                 .Take(count)
                 .ToListAsync();
 
-            var result = hashtags.Select(MapToDto).ToList();
+            var result = hashtags.Select(x => new HashtagResponseDto
+            {
+                Id = x.Hashtag.Id,
+                Name = x.Hashtag.Name,
+                UsageCount = x.RecentCount, // Số lần sử dụng trong 7 ngày
+                CreatedAt = x.Hashtag.CreatedAt
+            }).ToList();
 
             return ApiResponse<List<HashtagResponseDto>>.SuccessResult(result);
         }
@@ -52,13 +68,27 @@ public class HashtagService : IHashtagService
                 return ApiResponse<List<HashtagResponseDto>>.SuccessResult(new List<HashtagResponseDto>());
             }
 
+            // Đếm số bài viết thực tế cho mỗi hashtag, bỏ qua hashtag không có bài viết
             var hashtags = await _context.Hashtags
-                .Where(h => h.Name.Contains(searchTerm.ToLower()))
-                .OrderByDescending(h => h.UsageCount)
+                .Where(h => h.Name.Contains(searchTerm.ToLower()) && h.PostHashtags.Any(ph => !ph.Post.IsDeleted))
+                .Select(h => new
+                {
+                    h.Id,
+                    h.Name,
+                    h.CreatedAt,
+                    ActualCount = h.PostHashtags.Count(ph => !ph.Post.IsDeleted)
+                })
+                .OrderByDescending(x => x.ActualCount)
                 .Take(20)
                 .ToListAsync();
 
-            var result = hashtags.Select(MapToDto).ToList();
+            var result = hashtags.Select(x => new HashtagResponseDto
+            {
+                Id = x.Id,
+                Name = x.Name,
+                UsageCount = x.ActualCount,
+                CreatedAt = x.CreatedAt
+            }).ToList();
 
             return ApiResponse<List<HashtagResponseDto>>.SuccessResult(result);
         }

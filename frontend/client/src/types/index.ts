@@ -8,6 +8,7 @@ export interface User {
   coverImageUrl?: string
   bio?: string
   friendsCount?: number
+  role?: 'User' | 'Admin'
 }
 
 export interface Post {

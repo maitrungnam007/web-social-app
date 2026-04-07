@@ -159,6 +159,68 @@ public class UserService : IUserService
         }
     }
 
+    // Lấy danh sách người dùng (Admin)
+    public async Task<ApiResponse<PagedResult<UserDto>>> GetAllUsersAsync(int page, int pageSize, string? search)
+    {
+        try
+        {
+            var query = _context.Users.AsQueryable();
+
+            // Tìm kiếm theo username, email, họ tên
+            if (!string.IsNullOrWhiteSpace(search))
+            {
+                query = query.Where(u => 
+                    u.UserName!.Contains(search) || 
+                    u.Email!.Contains(search) ||
+                    (u.FirstName != null && u.FirstName.Contains(search)) ||
+                    (u.LastName != null && u.LastName.Contains(search)));
+            }
+
+            var totalCount = await query.CountAsync();
+
+            var users = await query
+                .OrderByDescending(u => u.CreatedAt)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Lấy roles cho từng user
+            var userDtos = new List<UserDto>();
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                userDtos.Add(new UserDto
+                {
+                    Id = user.Id,
+                    UserName = user.UserName ?? "",
+                    Email = user.Email ?? "",
+                    FirstName = user.FirstName,
+                    LastName = user.LastName,
+                    AvatarUrl = user.AvatarUrl,
+                    CoverImageUrl = user.CoverImageUrl,
+                    Bio = user.Bio,
+                    FriendsCount = 0,
+                    Role = roles.FirstOrDefault()
+                });
+            }
+
+            var pagedResult = new PagedResult<UserDto>
+            {
+                Items = userDtos,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return ApiResponse<PagedResult<UserDto>>.SuccessResult(pagedResult);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy danh sách người dùng");
+            return ApiResponse<PagedResult<UserDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách người dùng");
+        }
+    }
+
     // Helper: Map entity to DTO
     private UserDto MapToDto(Core.Entities.User user, int friendsCount = 0)
     {

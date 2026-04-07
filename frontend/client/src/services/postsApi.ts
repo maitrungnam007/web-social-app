@@ -2,8 +2,15 @@ import api from './apiClient'
 import { ApiResponse, Post, PagedResult } from '../types'
 
 export const postsApi = {
-  getPosts: async (page: number = 1, pageSize: number = 10, signal?: AbortSignal): Promise<ApiResponse<PagedResult<Post>>> => {
-    const response = await api.get(`/posts?page=${page}&pageSize=${pageSize}`, { signal })
+  getPosts: async (page: number = 1, pageSize: number = 10, searchTerm?: string, hashtag?: string, signal?: AbortSignal): Promise<ApiResponse<PagedResult<Post>>> => {
+    let url = `/posts?page=${page}&pageSize=${pageSize}`;
+    if (searchTerm) {
+      url += `&searchTerm=${encodeURIComponent(searchTerm)}`;
+    }
+    if (hashtag) {
+      url += `&hashtag=${encodeURIComponent(hashtag)}`;
+    }
+    const response = await api.get(url, { signal })
     return response.data
   },
   

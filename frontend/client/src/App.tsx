@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './contexts/AuthContext'
 import MainLayout from './layouts/MainLayout'
 import AuthLayout from './layouts/AuthLayout'
+import AdminLayout from './layouts/AdminLayout'
 import ProtectedRoute from './components/ProtectedRoute'
 import LoadingSkeleton from './components/LoadingSkeleton'
 
@@ -15,6 +16,15 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Stories = lazy(() => import('./pages/Stories'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Friends = lazy(() => import('./pages/Friends'))
+const PostDetail = lazy(() => import('./pages/PostDetail'))
+
+// Admin pages
+const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'))
+const AdminModeration = lazy(() => import('./pages/admin/AdminModeration'))
+const AdminUsers = lazy(() => import('./pages/admin/AdminUsers'))
+const AdminContent = lazy(() => import('./pages/admin/AdminContent'))
+const AdminViolations = lazy(() => import('./pages/admin/AdminViolations'))
+const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'))
 
 // Loading fallback component
 function PageLoader() {
@@ -118,6 +128,47 @@ function AppRoutes() {
               <Friends />
             </Suspense>
           </ProtectedRoute>
+        } />
+        <Route path="post/:id" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <PostDetail />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+      </Route>
+      
+      {/* Admin Routes */}
+      <Route path="/admin" element={<AdminLayout />}>
+        <Route index element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminDashboard />
+          </Suspense>
+        } />
+        <Route path="users" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminUsers />
+          </Suspense>
+        } />
+        <Route path="content" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminContent />
+          </Suspense>
+        } />
+        <Route path="moderation" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminModeration />
+          </Suspense>
+        } />
+        <Route path="violations" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminViolations />
+          </Suspense>
+        } />
+        <Route path="settings" element={
+          <Suspense fallback={<PageLoader />}>
+            <AdminSettings />
+          </Suspense>
         } />
       </Route>
     </Routes>

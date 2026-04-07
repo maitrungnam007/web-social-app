@@ -66,6 +66,7 @@ public class AuthService : IAuthService
 
             // Gán role User
             await _userManager.AddToRoleAsync(user, "User");
+            var roles = await _userManager.GetRolesAsync(user);
 
             // Tạo token
             var token = GenerateJwtToken(user);
@@ -87,7 +88,8 @@ public class AuthService : IAuthService
                         FirstName = user.FirstName,
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
-                        Bio = user.Bio
+                        Bio = user.Bio,
+                        Role = roles.FirstOrDefault()
                     }
                 },
                 "Đăng ký thành công"
@@ -119,6 +121,9 @@ public class AuthService : IAuthService
                 return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
             }
 
+            // Lấy role của user
+            var roles = await _userManager.GetRolesAsync(user);
+
             // Tạo token
             var token = GenerateJwtToken(user);
             var refreshToken = GenerateRefreshToken();
@@ -138,7 +143,8 @@ public class AuthService : IAuthService
                         FirstName = user.FirstName,
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
-                        Bio = user.Bio
+                        Bio = user.Bio,
+                        Role = roles.FirstOrDefault()
                     }
                 },
                 "Đăng nhập thành công"

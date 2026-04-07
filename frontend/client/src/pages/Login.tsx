@@ -41,8 +41,12 @@ export default function Login() {
     try {
       await login(data.username, data.password)
       toast.success('Đăng nhập thành công!')
+      // Get user from localStorage to check role
+      const storedUser = localStorage.getItem('user')
+      const userData = storedUser ? JSON.parse(storedUser) : null
+      const redirectPath = userData?.role === 'Admin' ? '/admin' : '/'
       setTimeout(() => {
-        navigate('/')
+        navigate(redirectPath)
       }, 1000)
     } catch (err: any) {
       const apiResponse = err.response?.data

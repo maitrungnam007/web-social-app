@@ -52,4 +52,5 @@ public class UserDto
     public string? CoverImageUrl { get; set; }
     public string? Bio { get; set; }
     public int FriendsCount { get; set; }
+    public string? Role { get; set; }
 }

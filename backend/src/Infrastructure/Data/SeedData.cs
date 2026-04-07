@@ -38,13 +38,14 @@ public static class SeedData
                 };
                 
                 var result = await userManager.CreateAsync(user, "Password123!");
-                if (!result.Succeeded)
+                if (result.Succeeded)
                 {
-                    // Log error if needed
+                    // Gan role User cho user thuong
+                    await userManager.AddToRoleAsync(user, "User");
                 }
             }
 
-            // Thêm admin
+            // Them admin
             var admin = new User
             {
                 UserName = "admin",
@@ -55,7 +56,12 @@ public static class SeedData
                 CreatedAt = DateTime.Now.AddDays(-500),
                 EmailConfirmed = true
             };
-            await userManager.CreateAsync(admin, "Admin123!");
+            var adminResult = await userManager.CreateAsync(admin, "Admin123!");
+            if (adminResult.Succeeded)
+            {
+                // Gan role Admin cho admin user
+                await userManager.AddToRoleAsync(admin, "Admin");
+            }
         }
 
         // Seed Posts

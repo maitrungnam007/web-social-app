@@ -39,10 +39,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = async (username: string, password: string) => {
     try {
       const response = await authApi.login(username, password)
+      console.log('Login response:', response)
       if (response.success && response.data) {
         const authData = response.data as any
+        console.log('authData:', authData)
         const userData = authData.user || authData.User
         const tokenValue = authData.token || authData.Token
+        console.log('userData:', userData)
+        console.log('userData.role:', userData?.role)
+        
+        // Normalize role field (backend returns 'Role', frontend expects 'role')
+        if (userData && userData.Role && !userData.role) {
+          userData.role = userData.Role
+        }
         
         localStorage.setItem(TOKEN_KEY, tokenValue)
         localStorage.setItem(USER_KEY, JSON.stringify(userData))
@@ -51,7 +60,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
     } catch (err: any) {
       // Axios throw error khi status 401
-      // Lấy message từ response.data
+      // Lay message tu response.data
       const message = err.response?.data?.message || err.message || 'Đăng nhập thất bại'
       throw new Error(message)
     }
@@ -64,6 +73,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const authData = response.data as any
         const userData = authData.user || authData.User
         const tokenValue = authData.token || authData.Token
+        
+        // Normalize role field (backend returns 'Role', frontend expects 'role')
+        if (userData && userData.Role && !userData.role) {
+          userData.role = userData.Role
+        }
         
         localStorage.setItem(TOKEN_KEY, tokenValue)
         localStorage.setItem(USER_KEY, JSON.stringify(userData))

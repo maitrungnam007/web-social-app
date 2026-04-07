@@ -13,6 +13,8 @@ interface Comment {
     content: string;
     userId: string;
     userName: string;
+    userFirstName?: string;
+    userLastName?: string;
     userAvatar?: string;
     createdAt: string;
     likeCount: number;
@@ -162,19 +164,26 @@ export default function Comments({ postId }: Props) {
         return date.toLocaleDateString("vi-VN");
     };
 
+    const getDisplayName = (comment: Comment) => {
+        return comment.userFirstName && comment.userLastName
+            ? `${comment.userFirstName} ${comment.userLastName}`
+            : comment.userName;
+    };
+
     const getAvatarUrl = (comment: Comment) => {
+        const displayName = getDisplayName(comment);
         return comment.userAvatar
             ? comment.userAvatar.startsWith("http")
                 ? comment.userAvatar
                 : `http://localhost:5259/api/files/${comment.userAvatar}`
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName)}&background=random&size=32`;
+            : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=32`;
     };
 
     const renderComment = (comment: Comment, isReply: boolean = false) => (
         <div key={comment.id} className={`flex gap-2 ${isReply ? 'ml-10' : ''}`}>
             <img
                 src={getAvatarUrl(comment)}
-                alt={comment.userName}
+                alt={getDisplayName(comment)}
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/profile/${comment.userId}`)}
             />
@@ -185,7 +194,7 @@ export default function Comments({ postId }: Props) {
                             className="font-semibold text-sm text-gray-900 hover:text-blue-600 cursor-pointer"
                             onClick={() => navigate(`/profile/${comment.userId}`)}
                         >
-                            {comment.userName}
+                            {getDisplayName(comment)}
                         </p>
                         {/* Nút 3 chấm */}
                         <button
@@ -252,7 +261,7 @@ export default function Comments({ postId }: Props) {
                             <MentionInput
                                 value={replyText}
                                 onChange={handleReplyTextChange}
-                                placeholder={`Trả lời ${comment.userName}...`}
+                                placeholder={`Trả lời ${getDisplayName(comment)}...`}
                                 className="flex-1 bg-gray-100 rounded-full px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all"
                                 disabled={submitting}
                             />

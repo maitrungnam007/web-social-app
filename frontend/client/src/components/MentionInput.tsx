@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { createPortal } from 'react-dom'
-import { friendsApi } from '../services'
+import { friendsApi, hashtagsApi } from '../services'
 import { MentionUser } from '../types'
+import type { HashtagDto } from '../services/hashtagsApi'
 
 interface MentionInputProps {
   value: string
@@ -9,6 +10,7 @@ interface MentionInputProps {
   placeholder?: string
   className?: string
   disabled?: boolean
+  showHashtags?: boolean // Enable hashtag autocomplete
 }
 
 // Component input hỗ trợ mention @username với autocomplete
@@ -17,42 +19,44 @@ export default function MentionInput({
   onChange,
   placeholder = '',
   className = '',
-  disabled = false
+  disabled = false,
+  showHashtags = true
 }: MentionInputProps) {
-  const [showDropdown, setShowDropdown] = useState(false)
+  // Mention (@) states
+  const [showMentionDropdown, setShowMentionDropdown] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const [mentionStartPos, setMentionStartPos] = useState(-1)
   const [friends, setFriends] = useState<MentionUser[]>([])
   const [mentions, setMentions] = useState<MentionUser[]>([])
-  const [selectedIndex, setSelectedIndex] = useState(0)
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0)
+  
+  // Hashtag (#) states
+  const [showHashtagDropdown, setShowHashtagDropdown] = useState(false)
+  const [hashtagQuery, setHashtagQuery] = useState('')
+  const [hashtagStartPos, setHashtagStartPos] = useState(-1)
+  const [hashtags, setHashtags] = useState<HashtagDto[]>([])
+  const [selectedHashtagIndex, setSelectedHashtagIndex] = useState(0)
   
   const inputRef = useRef<HTMLInputElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
-  // Tìm kiếm bạn bè khi query thay đổi
+  // Tìm kiếm bạn bè khi mention query thay đổi
   useEffect(() => {
-    if (mentionQuery === '' && showDropdown) {
+    if (mentionQuery === '' && showMentionDropdown) {
       // Load tất cả bạn bè khi mới gõ @
       abortControllerRef.current?.abort()
       abortControllerRef.current = new AbortController()
       
-      console.log('[MentionInput] Loading friends for mention...')
       friendsApi.searchFriendsForMention('', abortControllerRef.current.signal)
         .then(res => {
-          console.log('[MentionInput] API response:', res)
           if (res.success && res.data) {
-            console.log('[MentionInput] Friends found:', res.data.length, res.data)
             setFriends(res.data)
-            setSelectedIndex(0)
-          } else {
-            console.log('[MentionInput] API failed or no data:', res)
+            setSelectedMentionIndex(0)
           }
         })
-        .catch((err) => {
-          console.error('[MentionInput] API error:', err)
-        })
-    } else if (mentionQuery && showDropdown) {
+        .catch(() => {})
+    } else if (mentionQuery && showMentionDropdown) {
       // Debounce search
       const timer = setTimeout(() => {
         abortControllerRef.current?.abort()
@@ -62,7 +66,7 @@ export default function MentionInput({
           .then(res => {
             if (res.success && res.data) {
               setFriends(res.data)
-              setSelectedIndex(0)
+              setSelectedMentionIndex(0)
             }
           })
           .catch(() => {})
@@ -70,13 +74,44 @@ export default function MentionInput({
       
       return () => clearTimeout(timer)
     }
-  }, [mentionQuery, showDropdown])
+  }, [mentionQuery, showMentionDropdown])
+
+  // Tìm kiếm hashtag khi hashtag query thay đổi
+  useEffect(() => {
+    if (!showHashtags) return
+    
+    if (hashtagQuery === '' && showHashtagDropdown) {
+      // Load trending hashtags khi mới gõ #
+      hashtagsApi.getTrending(10)
+        .then(res => {
+          if (res.success && res.data) {
+            setHashtags(res.data)
+            setSelectedHashtagIndex(0)
+          }
+        })
+        .catch(() => {})
+    } else if (hashtagQuery && showHashtagDropdown) {
+      const timer = setTimeout(() => {
+        hashtagsApi.search(hashtagQuery)
+          .then(res => {
+            if (res.success && res.data) {
+              setHashtags(res.data)
+              setSelectedHashtagIndex(0)
+            }
+          })
+          .catch(() => {})
+      }, 200)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [hashtagQuery, showHashtagDropdown, showHashtags])
 
   // Đóng dropdown khi click outside
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
+        setShowMentionDropdown(false)
+        setShowHashtagDropdown(false)
       }
     }
     
@@ -89,33 +124,65 @@ export default function MentionInput({
     const newValue = e.target.value
     const cursorPos = e.target.selectionStart ?? 0
     
-    // Tìm @ gần nhất trước cursor
+    // Reset dropdowns
+    let foundMention = false
+    let foundHashtag = false
+    
+    // Tìm @ gần nhất trước cursor (mention)
     let atPos = -1
     for (let i = cursorPos - 1; i >= 0; i--) {
       if (newValue[i] === '@') {
-        // Kiểm tra xem @ này có phải là bắt đầu mention không (không có chữ cái trước nó hoặc có space)
         if (i === 0 || newValue[i - 1] === ' ' || newValue[i - 1] === '\n') {
           atPos = i
           break
         }
       } else if (newValue[i] === ' ' || newValue[i] === '\n') {
-        // Gặp space/newline trước khi gặp @ -> không có mention đang mở
         break
       }
     }
     
-    if (atPos !== -1 && atPos < cursorPos) {
-      // Có @ đang mở
+    // Tìm # gần nhất trước cursor (hashtag)
+    let hashPos = -1
+    if (showHashtags) {
+      for (let i = cursorPos - 1; i >= 0; i--) {
+        if (newValue[i] === '#') {
+          if (i === 0 || newValue[i - 1] === ' ' || newValue[i - 1] === '\n') {
+            hashPos = i
+            break
+          }
+        } else if (newValue[i] === ' ' || newValue[i] === '\n') {
+          break
+        }
+      }
+    }
+    
+    // Xác định dropdown nào mở (ưu tiên cái gần cursor hơn)
+    if (atPos !== -1 && (hashPos === -1 || atPos > hashPos)) {
       const query = newValue.substring(atPos + 1, cursorPos)
-      console.log('[MentionInput] Show dropdown, query:', query, 'atPos:', atPos)
       setMentionQuery(query)
       setMentionStartPos(atPos)
-      setShowDropdown(true)
-    } else {
-      console.log('[MentionInput] Hide dropdown, atPos:', atPos)
-      setShowDropdown(false)
+      setShowMentionDropdown(true)
+      setShowHashtagDropdown(false)
+      foundMention = true
+    } else if (hashPos !== -1) {
+      const query = newValue.substring(hashPos + 1, cursorPos)
+      setHashtagQuery(query)
+      setHashtagStartPos(hashPos)
+      setShowHashtagDropdown(true)
+      setShowMentionDropdown(false)
+      foundHashtag = true
+    }
+    
+    if (!foundMention) {
+      setShowMentionDropdown(false)
       setMentionQuery('')
       setMentionStartPos(-1)
+    }
+    
+    if (!foundHashtag) {
+      setShowHashtagDropdown(false)
+      setHashtagQuery('')
+      setHashtagStartPos(-1)
     }
     
     // Cập nhật mentions list
@@ -143,7 +210,7 @@ export default function MentionInput({
     return foundMentions
   }, [friends])
 
-  // Chọn user từ dropdown
+  // Chọn user từ mention dropdown
   const selectUser = (user: MentionUser) => {
     if (!inputRef.current || mentionStartPos === -1) return
     
@@ -151,10 +218,8 @@ export default function MentionInput({
     const beforeMention = value.substring(0, mentionStartPos)
     const afterCursor = value.substring(cursorPos)
     
-    // Thay thế @query bằng @username + space
     const newValue = beforeMention + `@${user.userName} ` + afterCursor
     
-    // Thêm vào mentions list
     const newMentions = [...mentions]
     if (!newMentions.find(m => m.id === user.id)) {
       newMentions.push(user)
@@ -162,11 +227,10 @@ export default function MentionInput({
     setMentions(newMentions)
     
     onChange(newValue, newMentions)
-    setShowDropdown(false)
+    setShowMentionDropdown(false)
     setMentionQuery('')
     setMentionStartPos(-1)
     
-    // Focus lại input
     setTimeout(() => {
       const newCursorPos = beforeMention.length + user.userName.length + 2
       inputRef.current?.focus()
@@ -174,23 +238,68 @@ export default function MentionInput({
     }, 0)
   }
 
+  // Chọn hashtag từ dropdown
+  const selectHashtag = (hashtag: HashtagDto) => {
+    if (!inputRef.current || hashtagStartPos === -1) return
+    
+    const cursorPos = inputRef.current.selectionStart ?? 0
+    const beforeHashtag = value.substring(0, hashtagStartPos)
+    const afterCursor = value.substring(cursorPos)
+    
+    const newValue = beforeHashtag + `#${hashtag.name} ` + afterCursor
+    
+    onChange(newValue, mentions)
+    setShowHashtagDropdown(false)
+    setHashtagQuery('')
+    setHashtagStartPos(-1)
+    
+    setTimeout(() => {
+      const newCursorPos = beforeHashtag.length + hashtag.name.length + 2
+      inputRef.current?.focus()
+      inputRef.current?.setSelectionRange(newCursorPos, newCursorPos)
+    }, 0)
+  }
+
   // Xử lý key navigation
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!showDropdown || friends.length === 0) return
-    
-    if (e.key === 'ArrowDown') {
-      e.preventDefault()
-      setSelectedIndex(prev => (prev + 1) % friends.length)
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault()
-      setSelectedIndex(prev => (prev - 1 + friends.length) % friends.length)
-    } else if (e.key === 'Enter' || e.key === 'Tab') {
-      if (showDropdown && friends[selectedIndex]) {
+    // Mention dropdown navigation
+    if (showMentionDropdown && friends.length > 0) {
+      if (e.key === 'ArrowDown') {
         e.preventDefault()
-        selectUser(friends[selectedIndex])
+        setSelectedMentionIndex(prev => (prev + 1) % friends.length)
+        return
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedMentionIndex(prev => (prev - 1 + friends.length) % friends.length)
+        return
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        selectUser(friends[selectedMentionIndex])
+        return
+      } else if (e.key === 'Escape') {
+        setShowMentionDropdown(false)
+        return
       }
-    } else if (e.key === 'Escape') {
-      setShowDropdown(false)
+    }
+    
+    // Hashtag dropdown navigation
+    if (showHashtagDropdown && hashtags.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault()
+        setSelectedHashtagIndex(prev => (prev + 1) % hashtags.length)
+        return
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault()
+        setSelectedHashtagIndex(prev => (prev - 1 + hashtags.length) % hashtags.length)
+        return
+      } else if (e.key === 'Enter' || e.key === 'Tab') {
+        e.preventDefault()
+        selectHashtag(hashtags[selectedHashtagIndex])
+        return
+      } else if (e.key === 'Escape') {
+        setShowHashtagDropdown(false)
+        return
+      }
     }
   }
 
@@ -207,8 +316,8 @@ export default function MentionInput({
         className={`w-full ${className}`}
       />
       
-      {/* Dropdown gợi ý - dùng Portal để không bị che */}
-      {showDropdown && inputRef.current && createPortal(
+      {/* Mention Dropdown - dùng Portal */}
+      {showMentionDropdown && inputRef.current && createPortal(
         <div
           ref={dropdownRef}
           className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto min-w-[200px]"
@@ -227,10 +336,10 @@ export default function MentionInput({
               <div
                 key={user.id}
                 className={`flex items-center gap-2 p-2 cursor-pointer ${
-                  index === selectedIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  index === selectedMentionIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
                 }`}
                 onClick={() => selectUser(user)}
-                onMouseEnter={() => setSelectedIndex(index)}
+                onMouseEnter={() => setSelectedMentionIndex(index)}
               >
                 <img
                   src={user.avatarUrl || '/default-avatar.png'}
@@ -243,6 +352,44 @@ export default function MentionInput({
                 </div>
               </div>
             ))
+          )}
+        </div>,
+        document.body
+      )}
+      
+      {/* Hashtag Dropdown - dùng Portal */}
+      {showHashtagDropdown && inputRef.current && createPortal(
+        <div
+          className="fixed z-[9999] bg-white border border-gray-200 rounded-lg shadow-lg max-h-60 overflow-y-auto min-w-[200px]"
+          style={{
+            top: inputRef.current.getBoundingClientRect().bottom + 4,
+            left: inputRef.current.getBoundingClientRect().left,
+            width: Math.max(inputRef.current.offsetWidth, 200)
+          }}
+        >
+          {hashtags.length === 0 ? (
+            <div className="p-3 text-gray-500 text-sm text-center">
+              Không tìm thấy hashtag
+            </div>
+          ) : (
+            <>
+              <div className="p-2 text-xs text-gray-500 border-b">
+                {hashtagQuery === '' ? 'Trending (7 ngày qua)' : 'Hashtag'}
+              </div>
+              {hashtags.map((hashtag, index) => (
+                <div
+                  key={hashtag.id}
+                  className={`flex items-center justify-between p-2 cursor-pointer ${
+                    index === selectedHashtagIndex ? 'bg-blue-50' : 'hover:bg-gray-50'
+                  }`}
+                  onClick={() => selectHashtag(hashtag)}
+                  onMouseEnter={() => setSelectedHashtagIndex(index)}
+                >
+                  <span className="text-blue-500 font-medium">#{hashtag.name}</span>
+                  <span className="text-xs text-gray-500">{hashtag.usageCount} bài viết</span>
+                </div>
+              ))}
+            </>
           )}
         </div>,
         document.body

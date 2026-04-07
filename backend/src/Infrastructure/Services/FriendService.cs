@@ -79,8 +79,8 @@ public class FriendService : IFriendService
                 type: NotificationType.FriendRequest,
                 title: "Lời mời kết bạn mới",
                 message: $"{requester?.UserName ?? "Ai đó"} muốn kết bạn với bạn",
-                relatedEntityId: friendship.Id.ToString(),
-                relatedEntityType: "Friendship",
+                relatedEntityId: requesterId, // userId của người gửi lời mời
+                relatedEntityType: "User",
                 actorId: requesterId
             );
 
@@ -132,8 +132,8 @@ public class FriendService : IFriendService
                 type: NotificationType.FriendAccepted,
                 title: "Lời mời kết bạn đã được chấp nhận",
                 message: $"{accepter?.UserName ?? "Ai đó"} đã chấp nhận lời mời kết bạn của bạn",
-                relatedEntityId: friendshipId.ToString(),
-                relatedEntityType: "Friendship",
+                relatedEntityId: userId, // userId cùa người chấp nhận (friend)
+                relatedEntityType: "User",
                 actorId: userId
             );
 
@@ -498,8 +498,6 @@ public class FriendService : IFriendService
     {
         try
         {
-            _logger.LogInformation("SearchFriendsForMention called for user {UserId} with query '{Query}'", userId, query);
-            
             // Lấy danh sách bạn bè (accepted) - chia làm 2 query để tránh ternary operator
             var friendIds1 = await _context.Friendships
                 .AsNoTracking()
@@ -541,7 +539,6 @@ public class FriendService : IFriendService
                 })
                 .ToListAsync();
 
-            _logger.LogInformation("Found {Count} friends for user {UserId}", friends.Count, userId);
             return ApiResponse<List<MentionUserDto>>.SuccessResult(friends);
         }
         catch (Exception ex)

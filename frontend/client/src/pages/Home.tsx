@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import PostItem from "../components/PostItem.tsx";
 import CreatePostModal from "../components/CreatePostModal.tsx";
 import { postsApi } from "../services";
@@ -9,6 +10,9 @@ const PAGE_SIZE = 5;
 
 export default function Home() {
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const searchQuery = searchParams.get('search') || '';
+    const hashtagQuery = searchParams.get('hashtag') || '';
     const [posts, setPosts] = useState<Post[]>([]);
     const [hiddenPostIds, setHiddenPostIds] = useState<number[]>([]);
     const [page, setPage] = useState(() => {
@@ -39,7 +43,7 @@ export default function Home() {
         setLoading(true);
 
         try {
-            const response = await postsApi.getPosts(pageNum, PAGE_SIZE);
+            const response = await postsApi.getPosts(pageNum, PAGE_SIZE, searchQuery || undefined, hashtagQuery || undefined);
 
             if (response.success && response.data) {
                 const newPosts = response.data.items || [];
@@ -86,6 +90,16 @@ export default function Home() {
         loadAllPages();
     }, []);
 
+    // Reload posts when search query or hashtag changes
+    useEffect(() => {
+        if (!initialLoad) {
+            setPosts([]);
+            setPage(1);
+            setHasMore(true);
+            fetchPosts(1);
+        }
+    }, [searchQuery, hashtagQuery, initialLoad]);
+
     // Load more on page change (after initial load)
     useEffect(() => {
         if (!initialLoad && page > 1) {
@@ -126,9 +140,16 @@ export default function Home() {
         <div className="max-w-2xl mx-auto px-3 sm:px-4 py-4 sm:py-6 pt-20 sm:pt-6">
             {/* Header */}
             <div className="mb-4 sm:mb-6">
-                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Bảng tin</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">
+                    {hashtagQuery ? `#${hashtagQuery}` : searchQuery ? `Ket qua tim kiem: "${searchQuery}"` : 'Bảng tin'}
+                </h1>
                 <p className="text-gray-500 text-xs sm:text-sm mt-1">
-                    Chào mừng {user?.firstName || user?.userName}! Đây là những gì đang diễn ra.
+                    {hashtagQuery 
+                        ? `Hiển thị bài viết với hashtag #${hashtagQuery}`
+                        : searchQuery 
+                            ? `Hiển thị bài viết chứa "${searchQuery}"`
+                            : ``
+                    }
                 </p>
             </div>
 
@@ -190,8 +211,12 @@ export default function Home() {
                     <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                     </svg>
-                    <p className="text-gray-500">Chưa có bài viết nào</p>
-                    <p className="text-gray-400 text-sm mt-1">Hãy là người đầu tiên đăng bài!</p>
+                    <p className="text-gray-500">
+                        {hashtagQuery ? `Khong co bai viet voi #${hashtagQuery}` : searchQuery ? `Khong tim thay bai viet voi "${searchQuery}"` : 'Chua co bai viet nao'}
+                    </p>
+                    <p className="text-gray-400 text-sm mt-1">
+                        {hashtagQuery ? 'Thu tim kiem hashtag khac' : searchQuery ? 'Thu tim kiem voi tu khoa khac' : 'Hay la nguoi dau tien dang bai!'}
+                    </p>
                 </div>
             )}
 

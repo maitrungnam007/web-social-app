@@ -27,6 +27,8 @@ public class CommentResponseDto
     public int PostId { get; set; }
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
+    public string? UserFirstName { get; set; }
+    public string? UserLastName { get; set; }
     public string? UserAvatar { get; set; }
     public int? ParentCommentId { get; set; }
     public DateTime CreatedAt { get; set; }

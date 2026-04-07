@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { notificationsApi } from '../services'
 import { Notification } from '../types'
 
 export default function Notifications() {
+  const navigate = useNavigate()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [unreadCount, setUnreadCount] = useState(0)
@@ -96,6 +98,34 @@ export default function Notifications() {
     }
   }
 
+  // Xử lý click vào thông báo - điều hướng đến trang tương ứng
+  const handleNotificationClick = async (notification: Notification) => {
+    // Đánh dấu đã đọc
+    if (!notification.isRead) {
+      await handleMarkAsRead(notification.id)
+    }
+    
+    // Điều hướng đến trang tương ứng
+    switch (notification.type) {
+      case 'Like':
+      case 'Comment':
+      case 'Mention':
+        if (notification.relatedEntityId) {
+          navigate(`/post/${notification.relatedEntityId}`)
+        }
+        break
+      case 'FriendRequest':
+        navigate('/friends?tab=requests')
+        break
+      case 'FriendAccepted':
+        // Không di chuyển - chỉ thông báo đã kết bạn thành công
+        break
+      case 'StoryView':
+        // Không di chuyển - chỉ thông báo ai đã xem story
+        break
+    }
+  }
+
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
       case 'Like':
@@ -180,11 +210,7 @@ export default function Notifications() {
               className={`p-3 sm:p-4 flex gap-2 sm:gap-3 hover:bg-gray-50 cursor-pointer ${
                 !notification.isRead ? 'bg-blue-50' : ''
               }`}
-              onClick={() => {
-                if (!notification.isRead) {
-                  handleMarkAsRead(notification.id)
-                }
-              }}
+              onClick={() => handleNotificationClick(notification)}
             >
               {/* Icon */}
               <div className="text-xl sm:text-2xl flex-shrink-0">{getNotificationIcon(notification.type)}</div>

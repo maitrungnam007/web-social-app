@@ -15,6 +15,7 @@ const Profile = lazy(() => import('./pages/Profile'))
 const Stories = lazy(() => import('./pages/Stories'))
 const Notifications = lazy(() => import('./pages/Notifications'))
 const Friends = lazy(() => import('./pages/Friends'))
+const PostDetail = lazy(() => import('./pages/PostDetail'))
 
 // Loading fallback component
 function PageLoader() {
@@ -116,6 +117,13 @@ function AppRoutes() {
           <ProtectedRoute>
             <Suspense fallback={<PageLoader />}>
               <Friends />
+            </Suspense>
+          </ProtectedRoute>
+        } />
+        <Route path="post/:id" element={
+          <ProtectedRoute>
+            <Suspense fallback={<PageLoader />}>
+              <PostDetail />
             </Suspense>
           </ProtectedRoute>
         } />

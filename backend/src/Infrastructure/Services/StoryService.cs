@@ -237,8 +237,8 @@ public class StoryService : IStoryService
                 type: NotificationType.StoryView,
                 title: "Lượt xem story mới",
                 message: $"{viewer?.UserName ?? "Ai đó"} đã xem story của bạn",
-                relatedEntityId: storyId.ToString(),
-                relatedEntityType: "Story",
+                relatedEntityId: viewerId, // userId của người xem story
+                relatedEntityType: "User",
                 actorId: viewerId
             );
 

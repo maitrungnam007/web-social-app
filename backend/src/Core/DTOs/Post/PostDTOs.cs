@@ -37,6 +37,7 @@ public class PostResponseDto
     public int LikeCount { get; set; }
     public int CommentCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
+    public bool IsHidden { get; set; }
     public List<string> Hashtags { get; set; } = new();
 }
 

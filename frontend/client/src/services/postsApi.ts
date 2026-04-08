@@ -38,6 +38,24 @@ export const postsApi = {
     const response = await api.delete(`/posts/${id}`)
     return response.data
   },
+
+  // Admin xoa bai viet
+  adminDeletePost: async (id: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.delete(`/posts/admin/${id}`)
+    return response.data
+  },
+
+  // Admin an bai viet
+  adminHidePost: async (id: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.post(`/posts/admin/${id}/hide`)
+    return response.data
+  },
+
+  // Admin hien bai viet
+  adminUnhidePost: async (id: number): Promise<ApiResponse<boolean>> => {
+    const response = await api.delete(`/posts/admin/${id}/hide`)
+    return response.data
+  },
   
   likePost: async (id: number): Promise<ApiResponse<boolean>> => {
     const response = await api.post(`/posts/${id}/like`)

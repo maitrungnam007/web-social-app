@@ -11,4 +11,8 @@ public interface ICommentService
     Task<ApiResponse<List<CommentResponseDto>>> GetCommentsByPostIdAsync(int postId, string? currentUserId);
     Task<ApiResponse<bool>> LikeCommentAsync(int commentId, string userId);
     Task<ApiResponse<bool>> UnlikeCommentAsync(int commentId, string userId);
+    Task<ApiResponse<ContentStatsDto>> GetCommentStatsAsync();
+    Task<ApiResponse<PagedResult<CommentResponseDto>>> GetAllCommentsAsync(int page, int pageSize);
+    Task<ApiResponse<bool>> HideCommentAsync(int commentId);
+    Task<ApiResponse<bool>> UnhideCommentAsync(int commentId);
 }

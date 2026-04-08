@@ -370,7 +370,7 @@ export default function AdminModeration() {
         isOpen={confirm.isOpen}
         title={confirm.title}
         message={confirm.message}
-        confirmText={confirm.action === 'resolve' ? 'Xu ly' : 'Bo qua'}
+        confirmText={confirm.action === 'resolve' ? 'Xử lý' : 'Bỏ qua'}
         confirmVariant={confirm.action === 'resolve' ? 'primary' : 'danger'}
         onConfirm={executeAction}
         onCancel={() => setConfirm(prev => ({ ...prev, isOpen: false }))}

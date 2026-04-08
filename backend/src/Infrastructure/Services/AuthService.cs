@@ -69,7 +69,7 @@ public class AuthService : IAuthService
             var roles = await _userManager.GetRolesAsync(user);
 
             // Tạo token
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(user, roles);
             var refreshToken = GenerateRefreshToken();
 
             // Trả về kết quả
@@ -125,7 +125,7 @@ public class AuthService : IAuthService
             var roles = await _userManager.GetRolesAsync(user);
 
             // Tạo token
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(user, roles);
             var refreshToken = GenerateRefreshToken();
 
             return ApiResponse<AuthResponseDto>.SuccessResult(
@@ -173,7 +173,7 @@ public class AuthService : IAuthService
     }
 
     // Tạo JWT token
-    private string GenerateJwtToken(User user)
+    private string GenerateJwtToken(User user, IList<string> roles)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
@@ -191,6 +191,12 @@ public class AuthService : IAuthService
             new(ClaimTypes.Email, user.Email ?? ""),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // Thêm role claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

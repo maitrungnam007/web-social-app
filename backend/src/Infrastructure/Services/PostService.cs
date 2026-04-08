@@ -108,6 +108,14 @@ public class PostService : IPostService
             post.IsDeleted = true;
             post.UpdatedAt = DateTime.UtcNow;
 
+            // Xoa tat ca binh luan cua bai viet
+            var comments = await _context.Comments.Where(c => c.PostId == postId && !c.IsDeleted).ToListAsync();
+            foreach (var comment in comments)
+            {
+                comment.IsDeleted = true;
+                comment.UpdatedAt = DateTime.UtcNow;
+            }
+
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.SuccessResult(true, "Đã xóa bài đăng thành công");
@@ -115,6 +123,39 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi xóa bài đăng {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa bài đăng");
+        }
+    }
+
+    // Admin xóa bài đăng (không cần kiểm tra chủ sở hữu)
+    public async Task<ApiResponse<bool>> AdminDeletePostAsync(int postId)
+    {
+        try
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
+            }
+
+            post.IsDeleted = true;
+            post.UpdatedAt = DateTime.UtcNow;
+
+            // Xoa tat ca binh luan cua bai viet
+            var comments = await _context.Comments.Where(c => c.PostId == postId && !c.IsDeleted).ToListAsync();
+            foreach (var comment in comments)
+            {
+                comment.IsDeleted = true;
+                comment.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã xóa bài đăng thành công");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi admin xóa bài đăng {PostId}", postId);
             return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi xóa bài đăng");
         }
     }
@@ -143,6 +184,7 @@ public class PostService : IPostService
                     LikeCount = p.Likes.Count(l => l.CommentId == null),
                     CommentCount = p.Comments.Count(c => !c.IsDeleted),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
+                    IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
                 })
                 .FirstOrDefaultAsync();
@@ -211,6 +253,7 @@ public class PostService : IPostService
                     LikeCount = p.Likes.Count(l => l.CommentId == null),
                     CommentCount = p.Comments.Count(c => !c.IsDeleted),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
+                    IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
                 })
                 .ToListAsync();
@@ -515,6 +558,72 @@ public class PostService : IPostService
         }
     }
 
+    // Admin ?n bai viet (cap nhat IsHidden) va an tat ca binh luan
+    public async Task<ApiResponse<bool>> AdminHidePostAsync(int postId)
+    {
+        try
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Khong tim thay bai dang");
+            }
+
+            post.IsHidden = true;
+            post.UpdatedAt = DateTime.UtcNow;
+
+            // An tat ca binh luan cua bai viet
+            var comments = await _context.Comments.Where(c => c.PostId == postId && !c.IsDeleted).ToListAsync();
+            foreach (var comment in comments)
+            {
+                comment.IsHidden = true;
+                comment.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Da an bai dang thanh cong");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Loi khi admin an bai dang {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Co loi xay ra khi an bai dang");
+        }
+    }
+
+    // Admin hien bai viet (cap nhat IsHidden) va hien tat ca binh luan
+    public async Task<ApiResponse<bool>> AdminUnhidePostAsync(int postId)
+    {
+        try
+        {
+            var post = await _context.Posts.FindAsync(postId);
+            if (post == null || post.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Khong tim thay bai dang");
+            }
+
+            post.IsHidden = false;
+            post.UpdatedAt = DateTime.UtcNow;
+
+            // Hien tat ca binh luan cua bai viet
+            var comments = await _context.Comments.Where(c => c.PostId == postId && !c.IsDeleted).ToListAsync();
+            foreach (var comment in comments)
+            {
+                comment.IsHidden = false;
+                comment.UpdatedAt = DateTime.UtcNow;
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Da hien bai dang thanh cong");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Loi khi admin hien bai dang {PostId}", postId);
+            return ApiResponse<bool>.ErrorResult("Co loi xay ra khi hien bai dang");
+        }
+    }
+
     // Map entity to DTO
     private PostResponseDto MapToResponse(Post post, string? currentUserId)
     {
@@ -533,6 +642,7 @@ public class PostService : IPostService
             LikeCount = post.Likes?.Count(l => l.CommentId == null) ?? 0,
             CommentCount = post.Comments?.Count(c => !c.IsDeleted) ?? 0,
             IsLikedByCurrentUser = currentUserId != null && post.Likes?.Any(l => l.UserId == currentUserId && l.CommentId == null) == true,
+            IsHidden = post.IsHidden,
             Hashtags = post.PostHashtags?.Select(ph => ph.Hashtag?.Name ?? "").Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
         };
     }

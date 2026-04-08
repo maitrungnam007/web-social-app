@@ -1,10 +1,12 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import toast from 'react-hot-toast'
 
 export default function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   // Kiểm tra quyền admin
   useEffect(() => {
@@ -18,8 +20,33 @@ export default function AdminLayout() {
   }
 
   const handleLogout = () => {
-    logout()
-    navigate('/login')
+    toast((t) => (
+      <div className="flex flex-col gap-3">
+        <p className="font-medium">Bạn có chắc muốn đăng xuất?</p>
+        <div className="flex gap-2">
+          <button
+            onClick={() => {
+              toast.dismiss(t.id)
+              logout()
+              navigate('/login')
+              toast.success('Đã đăng xuất')
+            }}
+            className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm hover:bg-red-700"
+          >
+            Đăng xuất
+          </button>
+          <button
+            onClick={() => toast.dismiss(t.id)}
+            className="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-lg text-sm hover:bg-gray-300"
+          >
+            Hủy
+          </button>
+        </div>
+      </div>
+    ), {
+      duration: Infinity,
+      position: 'top-center'
+    })
   }
 
   const navItems = [
@@ -59,55 +86,96 @@ export default function AdminLayout() {
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white">
-        <div className="p-4 border-b border-gray-700">
-          <h1 className="text-xl font-bold">Admin Panel</h1>
-          <p className="text-sm text-gray-400">InteractHub</p>
+      <aside className={`fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+        {/* Header voi toggle button */}
+        <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+          {!sidebarCollapsed && (
+            <div>
+              <h1 className="text-xl font-bold">Admin Panel</h1>
+              <p className="text-sm text-gray-400">InteractHub</p>
+            </div>
+          )}
+          <button
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+            title={sidebarCollapsed ? 'Mở rộng' : 'Thu gọn'}
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {sidebarCollapsed ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 19l-7-7 7-7m8 14l-7-7 7-7" />
+              )}
+            </svg>
+          </button>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-2 space-y-1">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               end={item.to === '/admin'}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
+                `flex items-center gap-3 px-3 py-3 rounded-lg transition-colors ${
                   isActive
                     ? 'bg-blue-600 text-white'
                     : 'text-gray-300 hover:bg-gray-800'
-                }`
+                } ${sidebarCollapsed ? 'justify-center' : ''}`
               }
+              title={sidebarCollapsed ? item.label : undefined}
             >
               {item.icon}
-              <span>{item.label}</span>
+              {!sidebarCollapsed && <span>{item.label}</span>}
             </NavLink>
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-700">
-          <div className="flex items-center gap-3 mb-4">
-            <img
-              src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
-              alt={user.userName}
-              className="w-10 h-10 rounded-full"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="font-medium truncate">{user.firstName || user.userName}</p>
-              <p className="text-xs text-gray-400">Admin</p>
+        <div className={`absolute bottom-0 left-0 right-0 p-2 border-t border-gray-700 ${sidebarCollapsed ? 'px-1' : ''}`}>
+          {!sidebarCollapsed ? (
+            <>
+              <div className="flex items-center gap-3 mb-3 px-2">
+                <img
+                  src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                  alt={user.userName}
+                  className="w-10 h-10 rounded-full"
+                />
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium truncate text-sm">{user.firstName || user.userName}</p>
+                  <p className="text-xs text-gray-400">Admin</p>
+                </div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-colors"
+              >
+                Đăng xuất
+              </button>
+            </>
+          ) : (
+            <div className="flex flex-col items-center gap-2">
+              <img
+                src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                alt={user.userName}
+                className="w-8 h-8 rounded-full"
+                title={user.firstName || user.userName}
+              />
+              <button
+                onClick={handleLogout}
+                className="p-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                title="Đăng xuất"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+              </button>
             </div>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="w-full px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-sm transition-colors"
-          >
-            Đăng xuất
-          </button>
+          )}
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 p-6">
+      <main className={`transition-all duration-300 p-6 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
         <Outlet />
       </main>
     </div>

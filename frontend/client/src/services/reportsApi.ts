@@ -1,34 +1,34 @@
 import api from './apiClient'
 import { ApiResponse } from '../types'
 
-// Enum matching backend ReportTargetType
+// Enum matching backend ReportTargetType (string values)
 export enum ReportTargetType {
-  Post = 0,
-  Comment = 1,
-  User = 2
+  Post = 'Post',
+  Comment = 'Comment',
+  User = 'User'
 }
 
-// Enum matching backend ReportReason
+// Enum matching backend ReportReason (string values)
 export enum ReportReason {
-  Spam = 0,
-  Harassment = 1,
-  HateSpeech = 2,
-  Violence = 3,
-  InappropriateContent = 4,
-  Other = 5
+  Spam = 'Spam',
+  Harassment = 'Harassment',
+  HateSpeech = 'HateSpeech',
+  Violence = 'Violence',
+  InappropriateContent = 'InappropriateContent',
+  Other = 'Other'
 }
 
-// Enum matching backend ReportStatus
+// Enum matching backend ReportStatus (string values)
 export enum ReportStatus {
-  Pending = 0,
-  UnderReview = 1,
-  Resolved = 2,
-  Dismissed = 3
+  Pending = 'Pending',
+  UnderReview = 'UnderReview',
+  Resolved = 'Resolved',
+  Dismissed = 'Dismissed'
 }
 
 export interface CreateReportDto {
   targetType: ReportTargetType
-  targetId: number
+  targetId: string // String de ho tro ca Post/Comment ID (int) va User ID (GUID)
   reason: ReportReason
   description?: string
 }
@@ -36,7 +36,7 @@ export interface CreateReportDto {
 export interface ReportResponse {
   id: number
   targetType: ReportTargetType
-  targetId: number
+  targetId: string // String de ho tro ca Post/Comment ID (int) va User ID (GUID)
   postContent?: string
   commentContent?: string
   reportedUserName?: string
@@ -49,6 +49,7 @@ export interface ReportResponse {
   resolvedAt?: string
   resolvedByName?: string
   resolutionNotes?: string
+  reportCount: number // So luong bao cao cho doi tuong nay
 }
 
 export const reportsApi = {
@@ -63,11 +64,15 @@ export const reportsApi = {
     page: number = 1,
     pageSize: number = 20,
     status?: ReportStatus,
-    targetType?: ReportTargetType
+    targetType?: ReportTargetType,
+    search?: string,
+    sortBy?: string
   ): Promise<ApiResponse<{ items: ReportResponse[]; totalCount: number; page: number; pageSize: number }>> => {
     let url = `/reports?page=${page}&pageSize=${pageSize}`
     if (status !== undefined) url += `&status=${status}`
     if (targetType !== undefined) url += `&targetType=${targetType}`
+    if (search !== undefined && search.trim() !== '') url += `&search=${encodeURIComponent(search)}`
+    if (sortBy !== undefined) url += `&sortBy=${sortBy}`
     const response = await api.get(url)
     return response.data
   },

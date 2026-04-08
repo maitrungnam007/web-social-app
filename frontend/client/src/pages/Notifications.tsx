@@ -123,6 +123,9 @@ export default function Notifications() {
       case 'StoryView':
         // Không di chuyển - chỉ thông báo ai đã xem story
         break
+      case 'ReportStatusChanged':
+        // Không di chuyển - chỉ thông báo cập nhật trạng thái báo cáo
+        break
     }
   }
 
@@ -140,6 +143,8 @@ export default function Notifications() {
         return '👁️'
       case 'Mention':
         return '📢'
+      case 'ReportStatusChanged':
+        return '🛡️'
       default:
         return '🔔'
     }

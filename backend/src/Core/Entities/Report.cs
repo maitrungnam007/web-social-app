@@ -9,8 +9,8 @@ public class Report
     // Loại đối tượng bị báo cáo (Post, Comment, User)
     public ReportTargetType TargetType { get; set; }
     
-    // ID của đối tượng bị báo cáo
-    public int TargetId { get; set; }
+    // ID của đối tượng bị báo cáo (string để hỗ trợ cả int và GUID)
+    public string TargetId { get; set; } = string.Empty;
     
     // Navigation properties - có thể null tùy theo TargetType
     public int? PostId { get; set; }

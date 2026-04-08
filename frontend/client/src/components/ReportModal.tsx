@@ -47,7 +47,7 @@ export default function ReportModal({ isOpen, onClose, targetType, targetId, tar
         try {
             const result = await reportsApi.createReport({
                 targetType: TARGET_TYPE_MAP[targetType],
-                targetId: typeof targetId === 'string' ? parseInt(targetId) || 0 : targetId,
+                targetId: String(targetId), // Convert to string
                 reason: reason,
                 description: details || undefined
             });

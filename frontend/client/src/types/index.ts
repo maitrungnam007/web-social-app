@@ -89,7 +89,7 @@ export interface StoryHighlight {
 
 export interface Notification {
   id: number
-  type: 'Like' | 'Comment' | 'FriendRequest' | 'FriendAccepted' | 'StoryView' | 'Mention' | 'Share'
+  type: 'Like' | 'Comment' | 'FriendRequest' | 'FriendAccepted' | 'StoryView' | 'Mention' | 'Share' | 'ReportStatusChanged'
   title: string
   message: string
   relatedEntityId?: string

@@ -213,7 +213,7 @@ public class ReportService : IReportService
         }
     }
 
-    // Xử lý báo cáo (Admin)
+    // Xu ly bao cao (Admin)
     public async Task<ApiResponse<bool>> ResolveReportAsync(int reportId, string adminId, ResolveReportDto dto)
     {
         try
@@ -237,9 +237,31 @@ public class ReportService : IReportService
             report.ResolvedAt = DateTime.UtcNow;
             report.ResolvedBy = adminId;
 
+            // Tăng ViolationCount khi xử lý report (Resolved) và chưa được tính trước đó
+            if (dto.Status == ReportStatus.Resolved && !report.ViolationCounted)
+            {
+                // Kiểm tra xem đã có report nào của target này đã được tính violation chưa
+                var alreadyCounted = await _context.Reports
+                    .AnyAsync(r => r.TargetType == report.TargetType
+                        && r.TargetId == report.TargetId
+                        && r.ViolationCounted
+                        && r.Id != report.Id);
+
+                if (!alreadyCounted && !string.IsNullOrEmpty(report.ReportedUserId))
+                {
+                    // Tăng violation count cho user bị báo cáo
+                    var reportedUser = await _context.Users.FindAsync(report.ReportedUserId);
+                    if (reportedUser != null)
+                    {
+                        reportedUser.ViolationCount++;
+                        report.ViolationCounted = true;
+                    }
+                }
+            }
+
             await _context.SaveChangesAsync();
 
-            // Tạo thông báo cho người báo cáo
+            // Tao thong bao cho nguoi bao cao
             var statusLabels = new Dictionary<ReportStatus, string>
             {
                 { ReportStatus.Pending, "Chờ xử lý" },

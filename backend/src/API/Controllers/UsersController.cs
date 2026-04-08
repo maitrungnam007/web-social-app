@@ -287,4 +287,26 @@ public class UsersController : ControllerBase
             return BadRequest(result);
         return Ok(result);
     }
+
+    // Admin: Ban user
+    [HttpPost("{id}/ban")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> BanUser(string id, [FromBody] BanUserDto dto)
+    {
+        var result = await _userService.BanUserAsync(id, dto.Reason);
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
+    }
+
+    // Admin: Unban user
+    [HttpDelete("{id}/ban")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> UnbanUser(string id)
+    {
+        var result = await _userService.UnbanUserAsync(id);
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
+    }
 }

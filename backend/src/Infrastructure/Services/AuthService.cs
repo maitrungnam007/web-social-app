@@ -89,7 +89,10 @@ public class AuthService : IAuthService
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
                         Bio = user.Bio,
-                        Role = roles.FirstOrDefault()
+                        Role = roles.FirstOrDefault(),
+                        IsBanned = user.IsBanned,
+                        BanReason = user.BanReason,
+                        ViolationCount = user.ViolationCount
                     }
                 },
                 "Đăng ký thành công"
@@ -121,6 +124,15 @@ public class AuthService : IAuthService
                 return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
             }
 
+            // Kiểm tra user bị cấm
+            if (user.IsBanned)
+            {
+                var banMessage = string.IsNullOrEmpty(user.BanReason) 
+                    ? "Tài khoản của bạn bị cấm" 
+                    : $"Tài khoản của bạn bị cấm. Lý do: {user.BanReason}";
+                return ApiResponse<AuthResponseDto>.ErrorResult(banMessage);
+            }
+
             // Lấy role của user
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -144,7 +156,10 @@ public class AuthService : IAuthService
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
                         Bio = user.Bio,
-                        Role = roles.FirstOrDefault()
+                        Role = roles.FirstOrDefault(),
+                        IsBanned = user.IsBanned,
+                        BanReason = user.BanReason,
+                        ViolationCount = user.ViolationCount
                     }
                 },
                 "Đăng nhập thành công"

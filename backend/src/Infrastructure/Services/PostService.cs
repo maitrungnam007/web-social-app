@@ -181,8 +181,8 @@ public class PostService : IPostService
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
-                    LikeCount = p.Likes.Count(l => l.CommentId == null),
-                    CommentCount = p.Comments.Count(c => !c.IsDeleted),
+                    LikeCount = p.Likes.Count(l => l.CommentId == null && !l.User.IsBanned && l.User != null),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned && c.User != null),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
                     IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
@@ -210,7 +210,7 @@ public class PostService : IPostService
         {
             var query = _context.Posts
                 .AsNoTracking()
-                .Where(p => !p.IsDeleted);
+                .Where(p => !p.IsDeleted && !p.User.IsBanned);
 
             // Lọc theo userId
             if (!string.IsNullOrEmpty(filter.UserId))
@@ -250,8 +250,8 @@ public class PostService : IPostService
                     UserAvatar = p.User != null ? p.User.AvatarUrl : null,
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
-                    LikeCount = p.Likes.Count(l => l.CommentId == null),
-                    CommentCount = p.Comments.Count(c => !c.IsDeleted),
+                    LikeCount = p.Likes.Count(l => l.CommentId == null && !l.User.IsBanned),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
                     IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()

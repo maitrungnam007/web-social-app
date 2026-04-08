@@ -53,4 +53,13 @@ public class UserDto
     public string? Bio { get; set; }
     public int FriendsCount { get; set; }
     public string? Role { get; set; }
+    public bool IsBanned { get; set; }
+    public string? BanReason { get; set; }
+    public int ViolationCount { get; set; }
+}
+
+public class BanUserDto
+{
+    [Required(ErrorMessage = "Lý do cám là b?t bu?c")]
+    public string Reason { get; set; } = string.Empty;
 }

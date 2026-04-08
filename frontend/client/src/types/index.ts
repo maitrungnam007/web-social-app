@@ -9,6 +9,9 @@ export interface User {
   bio?: string
   friendsCount?: number
   role?: 'User' | 'Admin'
+  isBanned?: boolean
+  banReason?: string
+  violationCount?: number
 }
 
 export interface Post {

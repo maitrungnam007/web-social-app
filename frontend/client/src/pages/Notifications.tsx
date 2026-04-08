@@ -144,7 +144,7 @@ export default function Notifications() {
       case 'Mention':
         return '📢'
       case 'ReportStatusChanged':
-        return '🛡️'
+        return '⚠️'
       default:
         return '🔔'
     }

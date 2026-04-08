@@ -258,7 +258,7 @@ export default function Navbar() {
       case 'FriendAccepted': return '✅'
       case 'StoryView': return '👁️'
       case 'Mention': return '📢'
-      case 'Share': return '🔄'
+      case 'ReportStatusChanged': return '?'
       default: return '🔔'
     }
   }

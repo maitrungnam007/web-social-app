@@ -36,4 +36,7 @@ public class Report
     public DateTime? ResolvedAt { get; set; }
     public string? ResolvedBy { get; set; }
     public virtual User? ResolvedByUser { get; set; }
+
+    // Danh dau da tinh vao so vi pham cua user
+    public bool ViolationCounted { get; set; } = false;
 }

@@ -106,10 +106,11 @@ public class UserService : IUserService
             }
 
             var users = await _context.Users
-                .Where(u => u.UserName!.Contains(searchTerm) || 
+                .Where(u => !u.IsBanned && 
+                            (u.UserName!.Contains(searchTerm) || 
                             u.Email!.Contains(searchTerm) ||
                             (u.FirstName != null && u.FirstName.Contains(searchTerm)) ||
-                            (u.LastName != null && u.LastName.Contains(searchTerm)))
+                            (u.LastName != null && u.LastName.Contains(searchTerm))))
                 .OrderBy(u => u.UserName)
                 .Take(20)
                 .ToListAsync();
@@ -200,7 +201,10 @@ public class UserService : IUserService
                     CoverImageUrl = user.CoverImageUrl,
                     Bio = user.Bio,
                     FriendsCount = 0,
-                    Role = roles.FirstOrDefault()
+                    Role = roles.FirstOrDefault(),
+                    IsBanned = user.IsBanned,
+                    BanReason = user.BanReason,
+                    ViolationCount = user.ViolationCount
                 });
             }
 
@@ -221,6 +225,50 @@ public class UserService : IUserService
         }
     }
 
+    // Admin: Ban user
+    public async Task<ApiResponse<bool>> BanUserAsync(string userId, string reason)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
+
+            user.IsBanned = true;
+            user.BanReason = reason;
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã cấm người dùng");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi cấm người dùng {UserId}", userId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi cấm người dùng");
+        }
+    }
+
+    // Admin: Unban user
+    public async Task<ApiResponse<bool>> UnbanUserAsync(string userId)
+    {
+        try
+        {
+            var user = await _context.Users.FindAsync(userId);
+            if (user == null)
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
+
+            user.IsBanned = false;
+            user.BanReason = null;
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã gỡ cấm người dùng");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi gỡ cấm người dùng {UserId}", userId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi gỡ cấm người dùng");
+        }
+    }
+
     // Helper: Map entity to DTO
     private UserDto MapToDto(Core.Entities.User user, int friendsCount = 0)
     {
@@ -234,7 +282,10 @@ public class UserService : IUserService
             AvatarUrl = user.AvatarUrl,
             CoverImageUrl = user.CoverImageUrl,
             Bio = user.Bio,
-            FriendsCount = friendsCount
+            FriendsCount = friendsCount,
+            IsBanned = user.IsBanned,
+            BanReason = user.BanReason,
+            ViolationCount = user.ViolationCount
         };
     }
 }

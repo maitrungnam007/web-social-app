@@ -9,6 +9,10 @@ export interface User {
   bio?: string
   friendsCount?: number
   role?: 'User' | 'Admin'
+  isBanned?: boolean
+  banReason?: string
+  banExpiresAt?: string
+  violationCount?: number
 }
 
 export interface Post {
@@ -25,6 +29,7 @@ export interface Post {
   likeCount: number
   commentCount: number
   isLikedByCurrentUser: boolean
+  isHidden?: boolean
   hashtags: string[]
 }
 
@@ -32,6 +37,7 @@ export interface Comment {
   id: number
   content: string
   postId: number
+  postIsHidden?: boolean
   userId: string
   userName: string
   userAvatar?: string
@@ -39,7 +45,16 @@ export interface Comment {
   createdAt: string
   likeCount: number
   isLikedByCurrentUser: boolean
+  isHidden?: boolean
   replies: Comment[]
+}
+
+// Thong ke noi dung
+export interface ContentStats {
+  totalComments: number
+  hiddenComments: number
+  totalPosts: number
+  hiddenPosts: number
 }
 
 export interface Story {
@@ -78,7 +93,7 @@ export interface StoryHighlight {
 
 export interface Notification {
   id: number
-  type: 'Like' | 'Comment' | 'FriendRequest' | 'FriendAccepted' | 'StoryView' | 'Mention' | 'Share'
+  type: 'Like' | 'Comment' | 'FriendRequest' | 'FriendAccepted' | 'StoryView' | 'Mention' | 'Share' | 'ReportStatusChanged'
   title: string
   message: string
   relatedEntityId?: string

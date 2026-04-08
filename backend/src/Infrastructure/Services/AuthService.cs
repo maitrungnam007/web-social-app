@@ -69,7 +69,7 @@ public class AuthService : IAuthService
             var roles = await _userManager.GetRolesAsync(user);
 
             // Tạo token
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(user, roles);
             var refreshToken = GenerateRefreshToken();
 
             // Trả về kết quả
@@ -89,7 +89,11 @@ public class AuthService : IAuthService
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
                         Bio = user.Bio,
-                        Role = roles.FirstOrDefault()
+                        Role = roles.FirstOrDefault(),
+                        IsBanned = user.IsBanned,
+                        BanReason = user.BanReason,
+                        BanExpiresAt = user.BanExpiresAt,
+                        ViolationCount = user.ViolationCount
                     }
                 },
                 "Đăng ký thành công"
@@ -121,11 +125,45 @@ public class AuthService : IAuthService
                 return ApiResponse<AuthResponseDto>.ErrorResult("Tên đăng nhập hoặc mật khẩu không đúng");
             }
 
+            // Kiểm tra user bị cấm
+            if (user.IsBanned)
+            {
+                // Kiểm tra xem hết hạn cấm chưa
+                if (user.BanExpiresAt.HasValue && user.BanExpiresAt.Value < DateTime.UtcNow)
+                {
+                    // Hết hạn -> tự động gỡ cấm
+                    user.IsBanned = false;
+                    user.BanReason = null;
+                    user.BanExpiresAt = null;
+                    await _userManager.UpdateAsync(user);
+                }
+                else
+                {
+                    // Vẫn còn bị cấm
+                    var banMessage = string.IsNullOrEmpty(user.BanReason)
+                        ? "Tài khoản của bạn bị cấm"
+                        : $"Tài khoản của bạn bị cấm. Lý do: {user.BanReason}";
+
+                    // Thêm thông tin thời hạn cấm
+                    if (user.BanExpiresAt.HasValue)
+                    {
+                        var expireDate = user.BanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                        banMessage += $". Bị cấm đến: {expireDate}";
+                    }
+                    else
+                    {
+                        banMessage += ". Bị cấm vĩnh viễn";
+                    }
+
+                    return ApiResponse<AuthResponseDto>.ErrorResult(banMessage);
+                }
+            }
+
             // Lấy role của user
             var roles = await _userManager.GetRolesAsync(user);
 
             // Tạo token
-            var token = GenerateJwtToken(user);
+            var token = GenerateJwtToken(user, roles);
             var refreshToken = GenerateRefreshToken();
 
             return ApiResponse<AuthResponseDto>.SuccessResult(
@@ -144,7 +182,11 @@ public class AuthService : IAuthService
                         LastName = user.LastName,
                         AvatarUrl = user.AvatarUrl,
                         Bio = user.Bio,
-                        Role = roles.FirstOrDefault()
+                        Role = roles.FirstOrDefault(),
+                        IsBanned = user.IsBanned,
+                        BanReason = user.BanReason,
+                        BanExpiresAt = user.BanExpiresAt,
+                        ViolationCount = user.ViolationCount
                     }
                 },
                 "Đăng nhập thành công"
@@ -173,7 +215,7 @@ public class AuthService : IAuthService
     }
 
     // Tạo JWT token
-    private string GenerateJwtToken(User user)
+    private string GenerateJwtToken(User user, IList<string> roles)
     {
         var jwtSettings = _configuration.GetSection("JwtSettings");
         var secretKey = jwtSettings["SecretKey"] ?? "YourSuperSecretKeyThatIsAtLeast32CharactersLong!";
@@ -191,6 +233,12 @@ public class AuthService : IAuthService
             new(ClaimTypes.Email, user.Email ?? ""),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
+
+        // Thêm role claims
+        foreach (var role in roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var token = new JwtSecurityToken(
             issuer: issuer,

@@ -8,7 +8,12 @@ interface ConfirmState {
   title: string
   message: string
   reportId: number
-  action: 'resolve' | 'dismiss'
+  action: 'resolve' | 'dismiss' | 'pending' | 'underReview'
+}
+
+interface DetailModalState {
+  isOpen: boolean
+  report: ReportResponse | null
 }
 
 export default function AdminModeration() {
@@ -17,11 +22,13 @@ export default function AdminModeration() {
   const [page, setPage] = useState(1)
   const [totalCount, setTotalCount] = useState(0)
   const [pageSize] = useState(10)
-  
+
   // Filters
   const [statusFilter, setStatusFilter] = useState<ReportStatus | undefined>(undefined)
   const [typeFilter, setTypeFilter] = useState<ReportTargetType | undefined>(undefined)
-  
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<string>('newest')
+
   const [confirm, setConfirm] = useState<ConfirmState>({
     isOpen: false,
     title: '',
@@ -30,10 +37,15 @@ export default function AdminModeration() {
     action: 'resolve'
   })
 
+  const [detailModal, setDetailModal] = useState<DetailModalState>({
+    isOpen: false,
+    report: null
+  })
+
   const loadReports = async () => {
     setLoading(true)
     try {
-      const response = await reportsApi.getReports(page, pageSize, statusFilter, typeFilter)
+      const response = await reportsApi.getReports(page, pageSize, statusFilter, typeFilter, searchQuery, sortBy)
       if (response.success && response.data) {
         setReports(response.data.items)
         setTotalCount(response.data.totalCount)
@@ -47,7 +59,7 @@ export default function AdminModeration() {
 
   useEffect(() => {
     loadReports()
-  }, [page, statusFilter, typeFilter])
+  }, [page, statusFilter, typeFilter, sortBy])
 
   const handleResolve = (reportId: number) => {
     setConfirm({
@@ -69,19 +81,67 @@ export default function AdminModeration() {
     })
   }
 
+  const handlePending = (reportId: number) => {
+    setConfirm({
+      isOpen: true,
+      title: 'Đặt trạng thái chờ xử lý',
+      message: 'Bạn có chắc muốn đặt báo cáo này về trạng thái chờ xử lý?',
+      reportId,
+      action: 'pending'
+    })
+  }
+
+  const handleUnderReview = (reportId: number) => {
+    setConfirm({
+      isOpen: true,
+      title: 'Đặt trạng thái đang xem xét',
+      message: 'Bạn có chắc muốn đặt báo cáo này về trạng thái đang xem xét?',
+      reportId,
+      action: 'underReview'
+    })
+  }
+
   const executeAction = async () => {
     const { reportId, action } = confirm
     setConfirm(prev => ({ ...prev, isOpen: false }))
     
     try {
-      const status = action === 'resolve' ? ReportStatus.Resolved : ReportStatus.Dismissed
+      let status: ReportStatus
+      let note: string
+      let successMsg: string
+      
+      switch (action) {
+        case 'resolve':
+          status = ReportStatus.Resolved
+          note = 'Đã xử lý'
+          successMsg = 'Đã xử lý báo cáo'
+          break
+        case 'dismiss':
+          status = ReportStatus.Dismissed
+          note = 'Bỏ qua'
+          successMsg = 'Đã bỏ qua báo cáo'
+          break
+        case 'pending':
+          status = ReportStatus.Pending
+          note = 'Chờ xử lý'
+          successMsg = 'Đã đặt trạng thái chờ xử lý'
+          break
+        case 'underReview':
+          status = ReportStatus.UnderReview
+          note = 'Đang xem xét'
+          successMsg = 'Đã đặt trạng thái đang xem xét'
+          break
+        default:
+          return
+      }
+      
       const response = await reportsApi.resolveReport(reportId, {
         status,
-        notes: action === 'resolve' ? 'Đã xử lý' : 'Bỏ qua'
+        notes: note
       })
       
       if (response.success) {
-        toast.success(action === 'resolve' ? 'Đã xử lý báo cáo' : 'Đã bỏ qua báo cáo')
+        toast.success(successMsg)
         loadReports()
       } else {
         toast.error(response.message || 'Không thể xử lý')
@@ -153,12 +213,43 @@ export default function AdminModeration() {
       {/* Filters */}
       <div className="bg-white rounded-lg shadow p-4 mb-6">
         <div className="flex flex-wrap gap-4">
+          {/* Search */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+            <div className="relative">
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    setPage(1)
+                    loadReports()
+                  }
+                }}
+                placeholder="Nội dung, người dùng..."
+                className="w-full border rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button
+                onClick={() => {
+                  setPage(1)
+                  loadReports()
+                }}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          {/* Status Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
             <select
               value={statusFilter ?? ''}
               onChange={(e) => {
-                setStatusFilter(e.target.value ? Number(e.target.value) as ReportStatus : undefined)
+                setStatusFilter(e.target.value as ReportStatus || undefined)
                 setPage(1)
               }}
               className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -170,12 +261,13 @@ export default function AdminModeration() {
               <option value={ReportStatus.Dismissed}>Bỏ qua</option>
             </select>
           </div>
+          {/* Type Filter */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Loại đối tượng</label>
             <select
               value={typeFilter ?? ''}
               onChange={(e) => {
-                setTypeFilter(e.target.value ? Number(e.target.value) as ReportTargetType : undefined)
+                setTypeFilter(e.target.value as ReportTargetType || undefined)
                 setPage(1)
               }}
               className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -186,14 +278,34 @@ export default function AdminModeration() {
               <option value={ReportTargetType.User}>Người dùng</option>
             </select>
           </div>
+          {/* Sort */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Sắp xếp</label>
+            <select
+              value={sortBy}
+              onChange={(e) => {
+                setSortBy(e.target.value)
+                setPage(1)
+              }}
+              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="newest">Mới nhất</option>
+              <option value="oldest">Cũ nhất</option>
+              <option value="mostReported">Nhiều báo cáo nhất</option>
+            </select>
+          </div>
+          {/* Reset */}
           <div className="flex items-end">
             <button
               onClick={() => {
                 setStatusFilter(undefined)
                 setTypeFilter(undefined)
+                setSearchQuery('')
+                setSortBy('newest')
                 setPage(1)
+                loadReports()
               }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50"
             >
               Xóa bộ lọc
             </button>
@@ -228,12 +340,15 @@ export default function AdminModeration() {
                     Lý do
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Số báo cáo
+                  </th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng thái
                   </th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày tạo
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>
@@ -248,7 +363,7 @@ export default function AdminModeration() {
                       {getTypeBadge(report.targetType)}
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 max-w-xs truncate">
+                      <div className="text-sm text-gray-900 max-w-[150px] truncate">
                         {report.postContent || report.commentContent || report.reportedUserName || '-'}
                       </div>
                     </td>
@@ -259,33 +374,54 @@ export default function AdminModeration() {
                       {getReasonLabel(report.reason)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        report.reportCount > 3 ? 'bg-red-100 text-red-800' :
+                        report.reportCount > 1 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {report.reportCount}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(report.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(report.createdAt).toLocaleDateString('vi-VN')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      {report.status === ReportStatus.Pending && (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => handleResolve(report.id)}
-                            className="text-green-600 hover:text-green-900"
-                          >
-                            Xử lý
-                          </button>
-                          <button
-                            onClick={() => handleDismiss(report.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            Bỏ qua
-                          </button>
-                        </div>
-                      )}
-                      {report.status !== ReportStatus.Pending && (
-                        <span className="text-gray-400 text-xs">
-                          {report.resolvedByName && `by ${report.resolvedByName}`}
-                        </span>
-                      )}
+                      <div className="flex justify-end gap-2 items-center">
+                        <button
+                          onClick={() => setDetailModal({ isOpen: true, report })}
+                          className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
+                          title="Xem chi tiết"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
+                        </button>
+                        <select
+                          value={report.status}
+                          onChange={(e) => {
+                            const newStatus = e.target.value as ReportStatus
+                            if (newStatus === ReportStatus.Resolved) {
+                              handleResolve(report.id)
+                            } else if (newStatus === ReportStatus.Dismissed) {
+                              handleDismiss(report.id)
+                            } else if (newStatus === ReportStatus.Pending && report.status !== ReportStatus.Pending) {
+                              handlePending(report.id)
+                            } else if (newStatus === ReportStatus.UnderReview && report.status !== ReportStatus.UnderReview) {
+                              handleUnderReview(report.id)
+                            }
+                          }}
+                          className="text-sm border rounded px-2 py-1"
+                        >
+                          <option value={ReportStatus.Pending}>Chờ xử lý</option>
+                          <option value={ReportStatus.UnderReview}>Đang xem xét</option>
+                          <option value={ReportStatus.Resolved}>Đã xử lý</option>
+                          <option value={ReportStatus.Dismissed}>Bỏ qua</option>
+                        </select>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -370,11 +506,74 @@ export default function AdminModeration() {
         isOpen={confirm.isOpen}
         title={confirm.title}
         message={confirm.message}
-        confirmText={confirm.action === 'resolve' ? 'Xu ly' : 'Bo qua'}
-        confirmVariant={confirm.action === 'resolve' ? 'primary' : 'danger'}
+        confirmText={
+          confirm.action === 'resolve' ? 'Xử lý' :
+          confirm.action === 'dismiss' ? 'Bỏ qua' :
+          confirm.action === 'pending' ? 'Chờ xử lý' : 'Đang xem xét'
+        }
+        confirmVariant={confirm.action === 'resolve' ? 'primary' : confirm.action === 'dismiss' ? 'danger' : 'primary'}
         onConfirm={executeAction}
         onCancel={() => setConfirm(prev => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Detail Modal */}
+      {detailModal.isOpen && detailModal.report && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+            <div className="flex justify-between items-start mb-4">
+              <h3 className="text-lg font-semibold">Chi tiết báo cáo #{detailModal.report.id}</h3>
+              <button
+                onClick={() => setDetailModal({ isOpen: false, report: null })}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-3">
+              <div>
+                <span className="text-gray-500 text-sm">Loại đối tượng:</span>
+                <span className="ml-2">{getTypeBadge(detailModal.report.targetType)}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Nội dung:</span>
+                <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">
+                  {detailModal.report.postContent || detailModal.report.commentContent || detailModal.report.reportedUserName || '-'}
+                </p>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Người báo cáo:</span>
+                <span className="ml-2 font-medium">{detailModal.report.reporterName}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Lý do:</span>
+                <span className="ml-2">{getReasonLabel(detailModal.report.reason)}</span>
+              </div>
+              {detailModal.report.description && (
+                <div>
+                  <span className="text-gray-500 text-sm">Mô tả thêm:</span>
+                  <p className="mt-1 text-gray-700">{detailModal.report.description}</p>
+                </div>
+              )}
+              <div>
+                <span className="text-gray-500 text-sm">Trạng thái:</span>
+                <span className="ml-2">{getStatusBadge(detailModal.report.status)}</span>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Ngày tạo:</span>
+                <span className="ml-2">{new Date(detailModal.report.createdAt).toLocaleString('vi-VN')}</span>
+              </div>
+              {detailModal.report.resolvedByName && (
+                <div>
+                  <span className="text-gray-500 text-sm">Xử lý bởi:</span>
+                  <span className="ml-2">{detailModal.report.resolvedByName}</span>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

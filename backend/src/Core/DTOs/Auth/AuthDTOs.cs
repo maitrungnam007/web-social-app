@@ -53,4 +53,15 @@ public class UserDto
     public string? Bio { get; set; }
     public int FriendsCount { get; set; }
     public string? Role { get; set; }
+    public bool IsBanned { get; set; }
+    public string? BanReason { get; set; }
+    public DateTime? BanExpiresAt { get; set; }
+    public int ViolationCount { get; set; }
+}
+
+public class BanUserDto
+{
+    [Required(ErrorMessage = "Lý do cám là b?t bu?c")]
+    public string Reason { get; set; } = string.Empty;
+    public string Duration { get; set; } = "permanent"; // permanent, 1, 3, 7, 30 days
 }

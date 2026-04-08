@@ -72,9 +72,45 @@ public class CommentsController : ControllerBase
     [HttpDelete("{id}/like")]
     public async Task<ActionResult<ApiResponse<bool>>> UnlikeComment(int id)
     {
-        // Tạm thời dùng userId từ seeded data để test
+        // Tạm thởi dùng userId từ seeded data để test
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "1c4280dd-3453-4a8e-b802-6183ab3753da";
         var result = await _commentService.UnlikeCommentAsync(id, userId);
+        return Ok(result);
+    }
+
+    // Lấy thông kê bình luận và bị viết
+    [HttpGet("stats")]
+    public async Task<ActionResult<ApiResponse<ContentStatsDto>>> GetStats()
+    {
+        var result = await _commentService.GetCommentStatsAsync();
+        return Ok(result);
+    }
+
+    // Lấy danh sách tất cả bình luận (admin)
+    [HttpGet("all")]
+    public async Task<ActionResult<ApiResponse<PagedResult<CommentResponseDto>>>> GetAllComments([FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _commentService.GetAllCommentsAsync(page, pageSize);
+        return Ok(result);
+    }
+
+    // Ẩn bình luận (admin)
+    [HttpPost("{id}/hide")]
+    public async Task<ActionResult<ApiResponse<bool>>> HideComment(int id)
+    {
+        var result = await _commentService.HideCommentAsync(id);
+        if (!result.Success)
+            return NotFound(result);
+        return Ok(result);
+    }
+
+    // Hiện bình luận (admin)
+    [HttpDelete("{id}/hide")]
+    public async Task<ActionResult<ApiResponse<bool>>> UnhideComment(int id)
+    {
+        var result = await _commentService.UnhideCommentAsync(id);
+        if (!result.Success)
+            return NotFound(result);
         return Ok(result);
     }
 }

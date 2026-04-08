@@ -7,5 +7,8 @@ public enum NotificationType
     FriendRequest = 2,
     FriendAccepted = 3,
     StoryView = 4,
-    Mention = 5
+    Mention = 5,
+    ReportStatusChanged = 6,
+    UserBanned = 7,
+    PostHidden = 8
 }

@@ -35,14 +35,22 @@ public class ReportsController : ControllerBase
     // Lấy danh sách báo cáo (Admin)
     [HttpGet]
     // [Authorize(Roles = "Admin")]
-    public async Task<ActionResult> GetReports([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] int? status = null, [FromQuery] int? targetType = null)
+    public async Task<ActionResult> GetReports(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? status = null,
+        [FromQuery] string? targetType = null,
+        [FromQuery] string? search = null,
+        [FromQuery] string? sortBy = null)
     {
         var filter = new ReportFilterDto
         {
             Page = page,
             PageSize = pageSize,
-            Status = status.HasValue ? (Core.Enums.ReportStatus)status.Value : null,
-            TargetType = targetType.HasValue ? (Core.Enums.ReportTargetType)targetType.Value : null
+            Status = !string.IsNullOrEmpty(status) && Enum.TryParse<Core.Enums.ReportStatus>(status, out var statusValue) ? statusValue : null,
+            TargetType = !string.IsNullOrEmpty(targetType) && Enum.TryParse<Core.Enums.ReportTargetType>(targetType, out var typeValue) ? typeValue : null,
+            Search = search,
+            SortBy = sortBy
         };
         var result = await _reportService.GetReportsAsync(filter);
         return Ok(result);
@@ -60,6 +68,15 @@ public class ReportsController : ControllerBase
         var result = await _reportService.ResolveReportAsync(id, adminId, dto);
         if (!result.Success)
             return BadRequest(result);
+        return Ok(result);
+    }
+
+    // Lấy báo cáo theo người báo cáo (Admin)
+    [HttpGet("user/{userId}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> GetReportsByUser(string userId)
+    {
+        var result = await _reportService.GetReportsByUserAsync(userId);
         return Ok(result);
     }
 }

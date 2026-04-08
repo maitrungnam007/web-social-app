@@ -23,7 +23,9 @@ public class ApplicationDbContext : IdentityDbContext<User>
     public DbSet<PostHashtag> PostHashtags => Set<PostHashtag>();
     public DbSet<Report> Reports => Set<Report>();
     public DbSet<HiddenPost> HiddenPosts => Set<HiddenPost>();
-    
+    public DbSet<SystemSetting> SystemSettings => Set<SystemSetting>();
+    public DbSet<BadWord> BadWords => Set<BadWord>();
+
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
@@ -283,6 +285,26 @@ public class ApplicationDbContext : IdentityDbContext<User>
             
             // Unique index để mỗi user chỉ ẩn một bài viết một lần
             entity.HasIndex(e => new { e.UserId, e.PostId }).IsUnique();
+        });
+        
+        // Cấu hình SystemSetting
+        builder.Entity<SystemSetting>(entity =>
+        {
+            entity.HasKey(e => e.Key);
+            entity.Property(e => e.Key).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Value).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.Category);
+        });
+        
+        // Cấu hình BadWord
+        builder.Entity<BadWord>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Word).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.Category).IsRequired().HasMaxLength(50);
+            entity.HasIndex(e => e.Word).IsUnique();
+            entity.HasIndex(e => e.Category);
         });
         
         // Thêm dữ liệu Roles mặc định

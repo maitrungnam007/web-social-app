@@ -15,4 +15,7 @@ public interface IPostService
     Task<ApiResponse<bool>> HidePostAsync(int postId, string userId);
     Task<ApiResponse<bool>> UnhidePostAsync(int postId, string userId);
     Task<ApiResponse<List<int>>> GetHiddenPostIdsAsync(string userId);
+    Task<ApiResponse<bool>> AdminDeletePostAsync(int postId);
+    Task<ApiResponse<bool>> AdminHidePostAsync(int postId);
+    Task<ApiResponse<bool>> AdminUnhidePostAsync(int postId);
 }

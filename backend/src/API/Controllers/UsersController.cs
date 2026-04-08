@@ -3,6 +3,7 @@ using Core.DTOs.Post;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 namespace API.Controllers;
@@ -15,12 +16,14 @@ public class UsersController : ControllerBase
     private readonly IUserService _userService;
     private readonly IFileStorageService _fileStorageService;
     private readonly IPostService _postService;
-    
-    public UsersController(IUserService userService, IFileStorageService fileStorageService, IPostService postService)
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IUserService userService, IFileStorageService fileStorageService, IPostService postService, ILogger<UsersController> logger)
     {
         _userService = userService;
         _fileStorageService = fileStorageService;
         _postService = postService;
+        _logger = logger;
     }
     
     // Lấy danh sách người dùng (Admin only)
@@ -283,6 +286,28 @@ public class UsersController : ControllerBase
             return Unauthorized(new { success = false, message = "Không tìm thấy thông tin người dùng" });
         
         var result = await _userService.ChangePasswordAsync(userId, dto);
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
+    }
+
+    // Admin: Ban user
+    [HttpPost("{id}/ban")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> BanUser(string id, [FromBody] BanUserDto dto)
+    {
+        var result = await _userService.BanUserAsync(id, dto);
+        if (!result.Success)
+            return BadRequest(result);
+        return Ok(result);
+    }
+
+    // Admin: Unban user
+    [HttpDelete("{id}/ban")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> UnbanUser(string id)
+    {
+        var result = await _userService.UnbanUserAsync(id);
         if (!result.Success)
             return BadRequest(result);
         return Ok(result);

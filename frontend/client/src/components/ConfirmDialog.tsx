@@ -7,6 +7,13 @@ interface ConfirmDialogProps {
   confirmText?: string
   cancelText?: string
   confirmVariant?: 'danger' | 'warning' | 'primary'
+  inputLabel?: string
+  inputValue?: string
+  onInputChange?: (value: string) => void
+  selectLabel?: string
+  selectValue?: string
+  onSelectChange?: (value: string) => void
+  selectOptions?: { value: string; label: string }[]
   onConfirm: () => void
   onCancel: () => void
 }
@@ -18,6 +25,13 @@ export default function ConfirmDialog({
   confirmText = 'Xác nhận',
   cancelText = 'Hủy',
   confirmVariant = 'danger',
+  inputLabel,
+  inputValue = '',
+  onInputChange,
+  selectLabel,
+  selectValue = '',
+  onSelectChange,
+  selectOptions,
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
@@ -69,6 +83,38 @@ export default function ConfirmDialog({
         {/* Body */}
         <div className="p-4">
           <p className="text-gray-600">{message}</p>
+          {inputLabel && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {inputLabel}
+              </label>
+              <input
+                type="text"
+                value={inputValue}
+                onChange={(e) => onInputChange?.(e.target.value)}
+                placeholder="Nhập lý do..."
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              />
+            </div>
+          )}
+          {selectLabel && selectOptions && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {selectLabel}
+              </label>
+              <select
+                value={selectValue}
+                onChange={(e) => onSelectChange?.(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {selectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
         
         {/* Footer */}

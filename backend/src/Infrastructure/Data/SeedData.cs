@@ -289,11 +289,12 @@ public static class SeedData
 
             for (int i = 1; i <= 10; i++)
             {
+                var targetPostId = postIds[Random.Shared.Next(postIds.Count)];
                 var report = new Report
                 {
                     TargetType = ReportTargetType.Post,
-                    TargetId = postIds[Random.Shared.Next(postIds.Count)],
-                    PostId = postIds[Random.Shared.Next(postIds.Count)],
+                    TargetId = targetPostId.ToString(),
+                    PostId = targetPostId,
                     ReporterId = userIds[Random.Shared.Next(userIds.Count)],
                     Reason = (ReportReason)Random.Shared.Next(0, 5),
                     Description = GetReportDescription(i),

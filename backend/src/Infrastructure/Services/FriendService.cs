@@ -229,7 +229,8 @@ public class FriendService : IFriendService
                 .AsNoTracking()
                 .Where(f => 
                     (f.RequesterId == userId || f.AddresseeId == userId) &&
-                    f.Status == FriendshipStatus.Accepted)
+                    f.Status == FriendshipStatus.Accepted &&
+                    (f.RequesterId == userId ? !f.Addressee.IsBanned : !f.Requester.IsBanned))
                 .Select(f => new FriendListDto
                 {
                     Id = f.RequesterId == userId ? f.AddresseeId : f.RequesterId,
@@ -257,7 +258,7 @@ public class FriendService : IFriendService
         {
             var requests = await _context.Friendships
                 .AsNoTracking()
-                .Where(f => f.AddresseeId == userId && f.Status == FriendshipStatus.Pending)
+                .Where(f => f.AddresseeId == userId && f.Status == FriendshipStatus.Pending && !f.Requester.IsBanned)
                 .Select(f => new FriendshipResponseDto
                 {
                     Id = f.Id,

@@ -14,11 +14,15 @@ public class ReportService : IReportService
 {
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ReportService> _logger;
+    private readonly INotificationService _notificationService;
+    private readonly ISystemSettingService _systemSettingService;
 
-    public ReportService(ApplicationDbContext context, ILogger<ReportService> logger)
+    public ReportService(ApplicationDbContext context, ILogger<ReportService> logger, INotificationService notificationService, ISystemSettingService systemSettingService)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
+        _systemSettingService = systemSettingService;
     }
 
     // Tạo báo cáo mới
@@ -30,27 +34,34 @@ public class ReportService : IReportService
             string? reportedUserId = null;
             int? postId = null;
             int? commentId = null;
+            string targetId = dto.TargetId;
 
             switch (dto.TargetType)
             {
                 case ReportTargetType.Post:
-                    var post = await _context.Posts.FindAsync(dto.TargetId);
+                    if (!int.TryParse(dto.TargetId, out var postTargetId))
+                        return ApiResponse<bool>.ErrorResult("ID bài viết không hợp lệ");
+                    var post = await _context.Posts.FindAsync(postTargetId);
                     if (post == null)
                         return ApiResponse<bool>.ErrorResult("Không tìm thấy bài đăng");
                     reportedUserId = post.UserId;
                     postId = post.Id;
+                    targetId = postTargetId.ToString();
                     break;
 
                 case ReportTargetType.Comment:
-                    var comment = await _context.Comments.FindAsync(dto.TargetId);
+                    if (!int.TryParse(dto.TargetId, out var commentTargetId))
+                        return ApiResponse<bool>.ErrorResult("ID bình luận không hợp lệ");
+                    var comment = await _context.Comments.FindAsync(commentTargetId);
                     if (comment == null)
                         return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
                     reportedUserId = comment.UserId;
                     commentId = comment.Id;
+                    targetId = commentTargetId.ToString();
                     break;
 
                 case ReportTargetType.User:
-                    var user = await _context.Users.FindAsync(dto.TargetId.ToString());
+                    var user = await _context.Users.FindAsync(dto.TargetId);
                     if (user == null)
                         return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
                     reportedUserId = user.Id;
@@ -59,8 +70,8 @@ public class ReportService : IReportService
 
             // Kiểm tra đã báo cáo chưa
             var existingReport = await _context.Reports
-                .FirstOrDefaultAsync(r => r.TargetType == dto.TargetType 
-                    && r.TargetId == dto.TargetId 
+                .FirstOrDefaultAsync(r => r.TargetType == dto.TargetType
+                    && r.TargetId == targetId
                     && r.ReporterId == reporterId);
 
             if (existingReport != null)
@@ -72,7 +83,7 @@ public class ReportService : IReportService
             var report = new Report
             {
                 TargetType = dto.TargetType,
-                TargetId = dto.TargetId,
+                TargetId = targetId,
                 PostId = postId,
                 CommentId = commentId,
                 ReportedUserId = reportedUserId,
@@ -105,6 +116,7 @@ public class ReportService : IReportService
                 .Include(r => r.Post)
                 .Include(r => r.Comment)
                 .Include(r => r.ReportedUser)
+                .Include(r => r.ResolvedByUser)
                 .AsQueryable();
 
             // Lọc theo trạng thái
@@ -119,19 +131,76 @@ public class ReportService : IReportService
                 query = query.Where(r => r.TargetType == filter.TargetType.Value);
             }
 
+            // Tìm kiếm theo nội dung hoặc tên người dùng
+            if (!string.IsNullOrEmpty(filter.Search))
+            {
+                var searchLower = filter.Search.ToLower();
+                query = query.Where(r =>
+                    (r.Post != null && r.Post.Content != null && r.Post.Content.ToLower().Contains(searchLower)) ||
+                    (r.Comment != null && r.Comment.Content != null && r.Comment.Content.ToLower().Contains(searchLower)) ||
+                    (r.ReportedUser != null && r.ReportedUser.UserName != null && r.ReportedUser.UserName.ToLower().Contains(searchLower)) ||
+                    (r.Reporter != null && r.Reporter.UserName != null && r.Reporter.UserName.ToLower().Contains(searchLower))
+                );
+            }
+
             // Đếm tổng số
             var totalCount = await query.CountAsync();
 
-            // Phân trang
-            var reports = await query
-                .OrderByDescending(r => r.CreatedAt)
-                .Skip((filter.Page - 1) * filter.PageSize)
-                .Take(filter.PageSize)
-                .ToListAsync();
+            List<Report> reports;
+
+            // Xu ly sort dac biet cho mostReported
+            if (filter.SortBy == "mostReported")
+            {
+                // Lay tat ca reports de tinh ReportCount
+                var allReports = await query.ToListAsync();
+
+                // Tinh ReportCount cho moi report
+                var reportsWithCount = new List<(Report report, int count)>();
+                foreach (var report in allReports)
+                {
+                    var count = await _context.Reports
+                        .CountAsync(r => r.TargetType == report.TargetType && r.TargetId == report.TargetId);
+                    reportsWithCount.Add((report, count));
+                }
+
+                // Sort theo ReportCount descending
+                reports = reportsWithCount
+                    .OrderByDescending(x => x.count)
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .Select(x => x.report)
+                    .ToList();
+            }
+            else
+            {
+                // Sap xep binh thuong
+                query = filter.SortBy switch
+                {
+                    "oldest" => query.OrderBy(r => r.CreatedAt),
+                    _ => query.OrderByDescending(r => r.CreatedAt) // newest mac dinh
+                };
+
+                // Phan trang
+                reports = await query
+                    .Skip((filter.Page - 1) * filter.PageSize)
+                    .Take(filter.PageSize)
+                    .ToListAsync();
+            }
+
+            // Tinh ReportCount cho moi bao cao
+            var reportDtos = new List<ReportResponseDto>();
+            foreach (var report in reports)
+            {
+                var dto = MapToDto(report);
+                // Dem so bao cao cho cung TargetType va TargetId
+                dto.ReportCount = await _context.Reports
+                    .CountAsync(r => r.TargetType == report.TargetType && r.TargetId == report.TargetId);
+                reportDtos.Add(dto);
+            }
 
             var result = new PagedResult<ReportResponseDto>
             {
-                Items = reports.Select(MapToDto).ToList(),
+                Items = reportDtos,
                 TotalCount = totalCount,
                 Page = filter.Page,
                 PageSize = filter.PageSize
@@ -141,12 +210,12 @@ public class ReportService : IReportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Lỗi khi lấy danh sách báo cáo");
-            return ApiResponse<PagedResult<ReportResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách báo cáo");
+            _logger.LogError(ex, "Loi khi lay danh sach bao cao");
+            return ApiResponse<PagedResult<ReportResponseDto>>.ErrorResult("Co loi xay ra khi lay danh sach bao cao");
         }
     }
 
-    // Xử lý báo cáo (Admin)
+    // Xu ly bao cao (Admin)
     public async Task<ApiResponse<bool>> ResolveReportAsync(int reportId, string adminId, ResolveReportDto dto)
     {
         try
@@ -155,6 +224,7 @@ public class ReportService : IReportService
                 .Include(r => r.Post)
                 .Include(r => r.Comment)
                 .Include(r => r.ReportedUser)
+                .Include(r => r.Reporter)
                 .FirstOrDefaultAsync(r => r.Id == reportId);
 
             if (report == null)
@@ -162,12 +232,67 @@ public class ReportService : IReportService
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy báo cáo");
             }
 
-            // Cập nhật trạng thái
+            var oldStatus = report.Status;
+
             report.Status = dto.Status;
             report.ResolvedAt = DateTime.UtcNow;
             report.ResolvedBy = adminId;
 
+            // Tăng ViolationCount khi xử lý report (Resolved) và chưa được tính trước đó
+            if (dto.Status == ReportStatus.Resolved && !report.ViolationCounted)
+            {
+                // Kiểm tra xem đã có report nào của target này đã được tính violation chưa
+                var alreadyCounted = await _context.Reports
+                    .AnyAsync(r => r.TargetType == report.TargetType
+                        && r.TargetId == report.TargetId
+                        && r.ViolationCounted
+                        && r.Id != report.Id);
+
+                if (!alreadyCounted && !string.IsNullOrEmpty(report.ReportedUserId))
+                {
+                    // Tăng violation count cho user bị báo cáo
+                    var reportedUser = await _context.Users.FindAsync(report.ReportedUserId);
+                    if (reportedUser != null)
+                    {
+                        reportedUser.ViolationCount++;
+                        report.ViolationCounted = true;
+
+                        // Kiểm tra tự động cấm user
+                        await CheckAutoBanAsync(reportedUser);
+                    }
+                }
+            }
+
+            // Kiểm tra tự động ẩn bài viết
+            if (report.TargetType == ReportTargetType.Post && report.PostId.HasValue)
+            {
+                await CheckAutoHidePostAsync(report.PostId.Value);
+            }
+
             await _context.SaveChangesAsync();
+
+            // Tạo thông báo cho người báo cáo
+            var statusLabels = new Dictionary<ReportStatus, string>
+            {
+                { ReportStatus.Pending, "Chờ xử lý" },
+                { ReportStatus.UnderReview, "Đang xem xét" },
+                { ReportStatus.Resolved, "Đã xử lý" },
+                { ReportStatus.Dismissed, "Bỏ qua" }
+            };
+
+            var targetTypeLabels = new Dictionary<ReportTargetType, string>
+            {
+                { ReportTargetType.Post, "bài viết" },
+                { ReportTargetType.Comment, "bình luận" },
+                { ReportTargetType.User, "người dùng" }
+            };
+
+            await _notificationService.CreateNotificationAsync(
+                userId: report.ReporterId,
+                type: NotificationType.ReportStatusChanged,
+                title: "Cập nhật báo cáo",
+                message: $"Báo cáo {targetTypeLabels[report.TargetType]} của bạn đã được cập nhật trạng thái: {statusLabels[dto.Status]}"
+            );
 
             return ApiResponse<bool>.SuccessResult(true, "Đã xử lý báo cáo thành công");
         }
@@ -214,7 +339,105 @@ public class ReportService : IReportService
             Status = report.Status,
             CreatedAt = report.CreatedAt,
             ResolvedAt = report.ResolvedAt,
+            ResolvedByName = report.ResolvedByUser?.UserName,
             ResolutionNotes = null
         };
+    }
+
+    // L?y bo co theo ng??i b bo co (Admin)
+    public async Task<ApiResponse<List<ReportResponseDto>>> GetReportsByUserAsync(string userId)
+    {
+        try
+        {
+            var reports = await _context.Reports
+                .AsNoTracking()
+                .Include(r => r.Reporter)
+                .Include(r => r.ResolvedByUser)
+                .Where(r => r.TargetType == ReportTargetType.User && r.TargetId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            var dtos = reports.Select(r => MapToDto(r)).ToList();
+            return ApiResponse<List<ReportResponseDto>>.SuccessResult(dtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy báo cáo theo người dùng {UserId}", userId);
+            return ApiResponse<List<ReportResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy báo cáo");
+        }
+    }
+
+    // Kiểm tra tự động cấm user khi số vi phạm đạt giới hạn
+    private async Task CheckAutoBanAsync(User user)
+    {
+        try
+        {
+            var config = await _systemSettingService.GetConfigAsync();
+            if (!config.Success || config.Data == null) return;
+
+            var violationsToAutoBan = config.Data.ViolationsToAutoBan;
+            var defaultBanDays = config.Data.DefaultBanDays;
+
+            if (user.ViolationCount >= violationsToAutoBan && !user.IsBanned)
+            {
+                user.IsBanned = true;
+                user.BanReason = $"Tự động cấm do vi phạm quy định {user.ViolationCount} lần";
+                user.BanExpiresAt = DateTime.UtcNow.AddDays(defaultBanDays);
+
+                _logger.LogInformation("Tự động cấm user {UserId} do vi phạm {Count} lần", user.Id, user.ViolationCount);
+
+                // Gửi thông báo cho user
+                await _notificationService.CreateNotificationAsync(
+                    userId: user.Id,
+                    type: NotificationType.UserBanned,
+                    title: "Bạn đã bị cấm",
+                    message: $"Tài khoản của bạn đã bị cấm trong {defaultBanDays} ngày do vi phạm quy định {user.ViolationCount} lần."
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi kiểm tra tự động cấm user {UserId}", user.Id);
+        }
+    }
+
+    // Kiểm tra tự động ẩn bài viết khi số report đạt giới hạn
+    private async Task CheckAutoHidePostAsync(int postId)
+    {
+        try
+        {
+            var config = await _systemSettingService.GetConfigAsync();
+            if (!config.Success || config.Data == null) return;
+
+            var reportsToAutoHide = config.Data.ReportsToAutoHide;
+
+            // Đếm số report Resolved cho bài viết này
+            var reportCount = await _context.Reports
+                .CountAsync(r => r.TargetType == ReportTargetType.Post
+                    && r.TargetId == postId.ToString()
+                    && r.Status == ReportStatus.Resolved);
+
+            if (reportCount >= reportsToAutoHide)
+            {
+                var post = await _context.Posts.FindAsync(postId);
+                if (post != null && !post.IsHidden)
+                {
+                    post.IsHidden = true;
+                    _logger.LogInformation("Tự động ẩn bài viết {PostId} do có {Count} report đã xử lý", postId, reportCount);
+
+                    // Gửi thông báo cho chủ bài viết
+                    await _notificationService.CreateNotificationAsync(
+                        userId: post.UserId,
+                        type: NotificationType.PostHidden,
+                        title: "Bài viết đã bị ẩn",
+                        message: $"Bài viết của bạn đã bị ẩn tự động do nhận được {reportCount} báo cáo từ hệ thống."
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi kiểm tra tự động ẩn bài viết {PostId}", postId);
+        }
     }
 }

@@ -54,8 +54,8 @@ export const usersApi = {
   },
   
   // Admin: Ban user
-  banUser: async (userId: string, reason: string): Promise<ApiResponse<boolean>> => {
-    const response = await api.post(`/users/${userId}/ban`, { reason })
+  banUser: async (userId: string, reason: string, duration: string = 'permanent'): Promise<ApiResponse<boolean>> => {
+    const response = await api.post(`/users/${userId}/ban`, { reason, duration })
     return response.data
   },
   

@@ -18,6 +18,7 @@ public class Post
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
+    public bool IsHidden { get; set; } = false;
     
     // Các thu?c tính di?u hu?ng
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();

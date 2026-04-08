@@ -71,6 +71,39 @@ public class PostsController : ControllerBase
             return NotFound(result);
         return Ok(result);
     }
+
+    // Admin xoa bai viet (khong can la chu so huu)
+    [HttpDelete("admin/{id}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<bool>>> AdminDeletePost(int id)
+    {
+        var result = await _postService.AdminDeletePostAsync(id);
+        if (!result.Success)
+            return NotFound(result);
+        return Ok(result);
+    }
+
+    // Admin an bai viet
+    [HttpPost("admin/{id}/hide")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<bool>>> AdminHidePost(int id)
+    {
+        var result = await _postService.AdminHidePostAsync(id);
+        if (!result.Success)
+            return NotFound(result);
+        return Ok(result);
+    }
+
+    // Admin hien bai viet
+    [HttpDelete("admin/{id}/hide")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<bool>>> AdminUnhidePost(int id)
+    {
+        var result = await _postService.AdminUnhidePostAsync(id);
+        if (!result.Success)
+            return NotFound(result);
+        return Ok(result);
+    }
     
     [HttpPost("{id}/like")]
     public async Task<ActionResult<ApiResponse<bool>>> LikePost(int id)

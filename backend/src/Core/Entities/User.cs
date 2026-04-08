@@ -12,8 +12,12 @@ public class User : IdentityUser
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsBanned { get; set; } = false;
+    public string? BanReason { get; set; }
+    public DateTime? BanExpiresAt { get; set; }
+    public int ViolationCount { get; set; } = 0;
 
-    // Các thu?c tính di?u hu?ng
+    // Cac thuoc tinh dieu huong
     public virtual ICollection<Post> Posts { get; set; } = new List<Post>();
     public virtual ICollection<Comment> Comments { get; set; } = new List<Comment>();
     public virtual ICollection<Like> Likes { get; set; } = new List<Like>();

@@ -15,12 +15,14 @@ public class CommentService : ICommentService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CommentService> _logger;
     private readonly INotificationService _notificationService;
+    private readonly ISystemSettingService _systemSettingService;
 
-    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger, INotificationService notificationService)
+    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger, INotificationService notificationService, ISystemSettingService systemSettingService)
     {
         _context = context;
         _logger = logger;
         _notificationService = notificationService;
+        _systemSettingService = systemSettingService;
     }
 
     // Tạo bình luận mới
@@ -28,6 +30,20 @@ public class CommentService : ICommentService
     {
         try
         {
+            // Kiểm tra giới hạn số bình luận mỗi ngày
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data != null)
+            {
+                var today = DateTime.UtcNow.Date;
+                var commentsToday = await _context.Comments
+                    .CountAsync(c => c.UserId == userId && c.CreatedAt.Date == today);
+                
+                if (commentsToday >= config.Data.MaxCommentsPerDay)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult($"Bạn đã đạt giới hạn {config.Data.MaxCommentsPerDay} bình luận/ngày.");
+                }
+            }
+
             // Kiểm tra bài đăng tồn tại
             var post = await _context.Posts
                 .Include(p => p.User)
@@ -44,6 +60,16 @@ public class CommentService : ICommentService
                 if (parentComment == null || parentComment.IsDeleted || parentComment.PostId != dto.PostId)
                 {
                     return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận cha không hợp lệ");
+                }
+            }
+
+            // Kiểm tra từ khóa cấm
+            if (config.Success && config.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content);
+                if (containsBadWord)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
                 }
             }
 
@@ -124,6 +150,17 @@ public class CommentService : ICommentService
             if (comment.UserId != userId)
             {
                 return ApiResponse<CommentResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bình luận này");
+            }
+
+            // Kiểm tra từ khóa cấm
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content);
+                if (containsBadWord)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
+                }
             }
 
             comment.Content = dto.Content;
@@ -370,6 +407,134 @@ public class CommentService : ICommentService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Lỗi khi xử lý mentions cho bình luận {CommentId}", commentId);
+        }
+    }
+
+    // Lấy thông kê bình luận
+    public async Task<ApiResponse<ContentStatsDto>> GetCommentStatsAsync()
+    {
+        try
+        {
+            var totalComments = await _context.Comments.CountAsync(c => !c.IsDeleted);
+            var hiddenComments = await _context.Comments.CountAsync(c => c.IsHidden && !c.IsDeleted);
+            var totalPosts = await _context.Posts.CountAsync(p => !p.IsDeleted);
+            var hiddenPosts = await _context.Posts.CountAsync(p => p.IsHidden && !p.IsDeleted);
+
+            var stats = new ContentStatsDto
+            {
+                TotalComments = totalComments,
+                HiddenComments = hiddenComments,
+                TotalPosts = totalPosts,
+                HiddenPosts = hiddenPosts
+            };
+
+            return ApiResponse<ContentStatsDto>.SuccessResult(stats);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy thông kê bình luận");
+            return ApiResponse<ContentStatsDto>.ErrorResult("Có lỗi xảy ra khi lấy thông kê");
+        }
+    }
+
+    // Lấy danh sách tất cả bình luận (admin)
+    public async Task<ApiResponse<PagedResult<CommentResponseDto>>> GetAllCommentsAsync(int page, int pageSize)
+    {
+        try
+        {
+            var query = _context.Comments
+                .AsNoTracking()
+                .Where(c => !c.IsDeleted)
+                .OrderByDescending(c => c.CreatedAt);
+
+            var totalCount = await query.CountAsync();
+
+            var comments = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(c => new CommentResponseDto
+                {
+                    Id = c.Id,
+                    Content = c.Content,
+                    PostId = c.PostId,
+                    PostIsHidden = c.Post != null && c.Post.IsHidden,
+                    UserId = c.UserId,
+                    UserName = c.User != null ? c.User.UserName : "",
+                    UserFirstName = c.User != null ? c.User.FirstName : null,
+                    UserLastName = c.User != null ? c.User.LastName : null,
+                    UserAvatar = c.User != null ? c.User.AvatarUrl : null,
+                    ParentCommentId = c.ParentCommentId,
+                    CreatedAt = c.CreatedAt,
+                    LikeCount = c.Likes.Count,
+                    IsLikedByCurrentUser = false,
+                    IsHidden = c.IsHidden
+                })
+                .ToListAsync();
+
+            var result = new PagedResult<CommentResponseDto>
+            {
+                Items = comments,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return ApiResponse<PagedResult<CommentResponseDto>>.SuccessResult(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi lấy danh sách bình luận");
+            return ApiResponse<PagedResult<CommentResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy danh sách bình luận");
+        }
+    }
+
+    // Ẩn bình luận (admin)
+    public async Task<ApiResponse<bool>> HideCommentAsync(int commentId)
+    {
+        try
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+            }
+
+            comment.IsHidden = true;
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã ẩn bình luận");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi ẩn bình luận {CommentId}", commentId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi ẩn bình luận");
+        }
+    }
+
+    // Hiện bình luận (admin)
+    public async Task<ApiResponse<bool>> UnhideCommentAsync(int commentId)
+    {
+        try
+        {
+            var comment = await _context.Comments.FindAsync(commentId);
+            if (comment == null || comment.IsDeleted)
+            {
+                return ApiResponse<bool>.ErrorResult("Không tìm thấy bình luận");
+            }
+
+            comment.IsHidden = false;
+            comment.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<bool>.SuccessResult(true, "Đã hiện bình luận");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi hiện bình luận {CommentId}", commentId);
+            return ApiResponse<bool>.ErrorResult("Có lỗi xảy ra khi hiện bình luận");
         }
     }
 }

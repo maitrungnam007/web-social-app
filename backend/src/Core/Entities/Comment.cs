@@ -23,7 +23,8 @@ public class Comment
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? UpdatedAt { get; set; }
     public bool IsDeleted { get; set; } = false;
+    public bool IsHidden { get; set; } = false;
     
-    // Các thu?c tính di?u hu?ng
+    // Cï¿½c thu?c tï¿½nh di?u hu?ng
     public virtual ICollection<Like> Likes { get; set; } = new List<Like>();
 }

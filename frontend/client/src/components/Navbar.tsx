@@ -225,6 +225,10 @@ export default function Navbar() {
     if (!notification.isRead) {
       await notificationsApi.markAsRead(notification.id)
       setUnreadCount(prev => Math.max(0, prev - 1))
+      // Cập nhật state notifications
+      setNotifications(prev => prev.map(n => 
+        n.id === notification.id ? { ...n, isRead: true } : n
+      ))
     }
     
     setShowNotifDropdown(false)
@@ -242,10 +246,9 @@ export default function Navbar() {
         navigate('/friends?tab=requests')
         break
       case 'FriendAccepted':
-        // Không di chuyển - chỉ thông báo đã kết bạn thành công
-        break
       case 'StoryView':
-        // Không di chuyển - chỉ thông báo ai đã xem story
+      case 'ReportStatusChanged':
+        navigate('/notifications')
         break
     }
   }
@@ -258,7 +261,7 @@ export default function Navbar() {
       case 'FriendAccepted': return '✅'
       case 'StoryView': return '👁️'
       case 'Mention': return '📢'
-      case 'ReportStatusChanged': return '?'
+      case 'ReportStatusChanged': return '⚠️'
       default: return '🔔'
     }
   }

@@ -100,8 +100,10 @@ export default function CreatePostModal({ onClose, onSuccess }: CreatePostModalP
             } else {
                 toast.error(result.message || "Đăng bài thất bại");
             }
-        } catch (error) {
-            toast.error("Có lỗi xảy ra");
+        } catch (error: any) {
+            // Lay error message tu API response
+            const errorMessage = error?.response?.data?.message || "Có lỗi xảy ra";
+            toast.error(errorMessage);
         }
         setLoading(false);
     };

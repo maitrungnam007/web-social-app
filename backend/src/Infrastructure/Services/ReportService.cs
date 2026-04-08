@@ -15,12 +15,14 @@ public class ReportService : IReportService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<ReportService> _logger;
     private readonly INotificationService _notificationService;
+    private readonly ISystemSettingService _systemSettingService;
 
-    public ReportService(ApplicationDbContext context, ILogger<ReportService> logger, INotificationService notificationService)
+    public ReportService(ApplicationDbContext context, ILogger<ReportService> logger, INotificationService notificationService, ISystemSettingService systemSettingService)
     {
         _context = context;
         _logger = logger;
         _notificationService = notificationService;
+        _systemSettingService = systemSettingService;
     }
 
     // Tạo báo cáo mới
@@ -232,7 +234,6 @@ public class ReportService : IReportService
 
             var oldStatus = report.Status;
 
-            // Cập nhật trạng thái
             report.Status = dto.Status;
             report.ResolvedAt = DateTime.UtcNow;
             report.ResolvedBy = adminId;
@@ -255,13 +256,22 @@ public class ReportService : IReportService
                     {
                         reportedUser.ViolationCount++;
                         report.ViolationCounted = true;
+
+                        // Kiểm tra tự động cấm user
+                        await CheckAutoBanAsync(reportedUser);
                     }
                 }
             }
 
+            // Kiểm tra tự động ẩn bài viết
+            if (report.TargetType == ReportTargetType.Post && report.PostId.HasValue)
+            {
+                await CheckAutoHidePostAsync(report.PostId.Value);
+            }
+
             await _context.SaveChangesAsync();
 
-            // Tao thong bao cho nguoi bao cao
+            // Tạo thông báo cho người báo cáo
             var statusLabels = new Dictionary<ReportStatus, string>
             {
                 { ReportStatus.Pending, "Chờ xử lý" },
@@ -352,8 +362,82 @@ public class ReportService : IReportService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "L?i khi l?y bo co theo ng??i dng {UserId}", userId);
-            return ApiResponse<List<ReportResponseDto>>.ErrorResult("C l?i x?y ra khi l?y bo co");
+            _logger.LogError(ex, "Lỗi khi lấy báo cáo theo người dùng {UserId}", userId);
+            return ApiResponse<List<ReportResponseDto>>.ErrorResult("Có lỗi xảy ra khi lấy báo cáo");
+        }
+    }
+
+    // Kiểm tra tự động cấm user khi số vi phạm đạt giới hạn
+    private async Task CheckAutoBanAsync(User user)
+    {
+        try
+        {
+            var config = await _systemSettingService.GetConfigAsync();
+            if (!config.Success || config.Data == null) return;
+
+            var violationsToAutoBan = config.Data.ViolationsToAutoBan;
+            var defaultBanDays = config.Data.DefaultBanDays;
+
+            if (user.ViolationCount >= violationsToAutoBan && !user.IsBanned)
+            {
+                user.IsBanned = true;
+                user.BanReason = $"Tự động cấm do vi phạm quy định {user.ViolationCount} lần";
+                user.BanExpiresAt = DateTime.UtcNow.AddDays(defaultBanDays);
+
+                _logger.LogInformation("Tự động cấm user {UserId} do vi phạm {Count} lần", user.Id, user.ViolationCount);
+
+                // Gửi thông báo cho user
+                await _notificationService.CreateNotificationAsync(
+                    userId: user.Id,
+                    type: NotificationType.UserBanned,
+                    title: "Bạn đã bị cấm",
+                    message: $"Tài khoản của bạn đã bị cấm trong {defaultBanDays} ngày do vi phạm quy định {user.ViolationCount} lần."
+                );
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi kiểm tra tự động cấm user {UserId}", user.Id);
+        }
+    }
+
+    // Kiểm tra tự động ẩn bài viết khi số report đạt giới hạn
+    private async Task CheckAutoHidePostAsync(int postId)
+    {
+        try
+        {
+            var config = await _systemSettingService.GetConfigAsync();
+            if (!config.Success || config.Data == null) return;
+
+            var reportsToAutoHide = config.Data.ReportsToAutoHide;
+
+            // Đếm số report Resolved cho bài viết này
+            var reportCount = await _context.Reports
+                .CountAsync(r => r.TargetType == ReportTargetType.Post
+                    && r.TargetId == postId.ToString()
+                    && r.Status == ReportStatus.Resolved);
+
+            if (reportCount >= reportsToAutoHide)
+            {
+                var post = await _context.Posts.FindAsync(postId);
+                if (post != null && !post.IsHidden)
+                {
+                    post.IsHidden = true;
+                    _logger.LogInformation("Tự động ẩn bài viết {PostId} do có {Count} report đã xử lý", postId, reportCount);
+
+                    // Gửi thông báo cho chủ bài viết
+                    await _notificationService.CreateNotificationAsync(
+                        userId: post.UserId,
+                        type: NotificationType.PostHidden,
+                        title: "Bài viết đã bị ẩn",
+                        message: $"Bài viết của bạn đã bị ẩn tự động do nhận được {reportCount} báo cáo từ hệ thống."
+                    );
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Lỗi khi kiểm tra tự động ẩn bài viết {PostId}", postId);
         }
     }
 }

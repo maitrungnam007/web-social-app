@@ -15,12 +15,14 @@ public class PostService : IPostService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<PostService> _logger;
     private readonly INotificationService _notificationService;
+    private readonly ISystemSettingService _systemSettingService;
 
-    public PostService(ApplicationDbContext context, ILogger<PostService> logger, INotificationService notificationService)
+    public PostService(ApplicationDbContext context, ILogger<PostService> logger, INotificationService notificationService, ISystemSettingService systemSettingService)
     {
         _context = context;
         _logger = logger;
         _notificationService = notificationService;
+        _systemSettingService = systemSettingService;
     }
 
     // Tạo bài đăng mới
@@ -28,6 +30,31 @@ public class PostService : IPostService
     {
         try
         {
+            // Kiểm tra giới hạn số bài viết mỗi ngày
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data != null)
+            {
+                var today = DateTime.UtcNow.Date;
+                var postsToday = await _context.Posts
+                    .CountAsync(p => p.UserId == userId && p.CreatedAt.Date == today);
+                
+                if (postsToday >= config.Data.MaxPostsPerDay)
+                {
+                    return ApiResponse<PostResponseDto>.ErrorResult($"Bạn đã đạt giới hạn {config.Data.MaxPostsPerDay} bài viết/ngày.");
+                }
+            }
+
+            // Kiểm tra từ khóa cấm
+            var blockBadWords = await _systemSettingService.GetConfigAsync();
+            if (blockBadWords.Success && blockBadWords.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content ?? "");
+                if (containsBadWord)
+                {
+                    return ApiResponse<PostResponseDto>.ErrorResult("Bài viết chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
+                }
+            }
+
             var post = new Post
             {
                 Content = dto.Content,
@@ -72,6 +99,17 @@ public class PostService : IPostService
             if (post.UserId != userId)
             {
                 return ApiResponse<PostResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bài đăng này");
+            }
+
+            // Kiểm tra từ khóa cấm
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content ?? "");
+                if (containsBadWord)
+                {
+                    return ApiResponse<PostResponseDto>.ErrorResult("Bài viết chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
+                }
             }
 
             post.Content = dto.Content;

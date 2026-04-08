@@ -7,6 +7,7 @@ import ReportModal from "./ReportModal";
 import MentionDisplay from "./MentionDisplay";
 import MentionInput from "./MentionInput";
 import { MentionUser } from "../types";
+import ConfirmDialog from "./ConfirmDialog";
 
 interface Comment {
     id: number;
@@ -41,6 +42,11 @@ export default function Comments({ postId }: Props) {
     const [likingComments, setLikingComments] = useState<Set<number>>(new Set());
     const [showMenuFor, setShowMenuFor] = useState<number | null>(null);
     const [reportComment, setReportComment] = useState<Comment | null>(null);
+    const [deletingComments, setDeletingComments] = useState<Set<number>>(new Set());
+    const [deleteConfirm, setDeleteConfirm] = useState<{ isOpen: boolean; commentId: number | null }>({
+        isOpen: false,
+        commentId: null
+    });
 
     const handleTextChange = (newText: string, newMentions: MentionUser[]) => {
         setText(newText);
@@ -79,8 +85,10 @@ export default function Comments({ postId }: Props) {
                 setText("");
                 toast.success("Đã bình luận");
             }
-        } catch (err) {
-            toast.error("Không thể bình luận");
+        } catch (error: any) {
+            // Lay error message tu API response
+            const errorMessage = error?.response?.data?.message || "Không thể bình luận";
+            toast.error(errorMessage);
         }
         setSubmitting(false);
     };
@@ -109,42 +117,95 @@ export default function Comments({ postId }: Props) {
                 setReplyTo(null);
                 toast.success("Đã trả lời");
             }
-        } catch (err) {
-            toast.error("Không thể trả lời");
+        } catch (error: any) {
+            // Lay error message tu API response
+            const errorMessage = error?.response?.data?.message || "Không thể trả lời";
+            toast.error(errorMessage);
         }
         setSubmitting(false);
     };
 
     const handleLikeComment = async (comment: Comment) => {
         if (likingComments.has(comment.id)) return;
-        setLikingComments(prev => new Set(prev).add(comment.id));
-
-        try {
-            await commentsApi.likeComment(comment.id);
-            // Update comment's like count and isLiked status
-            const updateComment = (c: Comment): Comment => {
-                if (c.id === comment.id) {
-                    return {
-                        ...c,
-                        likeCount: c.isLikedByCurrentUser ? c.likeCount - 1 : c.likeCount + 1,
-                        isLikedByCurrentUser: !c.isLikedByCurrentUser
-                    };
-                }
-                if (c.replies) {
-                    return { ...c, replies: c.replies.map(updateComment) };
-                }
-                return c;
-            };
-            setComments(prev => prev.map(updateComment));
-        } catch (err) {
-            toast.error("Không thể thích bình luận");
-        }
 
         setLikingComments(prev => {
             const newSet = new Set(prev);
-            newSet.delete(comment.id);
+            newSet.add(comment.id);
             return newSet;
         });
+
+        try {
+            const response = await commentsApi.likeComment(comment.id);
+            if (response.success) {
+                setComments(prev => {
+                    const updateComment = (c: Comment): Comment => {
+                        if (c.id === comment.id) {
+                            return {
+                                ...c,
+                                likeCount: response.data ? c.likeCount + 1 : c.likeCount - 1,
+                                isLikedByCurrentUser: response.data
+                            };
+                        }
+                        if (c.replies) {
+                            return { ...c, replies: c.replies.map(updateComment) };
+                        }
+                        return c;
+                    };
+                    return prev.map(updateComment);
+                });
+            }
+        } catch (err) {
+            console.error(err);
+        } finally {
+            setLikingComments(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(comment.id);
+                return newSet;
+            });
+        }
+    };
+
+    const handleDeleteComment = async (commentId: number) => {
+        if (deletingComments.has(commentId)) return;
+
+        setDeletingComments(prev => {
+            const newSet = new Set(prev);
+            newSet.add(commentId);
+            return newSet;
+        });
+
+        try {
+            const response = await commentsApi.deleteComment(commentId);
+            if (response.success) {
+                setComments(prev => prev.filter(c => c.id !== commentId).map(c => ({
+                    ...c,
+                    replies: c.replies?.filter(r => r.id !== commentId)
+                })));
+                toast.success("Đã xóa bình luận");
+            }
+        } catch (error: any) {
+            const errorMessage = error?.response?.data?.message || "Không thể xóa bình luận";
+            toast.error(errorMessage);
+        } finally {
+            setDeletingComments(prev => {
+                const newSet = new Set(prev);
+                newSet.delete(commentId);
+                return newSet;
+            });
+            setShowMenuFor(null);
+        }
+    };
+
+    const openDeleteConfirm = (commentId: number) => {
+        setDeleteConfirm({ isOpen: true, commentId });
+        setShowMenuFor(null);
+    };
+
+    const handleConfirmDelete = () => {
+        if (deleteConfirm.commentId) {
+            handleDeleteComment(deleteConfirm.commentId);
+        }
+        setDeleteConfirm({ isOpen: false, commentId: null });
     };
 
     const formatTime = (dateString: string) => {
@@ -209,18 +270,34 @@ export default function Comments({ postId }: Props) {
                             <>
                                 <div className="fixed inset-0 z-10" onClick={() => setShowMenuFor(null)} />
                                 <div className="absolute right-2 top-8 w-36 bg-white rounded-lg shadow-lg border z-20 py-1">
-                                    <button
-                                        className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                                        onClick={() => {
-                                            setReportComment(comment);
-                                            setShowMenuFor(null);
-                                        }}
-                                    >
-                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
-                                        </svg>
-                                        Báo cáo
-                                    </button>
+                                    {/* Xoa comment - chi hien cho chu so huu */}
+                                    {user?.id === comment.userId && (
+                                        <button
+                                            className="w-full px-3 py-1.5 text-left text-xs text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                            onClick={() => openDeleteConfirm(comment.id)}
+                                            disabled={deletingComments.has(comment.id)}
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            {deletingComments.has(comment.id) ? 'Đang xóa...' : 'Xóa'}
+                                        </button>
+                                    )}
+                                    {/* Bao cao - hien cho nguoi khac */}
+                                    {user?.id !== comment.userId && (
+                                        <button
+                                            className="w-full px-3 py-1.5 text-left text-xs text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                                            onClick={() => {
+                                                setReportComment(comment);
+                                                setShowMenuFor(null);
+                                            }}
+                                        >
+                                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 21v-4m0 0V5a2 2 0 012-2h6.5l1 1H21l-3 6 3 6h-8.5l-1-1H5a2 2 0 00-2 2zm9-13.5V9" />
+                                            </svg>
+                                            Báo cáo
+                                        </button>
+                                    )}
                                 </div>
                             </>
                         )}
@@ -344,6 +421,18 @@ export default function Comments({ postId }: Props) {
                 targetType="comment"
                 targetId={reportComment?.id || 0}
                 targetName={reportComment?.userName}
+            />
+
+            {/* Confirm xóa bình luận */}
+            <ConfirmDialog
+                isOpen={deleteConfirm.isOpen}
+                title="Xóa bình luận"
+                message="Bạn chắc chắn muốn xóa bình luận này? Hành động này không thể hoàn tác."
+                confirmText="Xóa"
+                cancelText="Hủy"
+                confirmVariant="danger"
+                onConfirm={handleConfirmDelete}
+                onCancel={() => setDeleteConfirm({ isOpen: false, commentId: null })}
             />
         </div>
     );

@@ -15,12 +15,14 @@ public class CommentService : ICommentService
     private readonly ApplicationDbContext _context;
     private readonly ILogger<CommentService> _logger;
     private readonly INotificationService _notificationService;
+    private readonly ISystemSettingService _systemSettingService;
 
-    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger, INotificationService notificationService)
+    public CommentService(ApplicationDbContext context, ILogger<CommentService> logger, INotificationService notificationService, ISystemSettingService systemSettingService)
     {
         _context = context;
         _logger = logger;
         _notificationService = notificationService;
+        _systemSettingService = systemSettingService;
     }
 
     // Tạo bình luận mới
@@ -28,6 +30,20 @@ public class CommentService : ICommentService
     {
         try
         {
+            // Kiểm tra giới hạn số bình luận mỗi ngày
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data != null)
+            {
+                var today = DateTime.UtcNow.Date;
+                var commentsToday = await _context.Comments
+                    .CountAsync(c => c.UserId == userId && c.CreatedAt.Date == today);
+                
+                if (commentsToday >= config.Data.MaxCommentsPerDay)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult($"Bạn đã đạt giới hạn {config.Data.MaxCommentsPerDay} bình luận/ngày.");
+                }
+            }
+
             // Kiểm tra bài đăng tồn tại
             var post = await _context.Posts
                 .Include(p => p.User)
@@ -44,6 +60,16 @@ public class CommentService : ICommentService
                 if (parentComment == null || parentComment.IsDeleted || parentComment.PostId != dto.PostId)
                 {
                     return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận cha không hợp lệ");
+                }
+            }
+
+            // Kiểm tra từ khóa cấm
+            if (config.Success && config.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content);
+                if (containsBadWord)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
                 }
             }
 
@@ -124,6 +150,17 @@ public class CommentService : ICommentService
             if (comment.UserId != userId)
             {
                 return ApiResponse<CommentResponseDto>.ErrorResult("Bạn không có quyền chỉnh sửa bình luận này");
+            }
+
+            // Kiểm tra từ khóa cấm
+            var config = await _systemSettingService.GetConfigAsync();
+            if (config.Success && config.Data!.BlockBadWords)
+            {
+                var containsBadWord = await _systemSettingService.ContainsBadWordAsync(dto.Content);
+                if (containsBadWord)
+                {
+                    return ApiResponse<CommentResponseDto>.ErrorResult("Bình luận chứa từ khóa cấm. Vui lòng chỉnh sửa nội dung.");
+                }
             }
 
             comment.Content = dto.Content;

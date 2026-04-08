@@ -60,6 +60,7 @@ builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IHashtagService, HashtagService>();
 builder.Services.AddScoped<IReportService, ReportService>();
+builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 
 // Cấu hình SignalR
 builder.Services.AddSignalR();

@@ -3,6 +3,7 @@ using Core.DTOs.Post;
 using Core.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
 namespace API.Controllers;
@@ -15,12 +16,14 @@ public class UsersController : ControllerBase
     private readonly IUserService _userService;
     private readonly IFileStorageService _fileStorageService;
     private readonly IPostService _postService;
-    
-    public UsersController(IUserService userService, IFileStorageService fileStorageService, IPostService postService)
+    private readonly ILogger<UsersController> _logger;
+
+    public UsersController(IUserService userService, IFileStorageService fileStorageService, IPostService postService, ILogger<UsersController> logger)
     {
         _userService = userService;
         _fileStorageService = fileStorageService;
         _postService = postService;
+        _logger = logger;
     }
     
     // Lấy danh sách người dùng (Admin only)
@@ -293,7 +296,7 @@ public class UsersController : ControllerBase
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult> BanUser(string id, [FromBody] BanUserDto dto)
     {
-        var result = await _userService.BanUserAsync(id, dto.Reason);
+        var result = await _userService.BanUserAsync(id, dto);
         if (!result.Success)
             return BadRequest(result);
         return Ok(result);

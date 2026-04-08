@@ -10,6 +10,10 @@ interface ConfirmDialogProps {
   inputLabel?: string
   inputValue?: string
   onInputChange?: (value: string) => void
+  selectLabel?: string
+  selectValue?: string
+  onSelectChange?: (value: string) => void
+  selectOptions?: { value: string; label: string }[]
   onConfirm: () => void
   onCancel: () => void
 }
@@ -24,6 +28,10 @@ export default function ConfirmDialog({
   inputLabel,
   inputValue = '',
   onInputChange,
+  selectLabel,
+  selectValue = '',
+  onSelectChange,
+  selectOptions,
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
@@ -87,6 +95,24 @@ export default function ConfirmDialog({
                 placeholder="Nhập lý do..."
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
+            </div>
+          )}
+          {selectLabel && selectOptions && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {selectLabel}
+              </label>
+              <select
+                value={selectValue}
+                onChange={(e) => onSelectChange?.(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              >
+                {selectOptions.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
             </div>
           )}
         </div>

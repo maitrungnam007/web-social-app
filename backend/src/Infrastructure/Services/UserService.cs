@@ -165,6 +165,24 @@ public class UserService : IUserService
     {
         try
         {
+            // Tự động gỡ cấm các user đã hết hạn
+            var expiredBans = await _context.Users
+                .Where(u => u.IsBanned && u.BanExpiresAt.HasValue && u.BanExpiresAt.Value < DateTime.UtcNow)
+                .ToListAsync();
+
+            foreach (var user in expiredBans)
+            {
+                user.IsBanned = false;
+                user.BanReason = null;
+                user.BanExpiresAt = null;
+            }
+
+            if (expiredBans.Any())
+            {
+                await _context.SaveChangesAsync();
+                _logger.LogInformation("Tự động gỡ cấm {Count} user đã hết hạn", expiredBans.Count);
+            }
+
             var query = _context.Users.AsQueryable();
 
             // Tìm kiếm theo username, email, họ tên
@@ -204,6 +222,7 @@ public class UserService : IUserService
                     Role = roles.FirstOrDefault(),
                     IsBanned = user.IsBanned,
                     BanReason = user.BanReason,
+                    BanExpiresAt = user.BanExpiresAt,
                     ViolationCount = user.ViolationCount
                 });
             }
@@ -226,7 +245,7 @@ public class UserService : IUserService
     }
 
     // Admin: Ban user
-    public async Task<ApiResponse<bool>> BanUserAsync(string userId, string reason)
+    public async Task<ApiResponse<bool>> BanUserAsync(string userId, BanUserDto dto)
     {
         try
         {
@@ -235,10 +254,28 @@ public class UserService : IUserService
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
 
             user.IsBanned = true;
-            user.BanReason = reason;
+            user.BanReason = dto.Reason;
+
+            // Xử lý thời hạn cấm
+            if (dto.Duration == "permanent")
+            {
+                user.BanExpiresAt = null;
+            }
+            else if (int.TryParse(dto.Duration, out int days))
+            {
+                user.BanExpiresAt = DateTime.UtcNow.AddDays(days);
+            }
+            else
+            {
+                user.BanExpiresAt = null;
+            }
+
             await _context.SaveChangesAsync();
 
-            return ApiResponse<bool>.SuccessResult(true, "Đã cấm người dùng");
+            var message = dto.Duration == "permanent" 
+                ? "Đã cấm vĩnh viễn" 
+                : $"Đã cấm trong {dto.Duration} ngày";
+            return ApiResponse<bool>.SuccessResult(true, message);
         }
         catch (Exception ex)
         {
@@ -258,6 +295,7 @@ public class UserService : IUserService
 
             user.IsBanned = false;
             user.BanReason = null;
+            user.BanExpiresAt = null;
             await _context.SaveChangesAsync();
 
             return ApiResponse<bool>.SuccessResult(true, "Đã gỡ cấm người dùng");
@@ -285,6 +323,7 @@ public class UserService : IUserService
             FriendsCount = friendsCount,
             IsBanned = user.IsBanned,
             BanReason = user.BanReason,
+            BanExpiresAt = user.BanExpiresAt,
             ViolationCount = user.ViolationCount
         };
     }

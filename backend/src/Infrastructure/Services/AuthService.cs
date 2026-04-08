@@ -92,6 +92,7 @@ public class AuthService : IAuthService
                         Role = roles.FirstOrDefault(),
                         IsBanned = user.IsBanned,
                         BanReason = user.BanReason,
+                        BanExpiresAt = user.BanExpiresAt,
                         ViolationCount = user.ViolationCount
                     }
                 },
@@ -127,10 +128,35 @@ public class AuthService : IAuthService
             // Kiểm tra user bị cấm
             if (user.IsBanned)
             {
-                var banMessage = string.IsNullOrEmpty(user.BanReason) 
-                    ? "Tài khoản của bạn bị cấm" 
-                    : $"Tài khoản của bạn bị cấm. Lý do: {user.BanReason}";
-                return ApiResponse<AuthResponseDto>.ErrorResult(banMessage);
+                // Kiểm tra xem hết hạn cấm chưa
+                if (user.BanExpiresAt.HasValue && user.BanExpiresAt.Value < DateTime.UtcNow)
+                {
+                    // Hết hạn -> tự động gỡ cấm
+                    user.IsBanned = false;
+                    user.BanReason = null;
+                    user.BanExpiresAt = null;
+                    await _userManager.UpdateAsync(user);
+                }
+                else
+                {
+                    // Vẫn còn bị cấm
+                    var banMessage = string.IsNullOrEmpty(user.BanReason)
+                        ? "Tài khoản của bạn bị cấm"
+                        : $"Tài khoản của bạn bị cấm. Lý do: {user.BanReason}";
+
+                    // Thêm thông tin thời hạn cấm
+                    if (user.BanExpiresAt.HasValue)
+                    {
+                        var expireDate = user.BanExpiresAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm");
+                        banMessage += $". Bị cấm đến: {expireDate}";
+                    }
+                    else
+                    {
+                        banMessage += ". Bị cấm vĩnh viễn";
+                    }
+
+                    return ApiResponse<AuthResponseDto>.ErrorResult(banMessage);
+                }
             }
 
             // Lấy role của user
@@ -159,6 +185,7 @@ public class AuthService : IAuthService
                         Role = roles.FirstOrDefault(),
                         IsBanned = user.IsBanned,
                         BanReason = user.BanReason,
+                        BanExpiresAt = user.BanExpiresAt,
                         ViolationCount = user.ViolationCount
                     }
                 },

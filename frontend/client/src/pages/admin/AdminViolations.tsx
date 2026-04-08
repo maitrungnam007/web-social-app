@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react'
-import { usersApi } from '../../services'
+﻿import { useState, useEffect } from 'react'
+import { usersApi, reportsApi, ReportResponse, ReportStatus } from '../../services'
 import { User } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '../../components/ConfirmDialog'
@@ -23,8 +23,13 @@ export default function AdminViolations() {
     message: '',
     userId: '',
     action: 'ban' as 'ban' | 'unban',
-    banReason: ''
+    banReason: '',
+    banDuration: 'permanent'
   })
+  
+  const [showDetails, setShowDetails] = useState<User | null>(null)
+  const [userReports, setUserReports] = useState<ReportResponse[]>([])
+  const [loadingReports, setLoadingReports] = useState(false)
 
   useEffect(() => {
     loadUsers()
@@ -41,12 +46,6 @@ export default function AdminViolations() {
       if (response.success && response.data) {
         const allUsers = response.data.items
         const violationUsers = allUsers.filter(u => (u.violationCount || 0) >= 1)
-        
-        // Debug: Log users with violations
-        console.log('Users with violations:', violationUsers.map(u => ({ 
-          userName: u.userName, 
-          violationCount: u.violationCount 
-        })))
         
         setAllViolationCount(violationUsers.length)
         setAllBannedCount(violationUsers.filter(u => u.isBanned).length)
@@ -94,18 +93,19 @@ export default function AdminViolations() {
       message: `Bạn có chắc muốn cấm người dùng "${userName}"?`,
       userId,
       action: 'ban',
-      banReason: ''
+      banReason: '',
+      banDuration: 'permanent'
     })
   }
 
   const executeAction = async () => {
-    const { userId, action, banReason } = confirm
+    const { userId, action, banReason, banDuration } = confirm
     setConfirm(prev => ({ ...prev, isOpen: false }))
     
     try {
       if (action === 'ban') {
-        await usersApi.banUser(userId, banReason || 'Vi phạm quy định')
-        toast.success('Đã cấm người dùng')
+        await usersApi.banUser(userId, banReason || 'Vi phạm quy định', banDuration)
+        toast.success(banDuration === 'permanent' ? 'Đã cấm vĩnh viên' : `Đã cấm trong ${banDuration} ngày`)
       } else {
         await usersApi.unbanUser(userId)
         toast.success('Đã gỡ cấm người dùng')
@@ -113,11 +113,58 @@ export default function AdminViolations() {
       loadStats()
       loadUsers()
     } catch (error) {
-      toast.error('Có lỗi xảy ra')
+      toast.error('C l?i x?y ra')
     }
   }
 
   const totalPages = Math.ceil(totalCount / pageSize)
+
+  const handleViewDetails = async (user: User) => {
+    setShowDetails(user)
+    setLoadingReports(true)
+    try {
+      const response = await reportsApi.getReportsByUser(user.id)
+      if (response.success && response.data) {
+        setUserReports(response.data)
+      }
+    } catch (error) {
+      toast.error('Khng th? t?i chi ti?t')
+    } finally {
+      setLoadingReports(false)
+    }
+  }
+
+  const getStatusLabel = (status: ReportStatus) => {
+    switch (status) {
+      case ReportStatus.Pending: return 'Chờ xử lý'
+      case ReportStatus.UnderReview: return 'Đang xem xét'
+      case ReportStatus.Resolved: return 'Đã xử lý'
+      case ReportStatus.Dismissed: return 'Bỏ qua'
+      default: return status
+    }
+  }
+
+  const getStatusColor = (status: ReportStatus) => {
+    switch (status) {
+      case ReportStatus.Pending: return 'bg-yellow-100 text-yellow-800'
+      case ReportStatus.UnderReview: return 'bg-blue-100 text-blue-800'
+      case ReportStatus.Resolved: return 'bg-green-100 text-green-800'
+      case ReportStatus.Dismissed: return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800'
+    }
+  }
+
+  const getReasonLabel = (reason: string) => {
+    switch (reason) {
+      case 'Spam': return 'Spam'
+      case 'Harassment': return 'Quấy rối'
+      case 'HateSpeech': return 'Phân biệt đối xử'
+      case 'Violence': return 'Bạo lực'
+      case 'InappropriateContent': return 'Nội dung không phù hợp'
+      case 'Other': return 'Khác'
+      default: return reason
+    }
+  }
 
   return (
     <div>
@@ -198,6 +245,7 @@ export default function AdminViolations() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số vi phạm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lý do cấm</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hạn cấm</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
               </tr>
             </thead>
@@ -247,33 +295,59 @@ export default function AdminViolations() {
                   <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
                     {user.banReason || '-'}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.role !== 'Admin' && (
-                      user.isBanned ? (
-                        <button
-                          onClick={() => {
-                            setConfirm({
-                              isOpen: true,
-                              title: 'Gỡ cấm người dùng',
-                              message: `Bạn có chắc muốn gỡ cấm người dùng "${user.userName}"?`,
-                              userId: user.id,
-                              action: 'unban',
-                              banReason: ''
-                            })
-                          }}
-                          className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
-                        >
-                          Gỡ cấm
-                        </button>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {user.isBanned ? (
+                      user.banExpiresAt ? (
+                        <span className="text-orange-600">
+                          {new Date(user.banExpiresAt.endsWith('Z') ? user.banExpiresAt : user.banExpiresAt + 'Z').toLocaleString('vi-VN', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
                       ) : (
-                        <button
-                          onClick={() => handleBan(user.id, user.userName)}
-                          className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
-                        >
-                          Cấm
-                        </button>
+                        <span className="text-red-600 font-medium">Vĩnh viễn</span>
                       )
-                    )}
+                    ) : '-'}
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleViewDetails(user)}
+                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                      >
+                        Chi tiết
+                      </button>
+                      {user.role !== 'Admin' && (
+                        user.isBanned ? (
+                          <button
+                            onClick={() => {
+                              setConfirm({
+                                isOpen: true,
+                                title: 'Gỡ cấm người dùng',
+                                message: `Bạn có chắc muốn gỡ cấm người dùng "${user.userName}"?`,
+                                userId: user.id,
+                                action: 'unban',
+                                banReason: '',
+                                banDuration: 'permanent'
+                              })
+                            }}
+                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          >
+                            Gỡ cấm
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBan(user.id, user.userName)}
+                            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                          >
+                            Cấm
+                          </button>
+                        )
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -360,9 +434,80 @@ export default function AdminViolations() {
         inputLabel={confirm.action === 'ban' ? 'Lý do cấm' : undefined}
         inputValue={confirm.banReason}
         onInputChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, banReason: value })) : undefined}
+        selectLabel={confirm.action === 'ban' ? 'Thời hạn cấm' : undefined}
+        selectValue={confirm.banDuration}
+        onSelectChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, banDuration: value })) : undefined}
+        selectOptions={confirm.action === 'ban' ? [
+          { value: 'permanent', label: 'Vĩnh viễn' },
+          { value: '1', label: '1 ngày' },
+          { value: '3', label: '3 ngày' },
+          { value: '7', label: '7 ngày (1 tuần)' },
+          { value: '30', label: '30 ngày (1 tháng)' }
+        ] : undefined}
         onConfirm={executeAction}
         onCancel={() => setConfirm(prev => ({ ...prev, isOpen: false }))}
       />
+
+      {/* Modal Chi tiet vi pham */}
+      {showDetails && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setShowDetails(null)} />
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Chi tiết vi phạm - {showDetails.userName}
+              </h3>
+              <button
+                onClick={() => setShowDetails(null)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {loadingReports ? (
+                <div className="text-center py-8 text-gray-500">Đang tải...</div>
+              ) : userReports.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">Không có báo cáo nào</div>
+              ) : (
+                <div className="space-y-4">
+                  {userReports.map((report) => (
+                    <div key={report.id} className="border rounded-lg p-4">
+                      <div className="flex justify-between items-start mb-2">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(report.status)}`}>
+                          {getStatusLabel(report.status)}
+                        </span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(report.createdAt).toLocaleDateString('vi-VN')}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-700 mb-1">
+                        <span className="font-medium">Lý do:</span> {getReasonLabel(report.reason)}
+                      </p>
+                      {report.description && (
+                        <p className="text-sm text-gray-600 mb-1">
+                          <span className="font-medium">Mô tả:</span> {report.description}
+                        </p>
+                      )}
+                      <p className="text-sm text-gray-500">
+                        <span className="font-medium">Người báo cáo:</span> {report.reporterName}
+                      </p>
+                      {report.resolvedByName && (
+                        <p className="text-sm text-gray-500">
+                          <span className="font-medium">Xử lý bởi:</span> {report.resolvedByName}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
+

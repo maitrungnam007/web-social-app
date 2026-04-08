@@ -70,4 +70,13 @@ public class ReportsController : ControllerBase
             return BadRequest(result);
         return Ok(result);
     }
+
+    // Lấy báo cáo theo người báo cáo (Admin)
+    [HttpGet("user/{userId}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult> GetReportsByUser(string userId)
+    {
+        var result = await _reportService.GetReportsByUserAsync(userId);
+        return Ok(result);
+    }
 }

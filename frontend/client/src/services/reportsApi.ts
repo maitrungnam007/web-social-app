@@ -84,5 +84,11 @@ export const reportsApi = {
   ): Promise<ApiResponse<boolean>> => {
     const response = await api.put(`/reports/${reportId}/resolve`, data)
     return response.data
+  },
+
+  // Lấy báo cáo theo người báo cáo (Admin)
+  getReportsByUser: async (userId: string): Promise<ApiResponse<ReportResponse[]>> => {
+    const response = await api.get(`/reports/user/${userId}`)
+    return response.data
   }
 }

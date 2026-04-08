@@ -14,6 +14,7 @@ public class User : IdentityUser
     public bool IsActive { get; set; } = true;
     public bool IsBanned { get; set; } = false;
     public string? BanReason { get; set; }
+    public DateTime? BanExpiresAt { get; set; }
     public int ViolationCount { get; set; } = 0;
 
     // Cac thuoc tinh dieu huong

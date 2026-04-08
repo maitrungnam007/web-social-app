@@ -11,6 +11,7 @@ export interface User {
   role?: 'User' | 'Admin'
   isBanned?: boolean
   banReason?: string
+  banExpiresAt?: string
   violationCount?: number
 }
 

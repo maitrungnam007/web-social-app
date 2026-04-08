@@ -333,4 +333,27 @@ public class ReportService : IReportService
             ResolutionNotes = null
         };
     }
+
+    // L?y bo co theo ng??i b bo co (Admin)
+    public async Task<ApiResponse<List<ReportResponseDto>>> GetReportsByUserAsync(string userId)
+    {
+        try
+        {
+            var reports = await _context.Reports
+                .AsNoTracking()
+                .Include(r => r.Reporter)
+                .Include(r => r.ResolvedByUser)
+                .Where(r => r.TargetType == ReportTargetType.User && r.TargetId == userId)
+                .OrderByDescending(r => r.CreatedAt)
+                .ToListAsync();
+
+            var dtos = reports.Select(r => MapToDto(r)).ToList();
+            return ApiResponse<List<ReportResponseDto>>.SuccessResult(dtos);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "L?i khi l?y bo co theo ng??i dng {UserId}", userId);
+            return ApiResponse<List<ReportResponseDto>>.ErrorResult("C l?i x?y ra khi l?y bo co");
+        }
+    }
 }

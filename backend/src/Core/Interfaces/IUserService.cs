@@ -10,7 +10,7 @@ public interface IUserService
     Task<ApiResponse<List<UserDto>>> SearchUsersAsync(string searchTerm);
     Task<ApiResponse<bool>> ChangePasswordAsync(string userId, ChangePasswordDto dto);
     Task<ApiResponse<PagedResult<UserDto>>> GetAllUsersAsync(int page, int pageSize, string? search);
-    Task<ApiResponse<bool>> BanUserAsync(string userId, string reason);
+    Task<ApiResponse<bool>> BanUserAsync(string userId, BanUserDto dto);
     Task<ApiResponse<bool>> UnbanUserAsync(string userId);
 }
 

@@ -508,14 +508,177 @@ Dưới đây là các tài khoản được seed sẵn trong database:
 
 ## 🚀 Deployment
 
-### Azure Resources
-- **App Service:** [URL sẽ được cập nhật sau deploy]
-- **SQL Database:** Azure SQL Database
-- **Blob Storage:** Azure Blob Storage cho file uploads
+### Platform Overview
+
+```
++------------------+     +------------------+     +------------------+
+|   Vercel         |     |   Render         |     |   Render         |
+|   (Frontend)     | --> |   (Backend API)  | --> |   (PostgreSQL)   |
+|   FREE           |     |   FREE           |     |   FREE           |
++------------------+     +------------------+     +------------------+
+```
 
 ### CI/CD Pipeline
-- GitHub Actions workflow tự động deploy khi push lên `main` branch
-- Environment variables được cấu hình trong Azure App Service
+
+```
++------------------+     +------------------+     +------------------+
+|   Push to main   | --> |   GitHub Actions | --> |   Auto Deploy    |
++------------------+     +------------------+     +------------------+
+                                |
+                    +-----------+-----------+
+                    |                       |
+                    v                       v
+            +-------------+         +-------------+
+            | Backend CI  |         | Frontend CI |
+            | - Build     |         | - Build     |
+            | - Test      |         | - Lint      |
+            | - Coverage  |         | - Artifact  |
+            +-------------+         +-------------+
+                    |                       |
+                    v                       v
+            +-------------+         +-------------+
+            | Render Web  |         | Vercel      |
+            | Service     |         | Static Site |
+            +-------------+         +-------------+
+```
+
+### Workflow Files
+
+| File | Trigger | Công việc |
+|------|---------|-----------|
+| `backend-ci.yml` | Push/PR to main | Build .NET, run tests, coverage |
+| `frontend-ci.yml` | Push/PR to main | Build React, lint check |
+| `deploy.yml` | Push to main | Trigger Render & Vercel deploy |
+
+---
+
+### 1. Deploy Backend len Render
+
+**Buoc 1: Tao tai khoan Render**
+- Truy cap [render.com](https://render.com) va dang ky (mien phi)
+
+**Buoc 2: Tao PostgreSQL Database**
+```
++ Dashboard > New > PostgreSQL
++ Name: interacthub-db
++ Database: interacthub
++ User: (tu dong)
++ Region: Singapore (gan Vietnam nhat)
++ Plan: Free
++ Create Database
+```
+
+**Buoc 3: Tao Web Service cho Backend**
+```
++ Dashboard > New > Web Service
++ Connect GitHub repository
++ Name: interacthub-api
++ Region: Singapore
++ Branch: main
++ Root Directory: backend/src/API
++ Runtime: .NET 8
++ Build Command: dotnet publish -c Release -o ./publish
++ Start Command: ./publish/API
++ Plan: Free
+```
+
+**Buoc 4: Them Environment Variables**
+```
++ ConnectionStrings__DefaultConnection = (Internal Database URL tu Render)
++ JWT_SECRET = (random string, co the generate)
++ ASPNETCORE_ENVIRONMENT = Production
++ FRONTEND_URL = https://your-app.vercel.app
+```
+
+**Buoc 5: Lay Deploy Hook URL**
+```
++ Vao Web Service > Settings > Deploy Hook
++ Tao moi hook voi ten "github-actions"
++ Copy URL (can cho GitHub Actions)
+```
+
+---
+
+### 2. Deploy Frontend len Vercel
+
+**Buoc 1: Tao tai khoan Vercel**
+- Truy cap [vercel.com](https://vercel.com) va dang ky bang GitHub (mien phi)
+
+**Buoc 2: Import Project**
+```
++ Vercel Dashboard > Add New > Project
++ Import Git Repository (chon project cua ban)
++ Framework Preset: Vite
++ Root Directory: frontend/client
++ Build Command: npm run build
++ Output Directory: dist
+```
+
+**Buoc 3: Them Environment Variables**
+```
++ VITE_API_URL = https://interacthub-api.onrender.com
+```
+
+**Buoc 4: Lay Vercel Tokens**
+```
++ Vercel Dashboard > Settings > Tokens
++ Tao token moi (can cho GitHub Actions)
++ Copy token
++ Vao Project Settings > General
++ Copy "Project ID" va "Org ID"
+```
+
+---
+
+### 3. Cau hinh GitHub Secrets
+
+Vao **GitHub Repository > Settings > Secrets and variables > Actions**
+
+| Secret Name | Value | Lay tu |
+|-------------|-------|--------|
+| `RENDER_DEPLOY_HOOK_URL` | `https://api.render.com/deploy/...` | Render > Web Service > Settings > Deploy Hook |
+| `VERCEL_TOKEN` | `xxxxxxxx` | Vercel > Settings > Tokens |
+| `VERCEL_ORG_ID` | `team_xxxxxxxx` | Vercel > Project Settings > General |
+| `VERCEL_PROJECT_ID` | `prj_xxxxxxxx` | Vercel > Project Settings > General |
+
+---
+
+### 4. Deploy tu dong
+
+```bash
+# Push code len GitHub
+git add .
+git commit -m "Ready for deployment"
+git push origin main
+
+# GitHub Actions se tu dong:
+# 1. Build & Test backend
+# 2. Build frontend
+# 3. Trigger Render deploy hook
+# 4. Deploy frontend to Vercel
+```
+
+---
+
+### 5. URLs sau khi deploy
+
+| Service | URL |
+|---------|-----|
+| Frontend | `https://your-app.vercel.app` |
+| Backend API | `https://interacthub-api.onrender.com` |
+| API Swagger | `https://interacthub-api.onrender.com/swagger` |
+
+---
+
+### Free Tier Limits
+
+| Platform | Limit |
+|----------|-------|
+| **Render Web Service** | 750 hours/thang, spin down sau 15p inactivity |
+| **Render PostgreSQL** | 1GB storage, 90 days trial (sau do can upgrade hoac dung Supabase) |
+| **Vercel** | 100GB bandwidth/thang, unlimited builds |
+
+**Luu y:** Render free tier se "sleep" sau 15 phut khong co request. Lan truy cap dau tien se mat 30-60 giay de "wake up".
 
 ---
 

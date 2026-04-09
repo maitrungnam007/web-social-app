@@ -111,11 +111,8 @@ builder.Services.AddAuthentication(options =>
 var app = builder.Build();
 
 // Cấu hình HTTP request pipeline
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+app.UseSwagger();
+app.UseSwaggerUI();
 
 // Chỉ bật HTTPS redirection trong production
 if (!app.Environment.IsDevelopment())

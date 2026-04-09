@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { storiesApi, filesApi } from '../services'
+import { storiesApi } from '../services'
 import { Story, StoryHighlight, ArchivedStory } from '../types'
 import toast from 'react-hot-toast'
 import StoryViewer from '../components/StoryViewer'

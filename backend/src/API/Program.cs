@@ -66,16 +66,14 @@ builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 builder.Services.AddSignalR();
 
 // Cấu hình CORS
+var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"] 
+    ?? "http://localhost:3000,http://localhost:5173,https://web-social-app-ochre.vercel.app,https://web-social-app.vercel.app";
+
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowClient", policy =>
     {
-        policy.WithOrigins(
-                "http://localhost:3000", 
-                "http://localhost:5173",
-                "https://web-social-app-ochre.vercel.app",
-                "https://web-social-app.vercel.app"
-              )
+        policy.WithOrigins(allowedOrigins.Split(','))
               .AllowAnyHeader()
               .AllowAnyMethod()
               .AllowCredentials();

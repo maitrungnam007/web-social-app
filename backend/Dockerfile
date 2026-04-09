@@ -2,14 +2,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy all backend files first
+# Copy solution and all source files
+COPY InteractHub.sln .
 COPY backend/ ./backend/
 
-# Restore dependencies
-WORKDIR /src/backend
-RUN dotnet restore
+# Restore dependencies using solution file
+RUN dotnet restore InteractHub.sln
 
-# Build and publish
+# Build and publish API project
 WORKDIR /src/backend/src/API
 RUN dotnet publish -c Release -o /app/publish
 

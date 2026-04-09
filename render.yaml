@@ -10,10 +10,10 @@ databases:
 services:
   - type: web
     name: interacthub-api
-    env: dotnet
+    env: docker
     plan: free
-    buildCommand: dotnet build src/API/API.csproj -c Release
-    startCommand: dotnet src/API/bin/Release/net8.0/API.dll
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
@@ -26,4 +26,4 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://interacthub.vercel.app
+        value: https://web-social-app.vercel.app

@@ -24,6 +24,7 @@ export default function Home() {
     const [hasMore, setHasMore] = useState(true);
     const [initialLoad, setInitialLoad] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [createMode, setCreateMode] = useState<'image' | 'hashtag' | undefined>(undefined);
 
     // Fetch danh sách bài viết đã ẩn
     const fetchHiddenPosts = async () => {
@@ -171,13 +172,23 @@ export default function Home() {
                     </button>
                 </div>
                 <div className="flex items-center gap-1 sm:gap-2 mt-2 sm:mt-3 pt-2 sm:pt-3 border-t">
-                    <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        onClick={() => {
+                            setCreateMode('image');
+                            setShowCreateModal(true);
+                        }}
+                    >
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                         </svg>
                         <span className="hidden sm:inline">Ảnh</span>
                     </button>
-                    <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+                    <button className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-1.5 text-xs sm:text-sm text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
+                        onClick={() => {
+                            setCreateMode('hashtag');
+                            setShowCreateModal(true);
+                        }}
+                    >
                         <svg className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14" />
                         </svg>
@@ -223,7 +234,10 @@ export default function Home() {
             {/* Create Post Modal */}
             {showCreateModal && (
                 <CreatePostModal 
-                    onClose={() => setShowCreateModal(false)}
+                    onClose={() => {
+                        setShowCreateModal(false);
+                        setCreateMode(undefined);
+                    }}
                     onSuccess={() => {
                         // Reload posts after creating
                         setPosts([]);
@@ -231,6 +245,7 @@ export default function Home() {
                         setHasMore(true);
                         fetchPosts(1);
                     }}
+                    initialMode={createMode}
                 />
             )}
         </div>

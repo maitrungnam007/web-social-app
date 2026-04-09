@@ -113,16 +113,28 @@ export default function Friends() {
     }
   }, [currentUser?.id])
 
-  const handleSendFriendRequest = useCallback(async (addresseeId: string) => {
+  const handleSendFriendRequest = useCallback(async (addresseeId: string, addresseeName: string, addresseeAvatar?: string) => {
     try {
       const response = await friendsApi.sendFriendRequest(addresseeId)
       if (response.success) {
         toast.success('Đã gửi lời mời kết bạn')
+        // Them vao sentRequests de UI cap nhat ngay lap tuc
+        setSentRequests(prev => [...prev, {
+          id: Date.now(), // Tam thoi, se duoc thay the boi backend ID
+          requesterId: currentUser?.id || '',
+          requesterName: currentUser?.userName || '',
+          requesterAvatar: currentUser?.avatarUrl,
+          addresseeId: addresseeId,
+          addresseeName: addresseeName,
+          addresseeAvatar: addresseeAvatar,
+          status: 'Pending',
+          createdAt: new Date().toISOString()
+        }])
       }
     } catch (error) {
       toast.error('Không thể gửi lời mời')
     }
-  }, [])
+  }, [currentUser?.id])
 
   const handleAcceptRequest = useCallback(async (friendshipId: number) => {
     try {
@@ -566,9 +578,7 @@ export default function Friends() {
                 ) : (
                   friendSuggestions.map((suggestion) => {
                     const isFriend = friends.some(f => f.id === suggestion.id)
-                    const hasPendingRequest = pendingRequests.some(
-                      r => r.requesterId === suggestion.id || r.addresseeId === suggestion.id
-                    )
+                    const hasSentRequest = sentRequests.some(r => r.addresseeId === suggestion.id)
 
                     return (
                       <div 
@@ -626,11 +636,11 @@ export default function Friends() {
                           </button>
                           {isFriend ? (
                             <span className="px-4 py-2 text-green-500 text-sm">Đã là bạn</span>
-                          ) : hasPendingRequest ? (
+                          ) : hasSentRequest ? (
                             <span className="px-4 py-2 text-gray-500 text-sm">Đã gửi lời mời</span>
                           ) : (
                             <button
-                              onClick={() => handleSendFriendRequest(suggestion.id)}
+                              onClick={() => handleSendFriendRequest(suggestion.id, suggestion.userName, suggestion.avatarUrl)}
                               className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
                             >
                               Kết bạn
@@ -658,9 +668,7 @@ export default function Friends() {
             ) : (
               searchResults.map((user) => {
                 const isFriend = friends.some(f => f.id === user.id)
-                const hasPendingRequest = pendingRequests.some(
-                  r => r.requesterId === user.id || r.addresseeId === user.id
-                )
+                const hasSentRequest = sentRequests.some(r => r.addresseeId === user.id)
 
                 return (
                   <div 
@@ -718,11 +726,11 @@ export default function Friends() {
                       </button>
                       {isFriend ? (
                         <span className="px-4 py-2 text-green-500 text-sm">Đã là bạn</span>
-                      ) : hasPendingRequest ? (
+                      ) : hasSentRequest ? (
                         <span className="px-4 py-2 text-gray-500 text-sm">Đã gửi lời mời</span>
                       ) : (
                         <button
-                          onClick={() => handleSendFriendRequest(user.id)}
+                          onClick={() => handleSendFriendRequest(user.id, user.userName, user.avatarUrl)}
                           className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 text-sm"
                         >
                           Kết bạn

@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { storiesApi, filesApi } from '../services'
-import { Story, StoryHighlight } from '../types'
+import { Story, StoryHighlight, ArchivedStory } from '../types'
 import toast from 'react-hot-toast'
 import StoryViewer from '../components/StoryViewer'
 import ConfirmDialog from '../components/ConfirmDialog'
@@ -33,9 +33,28 @@ export default function Stories() {
     message: '',
     onConfirm: () => {}
   })
+  const [archivedStories, setArchivedStories] = useState<ArchivedStory[]>([])
+  const [showArchive, setShowArchive] = useState(false)
+  const [viewingArchivedStory, setViewingArchivedStory] = useState<ArchivedStory | null>(null)
+
+  // Chuyen doi ArchivedStory thanh Story de su dung StoryViewer
+  const convertArchivedToStory = (archived: ArchivedStory): Story => ({
+    id: archived.id,
+    content: archived.content,
+    mediaUrl: archived.mediaUrl,
+    mediaType: archived.mediaType,
+    userId: user?.id || '',
+    userName: user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.userName || '',
+    userAvatar: user?.avatarUrl,
+    createdAt: archived.createdAt,
+    expiresAt: archived.expiresAt,
+    viewCount: archived.viewCount,
+    isViewedByCurrentUser: true
+  })
 
   useEffect(() => {
     loadStories()
+    loadArchivedStories()
   }, [])
 
   const loadStories = async () => {
@@ -61,6 +80,31 @@ export default function Stories() {
       }
     } catch (error) {
       console.error('Failed to load highlights')
+    }
+  }
+
+  const loadArchivedStories = async () => {
+    if (!user) return
+    try {
+      const response = await storiesApi.getArchivedStories()
+      if (response.success && response.data) {
+        setArchivedStories(response.data)
+      }
+    } catch (error) {
+      console.error('Failed to load archived stories')
+    }
+  }
+
+  const handleDeleteArchivedStory = async (storyId: number) => {
+    try {
+      const response = await storiesApi.deleteStory(storyId)
+      if (response.success) {
+        toast.success('Da xoa tin')
+        setViewingArchivedStory(null)
+        loadArchivedStories()
+      }
+    } catch (error) {
+      toast.error('Khong the xoa tin')
     }
   }
 
@@ -190,7 +234,24 @@ export default function Stories() {
         <h1 className="text-2xl font-bold">Tin</h1>
       </div>
 
+      {/* Tab Selection */}
+      <div className="flex gap-4 mb-4 border-b">
+        <button
+          onClick={() => setShowArchive(false)}
+          className={`pb-2 px-4 ${!showArchive ? 'border-b-2 border-blue-500 text-blue-500 font-medium' : 'text-gray-500'}`}
+        >
+          Tin đang hoạt động
+        </button>
+        <button
+          onClick={() => setShowArchive(true)}
+          className={`pb-2 px-4 ${showArchive ? 'border-b-2 border-blue-500 text-blue-500 font-medium' : 'text-gray-500'}`}
+        >
+          Kho lưu trữ ({archivedStories.length})
+        </button>
+      </div>
+
       {/* Story Carousel */}
+      {!showArchive && (
       <div className="flex gap-4 overflow-x-auto pb-4">
         {/* Create Story Card */}
         <div
@@ -251,6 +312,54 @@ export default function Stories() {
           )
         })}
       </div>
+      )}
+
+      {/* Archived Stories */}
+      {showArchive && (
+        <div>
+          {archivedStories.length === 0 ? (
+            <div className="text-center py-12 text-gray-500">
+              <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v6a2 2 0 002 2h10a2 2 0 002-2V8m-6 6v4m-4 0h4m-4 0v4m0-4h4" />
+              </svg>
+              <p>Chưa có tin nào được lưu trữ</p>
+              <p className="text-sm mt-2">Các tin đã hết hạn sẽ tự động chuyển vào đây</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+              {archivedStories.map((story) => (
+                <div
+                  key={story.id}
+                  onClick={() => setViewingArchivedStory(story)}
+                  className="bg-white rounded-xl shadow overflow-hidden relative group cursor-pointer hover:shadow-lg transition"
+                >
+                  {story.mediaUrl ? (
+                    <img
+                      src={`http://localhost:5259/api/files/${story.mediaUrl}`}
+                      alt="Archived Story"
+                      className="w-full h-48 object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-48 bg-gradient-to-b from-purple-400 to-pink-400 flex items-center justify-center p-4">
+                      <p className="text-white text-sm text-center line-clamp-4">
+                        {story.content}
+                      </p>
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="text-xs text-gray-500">
+                      {new Date(story.createdAt).toLocaleDateString('vi-VN')}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      {story.viewCount} lượt xem
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Story Viewer Modal */}
       {viewingStory && (
@@ -271,7 +380,7 @@ export default function Stories() {
       )}
 
       {/* Highlight Modal */}
-      {showHighlightModal && viewingStory && (
+      {showHighlightModal && (viewingStory || viewingArchivedStory) && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Thêm vào Tin nổi bật</h3>
@@ -291,10 +400,14 @@ export default function Stories() {
                     toast.error('Vui lòng nhập tên highlight')
                     return
                   }
+                  // Lay story id tu viewingStory hoac viewingArchivedStory
+                  const storyId = viewingStory?.id || viewingArchivedStory?.id
+                  if (!storyId) return
+                  
                   try {
                     const response = await storiesApi.createHighlight({
                       name: newHighlightName.trim(),
-                      storyIds: [viewingStory.id]
+                      storyIds: [storyId]
                     })
                     if (response.success) {
                       toast.success('Đã tạo highlight mới')
@@ -324,8 +437,12 @@ export default function Stories() {
                     <button
                       key={h.id}
                       onClick={async () => {
+                        // Lay story id tu viewingStory hoac viewingArchivedStory
+                        const storyId = viewingStory?.id || viewingArchivedStory?.id
+                        if (!storyId) return
+                        
                         try {
-                          const response = await storiesApi.addStoryToHighlight(h.id, viewingStory.id)
+                          const response = await storiesApi.addStoryToHighlight(h.id, storyId)
                           if (response.success) {
                             toast.success(`Đã thêm vào "${h.name}"`)
                             setShowHighlightModal(false)
@@ -430,6 +547,24 @@ export default function Stories() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Archived Story Viewer - Su dung StoryViewer */}
+      {viewingArchivedStory && (
+        <StoryViewer
+          stories={[convertArchivedToStory(viewingArchivedStory)]}
+          initialIndex={0}
+          onClose={() => setViewingArchivedStory(null)}
+          showDeleteButton={true}
+          onDeleteStory={handleDeleteArchivedStory}
+          showAddToHighlight={true}
+          onAddToHighlight={async () => {
+            await loadHighlights()
+            setShowHighlightModal(true)
+          }}
+          userName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.userName}
+          userAvatar={user?.avatarUrl}
+        />
       )}
 
       {/* Confirm Dialog */}

@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { postsApi, filesApi } from "../services";
 import toast from "react-hot-toast";
 import MentionInput from "./MentionInput";
@@ -7,15 +7,33 @@ import { MentionUser } from "../types";
 interface CreatePostModalProps {
     onClose: () => void;
     onSuccess: () => void;
+    initialMode?: 'image' | 'hashtag';
 }
 
-export default function CreatePostModal({ onClose, onSuccess }: CreatePostModalProps) {
+export default function CreatePostModal({ onClose, onSuccess, initialMode }: CreatePostModalProps) {
     const [content, setContent] = useState("");
     const [mentions, setMentions] = useState<MentionUser[]>([]);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [previewUrl, setPreviewUrl] = useState<string>("");
     const [loading, setLoading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const hasOpenedFilePicker = useRef(false);
+
+    // Tu dong mo file picker hoac them # khi modal mo voi initialMode
+    useEffect(() => {
+        // Chi chay 1 lan, tranh chay 2 lan trong React StrictMode
+        if (hasOpenedFilePicker.current) return;
+        
+        if (initialMode === 'image') {
+            hasOpenedFilePicker.current = true;
+            // Delay de modal render xong
+            setTimeout(() => {
+                fileInputRef.current?.click();
+            }, 100);
+        } else if (initialMode === 'hashtag') {
+            setContent('#');
+        }
+    }, [initialMode]);
 
     // Xử lý thay đổi content với mentions
     const handleContentChange = (newContent: string, newMentions: MentionUser[]) => {

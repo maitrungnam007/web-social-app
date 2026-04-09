@@ -7,10 +7,10 @@
 **/.git
 **/.gitignore
 **/*.md
-**/*.sln
 **/tests
 **/.env
 **/.env.local
 **/.vercel
 **/dist
 **/build
+**/frontend

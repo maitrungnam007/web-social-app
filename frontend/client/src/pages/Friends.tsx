@@ -5,6 +5,7 @@ import { friendsApi, usersApi } from '../services'
 import { Friendship, User, Friend, MutualFriend, FriendSuggestion } from '../types'
 import { useAuth } from '../contexts/AuthContext'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface ConfirmState {
   isOpen: boolean
@@ -359,7 +360,7 @@ export default function Friends() {
                   onMouseLeave={() => setHoveredFriend(null)}
                 >
                   <img
-                    src={friend.avatarUrl ? `http://localhost:5259/api/files/${friend.avatarUrl}` : `https://ui-avatars.com/api/?name=${friend.userName}&background=random`}
+                    src={getAvatarUrl(friend.avatarUrl, friend.firstName, friend.lastName, friend.userName, 48)}
                     alt={displayName}
                     className="w-12 h-12 rounded-full object-cover"
                   />
@@ -431,13 +432,18 @@ export default function Friends() {
                 onMouseLeave={() => setHoveredFriend(null)}
               >
                 <img
-                  src={request.requesterAvatar ? `http://localhost:5259/api/files/${request.requesterAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.requesterName)}&background=random&size=48`}
+                  src={getAvatarUrl(request.requesterAvatar, request.requesterFirstName, request.requesterLastName, request.requesterName, 48)}
                   alt={request.requesterName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div className="flex-1 relative">
-                  <p className="font-medium">{request.requesterName}</p>
-                  <p className="text-gray-500 text-sm">Muốn kết bạn</p>
+                  <p className="font-medium">
+                    {request.requesterFirstName && request.requesterLastName
+                      ? `${request.requesterFirstName} ${request.requesterLastName}`
+                      : request.requesterName}
+                  </p>
+                  <p className="text-gray-500 text-sm">@{request.requesterName}</p>
+                  <p className="text-gray-400 text-xs">Muốn kết bạn</p>
                   
                   {/* Mutual friends indicator */}
                   {mutualFriends[request.requesterId] && mutualFriends[request.requesterId].length > 0 && (
@@ -502,13 +508,18 @@ export default function Friends() {
                 onMouseLeave={() => setHoveredFriend(null)}
               >
                 <img
-                  src={request.addresseeAvatar ? `http://localhost:5259/api/files/${request.addresseeAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(request.addresseeName)}&background=random&size=48`}
+                  src={getAvatarUrl(request.addresseeAvatar, request.addresseeFirstName, request.addresseeLastName, request.addresseeName, 48)}
                   alt={request.addresseeName}
                   className="w-12 h-12 rounded-full object-cover"
                 />
                 <div className="flex-1 relative">
-                  <p className="font-medium">{request.addresseeName}</p>
-                  <p className="text-gray-500 text-sm">Đang chờ phản hồi</p>
+                  <p className="font-medium">
+                    {request.addresseeFirstName && request.addresseeLastName
+                      ? `${request.addresseeFirstName} ${request.addresseeLastName}`
+                      : request.addresseeName}
+                  </p>
+                  <p className="text-gray-500 text-sm">@{request.addresseeName}</p>
+                  <p className="text-gray-400 text-xs">Đang chờ phản hồi</p>
                   
                   {/* Mutual friends indicator */}
                   {mutualFriends[request.addresseeId] && mutualFriends[request.addresseeId].length > 0 && (
@@ -591,7 +602,7 @@ export default function Friends() {
                         onMouseLeave={() => setHoveredFriend(null)}
                       >
                         <img
-                          src={suggestion.avatarUrl ? `http://localhost:5259/api/files/${suggestion.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(suggestion.userName)}&background=random&size=48`}
+                          src={getAvatarUrl(suggestion.avatarUrl, suggestion.firstName, suggestion.lastName, suggestion.userName, 48)}
                           alt={suggestion.userName}
                           className="w-12 h-12 rounded-full object-cover"
                         />
@@ -681,7 +692,7 @@ export default function Friends() {
                     onMouseLeave={() => setHoveredFriend(null)}
                   >
                     <img
-                      src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=48`}
+                      src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 48)}
                       alt={user.userName}
                       className="w-12 h-12 rounded-full object-cover"
                     />

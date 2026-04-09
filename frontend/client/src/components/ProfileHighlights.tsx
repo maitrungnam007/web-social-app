@@ -1,4 +1,5 @@
 import { Story, StoryHighlight } from '../types'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface ProfileHighlightsProps {
   stories: Story[]
@@ -44,7 +45,7 @@ export default function ProfileHighlights({
             <div className="absolute top-2 left-2">
               <div className={`w-10 h-10 rounded-full p-0.5 ${stories[0].isViewedByCurrentUser ? 'bg-gray-300' : 'bg-gradient-to-tr from-blue-500 to-purple-500'}`}>
                 <img
-                  src={userAvatar ? `http://localhost:5259/api/files/${userAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || '')}&background=random&size=40`}
+                  src={getAvatarUrl(userAvatar, undefined, undefined, userName, 40)}
                   alt={userName || ''}
                   className="w-full h-full rounded-full object-cover border-2 border-white"
                 />

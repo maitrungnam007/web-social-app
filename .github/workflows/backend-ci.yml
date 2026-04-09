@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'backend/**'
+  pull_request:
+    branches: [ main ]
+    paths:
+      - 'backend/**'
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+
+    - name: Restore dependencies
+      run: dotnet restore backend/WebSocialApp.sln
+
+    - name: Build
+      run: dotnet build backend/WebSocialApp.sln --configuration Release --no-restore
+
+    - name: Run Unit Tests
+      run: dotnet test backend/tests/Tests/Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"
+
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report
+        path: backend/tests/Tests/TestResults/**/coverage.cobertura.xml
+        retention-days: 7

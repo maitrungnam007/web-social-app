@@ -1,0 +1,29 @@
+# Render Blueprint File
+# https://render.com/docs/blueprint-spec
+
+databases:
+  - name: interacthub-db
+    databaseName: interacthub
+    user: interacthub_user
+    plan: free
+
+services:
+  - type: web
+    name: interacthub-api
+    env: dotnet
+    plan: free
+    buildCommand: dotnet build src/API/API.csproj -c Release
+    startCommand: dotnet src/API/bin/Release/net8.0/API.dll
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://0.0.0.0:10000
+      - key: ConnectionStrings__DefaultConnection
+        fromDatabase:
+          name: interacthub-db
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: FRONTEND_URL
+        value: https://interacthub.vercel.app

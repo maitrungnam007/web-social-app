@@ -65,6 +65,8 @@ export interface Story {
   duration?: number // seconds
   userId: string
   userName: string
+  userFirstName?: string
+  userLastName?: string
   userAvatar?: string
   createdAt: string
   expiresAt: string
@@ -108,9 +110,13 @@ export interface Friendship {
   id: number
   requesterId: string
   requesterName: string
+  requesterFirstName?: string
+  requesterLastName?: string
   requesterAvatar?: string
   addresseeId: string
   addresseeName: string
+  addresseeFirstName?: string
+  addresseeLastName?: string
   addresseeAvatar?: string
   status: 'Pending' | 'Accepted' | 'Rejected' | 'Blocked'
   createdAt: string

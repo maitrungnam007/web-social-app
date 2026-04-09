@@ -12,9 +12,13 @@ public class FriendshipResponseDto
     public int Id { get; set; }
     public string RequesterId { get; set; } = string.Empty;
     public string RequesterName { get; set; } = string.Empty;
+    public string? RequesterFirstName { get; set; }
+    public string? RequesterLastName { get; set; }
     public string? RequesterAvatar { get; set; }
     public string AddresseeId { get; set; } = string.Empty;
     public string AddresseeName { get; set; } = string.Empty;
+    public string? AddresseeFirstName { get; set; }
+    public string? AddresseeLastName { get; set; }
     public string? AddresseeAvatar { get; set; }
     public FriendshipStatus Status { get; set; }
     public DateTime CreatedAt { get; set; }

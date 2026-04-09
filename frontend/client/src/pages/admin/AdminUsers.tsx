@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { usersApi } from '../../services'
 import { User } from '../../types'
 import { Link } from 'react-router-dom'
+import { getAvatarUrl } from '../../utils/avatar'
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<User[]>([])
@@ -116,7 +117,7 @@ export default function AdminUsers() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center gap-3">
                         <img
-                          src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                          src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
                           alt={user.userName}
                           className="w-10 h-10 rounded-full"
                         />

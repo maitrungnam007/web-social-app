@@ -11,6 +11,9 @@ public class CreatePostDto
     public string? ImageUrl { get; set; }
     
     public List<string>? Hashtags { get; set; }
+    
+    // Danh sach ID cua nguoi duoc mention (gui tu frontend)
+    public List<string>? MentionedUserIds { get; set; }
 }
 
 public class UpdatePostDto

@@ -104,11 +104,15 @@ export default function CreatePostModal({ onClose, onSuccess, initialMode }: Cre
                 ? hashtagMatches.map(tag => tag.substring(1)) // Bỏ dấu #
                 : [];
 
+            // Lay danh sach user ID tu mentions
+            const mentionedUserIds = mentions.map(m => m.id);
+
             // Tạo bài viết
             const result = await postsApi.createPost({ 
                 content, 
                 imageUrl,
-                hashtags 
+                hashtags,
+                mentionedUserIds
             });
             
             if (result.success) {

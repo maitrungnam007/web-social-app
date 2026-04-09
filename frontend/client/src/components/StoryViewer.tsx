@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Story } from '../types'
+import { storiesApi } from '../services'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface StoryViewerProps {
   stories: Story[]
@@ -10,6 +12,8 @@ interface StoryViewerProps {
   showAddToHighlight?: boolean
   onAddToHighlight?: () => void
   userName?: string
+  userFirstName?: string
+  userLastName?: string
   userAvatar?: string
 }
 
@@ -48,13 +52,36 @@ export default function StoryViewer({
   showAddToHighlight = false,
   onAddToHighlight,
   userName,
+  userFirstName,
+  userLastName,
   userAvatar
 }: StoryViewerProps) {
+  // Hien ho ten neu co, neu khong thi hien userName
+  const displayName = (userFirstName && userLastName) 
+    ? `${userFirstName} ${userLastName}` 
+    : userName || 'User'
   const [currentIndex, setCurrentIndex] = useState(initialIndex)
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
+  const [viewRecorded, setViewRecorded] = useState<Set<number>>(new Set())
 
   const currentStory = stories[currentIndex]
+
+  // Danh dau da xem story khi mo story (chi goi API 1 lan cho moi story)
+  useEffect(() => {
+    if (!currentStory) return
+    
+    // Chi goi API neu chua xem va chua ghi nhan trong session nay
+    if (currentStory.isViewedByCurrentUser || viewRecorded.has(currentStory.id)) return
+    
+    // Danh dau da ghi nhan view de khong goi API nhieu lan
+    setViewRecorded(prev => new Set(prev).add(currentStory.id))
+    
+    // Goi API danh dau da xem
+    storiesApi.markAsViewed(currentStory.id).catch(err => {
+      console.error('Khong the danh dau da xem story:', err)
+    })
+  }, [currentStory, viewRecorded])
 
   useEffect(() => {
     if (!currentStory) {
@@ -156,12 +183,12 @@ export default function StoryViewer({
           {/* User Info */}
           <div className="absolute top-5 sm:top-6 left-2 sm:left-3 z-10 flex items-center gap-2">
             <img
-              src={userAvatar ? `http://localhost:5259/api/files/${userAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random&size=40`}
-              alt={userName || ''}
+              src={getAvatarUrl(userAvatar, userFirstName, userLastName, userName, 40)}
+              alt={displayName}
               className="w-6 h-6 sm:w-8 sm:h-8 rounded-full"
             />
             <div className="flex flex-col">
-              <span className="text-white text-xs sm:text-sm font-medium">{userName}</span>
+              <span className="text-white text-xs sm:text-sm font-medium">{displayName}</span>
               <span className="text-white/70 text-[10px] sm:text-xs">{formatTimeAgo(currentStory.createdAt)}</span>
             </div>
           </div>

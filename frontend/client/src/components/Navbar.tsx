@@ -7,6 +7,7 @@ import { notificationsApi, usersApi, hashtagsApi } from '../services'
 import { Notification, User } from '../types'
 import type { HashtagDto } from '../services/hashtagsApi'
 import ChangePasswordModal from './ChangePasswordModal'
+import { getAvatarUrl } from '../utils/avatar'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -380,10 +381,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
                       >
                         <img
-                          src={u.avatarUrl 
-                            ? `http://localhost:5259/api/files/${u.avatarUrl}`
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.userName)}&background=random&size=40`
-                          }
+                          src={getAvatarUrl(u.avatarUrl, u.firstName, u.lastName, u.userName, 40)}
                           alt=""
                           className="w-10 h-10 rounded-full"
                         />
@@ -499,9 +497,7 @@ export default function Navbar() {
                 className="flex items-center space-x-2"
               >
                 <img
-                  src={user?.avatarUrl 
-                    ? `http://localhost:5259/api/files/${user.avatarUrl}` 
-                    : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                  src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 32)}
                   alt={user?.userName}
                   className="w-8 h-8 rounded-full"
                 />
@@ -637,10 +633,7 @@ export default function Navbar() {
                         className="flex items-center gap-3 p-3 hover:bg-gray-50 cursor-pointer"
                       >
                         <img
-                          src={u.avatarUrl 
-                            ? `http://localhost:5259/api/files/${u.avatarUrl}`
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(u.firstName && u.lastName ? `${u.firstName} ${u.lastName}` : u.userName)}&background=random&size=40`
-                          }
+                          src={getAvatarUrl(u.avatarUrl, u.firstName, u.lastName, u.userName, 40)}
                           alt=""
                           className="w-10 h-10 rounded-full"
                         />
@@ -705,9 +698,7 @@ export default function Navbar() {
               onClick={() => setShowMobileMenu(false)}
             >
               <img
-                src={user?.avatarUrl 
-                  ? `http://localhost:5259/api/files/${user.avatarUrl}` 
-                  : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 32)}
                 alt={user?.userName}
                 className="w-8 h-8 rounded-full"
               />

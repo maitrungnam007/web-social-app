@@ -8,6 +8,7 @@ import MentionDisplay from "./MentionDisplay";
 import MentionInput from "./MentionInput";
 import { MentionUser } from "../types";
 import ConfirmDialog from "./ConfirmDialog";
+import { getAvatarUrl } from "../utils/avatar";
 
 interface Comment {
     id: number;
@@ -231,19 +232,14 @@ export default function Comments({ postId }: Props) {
             : comment.userName;
     };
 
-    const getAvatarUrl = (comment: Comment) => {
-        const displayName = getDisplayName(comment);
-        return comment.userAvatar
-            ? comment.userAvatar.startsWith("http")
-                ? comment.userAvatar
-                : `http://localhost:5259/api/files/${comment.userAvatar}`
-            : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=32`;
+    const getCommentAvatarUrl = (comment: Comment) => {
+        return getAvatarUrl(comment.userAvatar, comment.userFirstName, comment.userLastName, comment.userName, 32);
     };
 
     const renderComment = (comment: Comment, isReply: boolean = false) => (
         <div key={comment.id} className={`flex gap-2 ${isReply ? 'ml-10' : ''}`}>
             <img
-                src={getAvatarUrl(comment)}
+                src={getCommentAvatarUrl(comment)}
                 alt={getDisplayName(comment)}
                 className="w-8 h-8 rounded-full object-cover flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
                 onClick={() => navigate(`/profile/${comment.userId}`)}
@@ -328,9 +324,7 @@ export default function Comments({ postId }: Props) {
                 {replyTo?.id === comment.id && (
                     <div className="flex items-start gap-2 mt-2 ml-2">
                         <img
-                            src={user?.avatarUrl
-                                ? `http://localhost:5259/api/files/${user.avatarUrl}`
-                                : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'User')}&background=random&size=24`}
+                            src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 24)}
                             alt="Your avatar"
                             className="w-6 h-6 rounded-full object-cover flex-shrink-0"
                         />
@@ -374,9 +368,7 @@ export default function Comments({ postId }: Props) {
             {/* Comment Input */}
             <div className="flex items-start gap-2">
                 <img
-                    src={user?.avatarUrl
-                        ? `http://localhost:5259/api/files/${user.avatarUrl}`
-                        : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'User')}&background=random&size=32`}
+                    src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 32)}
                     alt="Your avatar"
                     className="w-8 h-8 rounded-full object-cover flex-shrink-0"
                 />

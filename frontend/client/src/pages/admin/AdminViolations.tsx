@@ -3,6 +3,7 @@ import { usersApi, reportsApi, ReportResponse, ReportStatus } from '../../servic
 import { User } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { getAvatarUrl } from '../../utils/avatar'
 
 export default function AdminViolations() {
   const [users, setUsers] = useState<User[]>([])
@@ -24,7 +25,8 @@ export default function AdminViolations() {
     userId: '',
     action: 'ban' as 'ban' | 'unban',
     banReason: '',
-    banDuration: 'permanent'
+    banDays: 0,
+    isPermanent: true
   })
   
   const [showDetails, setShowDetails] = useState<User | null>(null)
@@ -49,7 +51,8 @@ export default function AdminViolations() {
         
         setAllViolationCount(violationUsers.length)
         setAllBannedCount(violationUsers.filter(u => u.isBanned).length)
-        setAllNeedActionCount(violationUsers.filter(u => (u.violationCount || 0) >= 3).length)
+        // Can xu ly: 3+ vi pham va chua bi cam
+        setAllNeedActionCount(violationUsers.filter(u => (u.violationCount || 0) >= 3 && !u.isBanned).length)
       }
     } catch (error) {
       console.error('Lỗi khi load stats')
@@ -71,16 +74,16 @@ export default function AdminViolations() {
           filteredUsers = filteredUsers.filter(u => u.isBanned)
         }
 
-        // L?c theo c?n x? l? (3 vi ph?m tr? l?n)
+        // L?c theo c?n x? l? (3+ vi ph?m v? chua b? c?m)
         if (showNeedAction) {
-          filteredUsers = filteredUsers.filter(u => (u.violationCount || 0) >= 3)
+          filteredUsers = filteredUsers.filter(u => (u.violationCount || 0) >= 3 && !u.isBanned)
         }
 
         setUsers(filteredUsers)
         setTotalCount(filteredUsers.length)
       }
     } catch (error) {
-      toast.error('Kh?ng th? t?i d? li?u')
+      toast.error('Không thể tải dữ liệu')
     } finally {
       setLoading(false)
     }
@@ -94,18 +97,20 @@ export default function AdminViolations() {
       userId,
       action: 'ban',
       banReason: '',
-      banDuration: 'permanent'
+      banDays: 0,
+      isPermanent: false
     })
   }
 
   const executeAction = async () => {
-    const { userId, action, banReason, banDuration } = confirm
+    const { userId, action, banReason, banDays, isPermanent } = confirm
     setConfirm(prev => ({ ...prev, isOpen: false }))
     
     try {
       if (action === 'ban') {
-        await usersApi.banUser(userId, banReason || 'Vi phạm quy định', banDuration)
-        toast.success(banDuration === 'permanent' ? 'Đã cấm vĩnh viên' : `Đã cấm trong ${banDuration} ngày`)
+        const duration = isPermanent ? 'permanent' : banDays.toString()
+        await usersApi.banUser(userId, banReason || 'Vi phạm quy định', duration)
+        toast.success(isPermanent ? 'Đã cấm vĩnh viễn' : `Đã cấm trong ${banDays} ngày`)
       } else {
         await usersApi.unbanUser(userId)
         toast.success('Đã gỡ cấm người dùng')
@@ -113,7 +118,7 @@ export default function AdminViolations() {
       loadStats()
       loadUsers()
     } catch (error) {
-      toast.error('C l?i x?y ra')
+      toast.error('Có lỗi xảy ra')
     }
   }
 
@@ -128,7 +133,7 @@ export default function AdminViolations() {
         setUserReports(response.data)
       }
     } catch (error) {
-      toast.error('Khng th? t?i chi ti?t')
+      toast.error('Không thể tải chi tiết')
     } finally {
       setLoadingReports(false)
     }
@@ -255,7 +260,7 @@ export default function AdminViolations() {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center gap-3">
                       <img
-                        src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                        src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
                         alt={user.userName}
                         className="w-10 h-10 rounded-full"
                       />
@@ -331,7 +336,8 @@ export default function AdminViolations() {
                                 userId: user.id,
                                 action: 'unban',
                                 banReason: '',
-                                banDuration: 'permanent'
+                                banDays: 0,
+                                isPermanent: false
                               })
                             }}
                             className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
@@ -434,16 +440,15 @@ export default function AdminViolations() {
         inputLabel={confirm.action === 'ban' ? 'Lý do cấm' : undefined}
         inputValue={confirm.banReason}
         onInputChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, banReason: value })) : undefined}
-        selectLabel={confirm.action === 'ban' ? 'Thời hạn cấm' : undefined}
-        selectValue={confirm.banDuration}
-        onSelectChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, banDuration: value })) : undefined}
-        selectOptions={confirm.action === 'ban' ? [
-          { value: 'permanent', label: 'Vĩnh viễn' },
-          { value: '1', label: '1 ngày' },
-          { value: '3', label: '3 ngày' },
-          { value: '7', label: '7 ngày (1 tuần)' },
-          { value: '30', label: '30 ngày (1 tháng)' }
-        ] : undefined}
+        numberLabel={confirm.action === 'ban' ? 'Số ngày cấm' : undefined}
+        numberValue={confirm.banDays}
+        onNumberChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, banDays: value })) : undefined}
+        numberPlaceholder="Nhập số ngày..."
+        numberMin={1}
+        numberMax={365}
+        checkboxLabel={confirm.action === 'ban' ? 'Cấm vĩnh viễn' : undefined}
+        checkboxValue={confirm.isPermanent}
+        onCheckboxChange={confirm.action === 'ban' ? (value) => setConfirm(prev => ({ ...prev, isPermanent: value })) : undefined}
         onConfirm={executeAction}
         onCancel={() => setConfirm(prev => ({ ...prev, isOpen: false }))}
       />

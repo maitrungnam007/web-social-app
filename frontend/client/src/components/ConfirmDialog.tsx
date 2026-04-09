@@ -14,6 +14,17 @@ interface ConfirmDialogProps {
   selectValue?: string
   onSelectChange?: (value: string) => void
   selectOptions?: { value: string; label: string }[]
+  // Number input cho so ngay
+  numberLabel?: string
+  numberValue?: number
+  onNumberChange?: (value: number) => void
+  numberPlaceholder?: string
+  numberMin?: number
+  numberMax?: number
+  // Checkbox cho vinh vien
+  checkboxLabel?: string
+  checkboxValue?: boolean
+  onCheckboxChange?: (value: boolean) => void
   onConfirm: () => void
   onCancel: () => void
 }
@@ -32,6 +43,15 @@ export default function ConfirmDialog({
   selectValue = '',
   onSelectChange,
   selectOptions,
+  numberLabel,
+  numberValue,
+  onNumberChange,
+  numberPlaceholder,
+  numberMin = 1,
+  numberMax,
+  checkboxLabel,
+  checkboxValue = false,
+  onCheckboxChange,
   onConfirm,
   onCancel
 }: ConfirmDialogProps) {
@@ -113,6 +133,36 @@ export default function ConfirmDialog({
                   </option>
                 ))}
               </select>
+            </div>
+          )}
+          {numberLabel && (
+            <div className="mt-4">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                {numberLabel}
+              </label>
+              <input
+                type="number"
+                value={numberValue ?? ''}
+                onChange={(e) => onNumberChange?.(parseInt(e.target.value) || 0)}
+                placeholder={numberPlaceholder}
+                min={numberMin}
+                max={numberMax}
+                disabled={checkboxValue}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+              />
+            </div>
+          )}
+          {checkboxLabel && (
+            <div className="mt-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={checkboxValue}
+                  onChange={(e) => onCheckboxChange?.(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-700">{checkboxLabel}</span>
+              </label>
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 import { Friendship } from '../types'
 import toast from 'react-hot-toast'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface FriendRequestItemProps {
   friendship: Friendship
@@ -24,9 +25,7 @@ export default function FriendRequestItem({
   return (
     <div className="bg-white rounded-lg shadow p-4 flex items-center gap-3">
       <img
-        src={userAvatar 
-          ? `http://localhost:5259/api/files/${userAvatar}` 
-          : `https://ui-avatars.com/api/?name=${encodeURIComponent(userName || 'User')}&background=random&size=48`}
+        src={getAvatarUrl(userAvatar, undefined, undefined, userName, 48)}
         alt={userName || ''}
         className="w-12 h-12 rounded-full"
       />

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Post } from '../types'
 import MentionDisplay from './MentionDisplay'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface PostCardProps {
   post: Post
@@ -44,9 +45,7 @@ export default function PostCard({
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
           <img
-            src={post.userAvatar 
-              ? `http://localhost:5259/api/files/${post.userAvatar}` 
-              : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.userFirstName && post.userLastName ? `${post.userFirstName} ${post.userLastName}` : post.userName)}&background=random&size=40`}
+            src={getAvatarUrl(post.userAvatar, post.userFirstName, post.userLastName, post.userName, 40)}
             alt={post.userName}
             className="w-10 h-10 rounded-full"
           />

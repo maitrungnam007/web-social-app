@@ -42,6 +42,16 @@ public class UsersController : ControllerBase
         var result = await _userService.GetUserByIdAsync(id);
         if (!result.Success)
             return NotFound(result);
+        
+        // Chặn user thông thường xem profile admin
+        var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var currentUserRole = User.FindFirst(ClaimTypes.Role)?.Value;
+        
+        if (result.Data?.Role == "Admin" && currentUserRole != "Admin")
+        {
+            return NotFound(new { success = false, message = "Không tìm thấy người dùng" });
+        }
+        
         return Ok(result);
     }
     

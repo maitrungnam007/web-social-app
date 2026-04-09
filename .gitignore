@@ -69,3 +69,6 @@ TestResults/
 # Azure
 *.pubxml
 *.publishsettings
+
+.vercel
+.env*.local

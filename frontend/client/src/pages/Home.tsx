@@ -5,6 +5,7 @@ import CreatePostModal from "../components/CreatePostModal.tsx";
 import { postsApi } from "../services";
 import { Post } from "../types";
 import { useAuth } from "../contexts/AuthContext";
+import { getAvatarUrl } from "../utils/avatar";
 
 const PAGE_SIZE = 5;
 
@@ -158,9 +159,7 @@ export default function Home() {
             <div className="bg-white rounded-lg shadow-md p-3 sm:p-4 mb-4 sm:mb-6">
                 <div className="flex items-center gap-2 sm:gap-3">
                     <img
-                        src={user?.avatarUrl
-                            ? `http://localhost:5259/api/files/${user.avatarUrl}`
-                            : `https://ui-avatars.com/api/?name=${encodeURIComponent(user?.userName || 'User')}&background=random&size=40`}
+                        src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 40)}
                         alt="Avatar"
                         className="w-8 h-8 sm:w-10 sm:h-10 rounded-full object-cover flex-shrink-0"
                     />
@@ -223,10 +222,10 @@ export default function Home() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                     </svg>
                     <p className="text-gray-500">
-                        {hashtagQuery ? `Khong co bai viet voi #${hashtagQuery}` : searchQuery ? `Khong tim thay bai viet voi "${searchQuery}"` : 'Chua co bai viet nao'}
+                        {hashtagQuery ? `Khong co bai viet voi #${hashtagQuery}` : searchQuery ? `Khong tim thay bai viet voi "${searchQuery}"` : 'Chưa có bài viết nào'}
                     </p>
                     <p className="text-gray-400 text-sm mt-1">
-                        {hashtagQuery ? 'Thu tim kiem hashtag khac' : searchQuery ? 'Thu tim kiem voi tu khoa khac' : 'Hay la nguoi dau tien dang bai!'}
+                        {hashtagQuery ? 'Thử tìm kiếm hashtag khác' : searchQuery ? 'Thử tìm kiếm với từ khóa khác' : 'Hãy là người đầu tiên đăng bài!'}
                     </p>
                 </div>
             )}

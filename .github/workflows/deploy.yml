@@ -1,4 +1,4 @@
-name: Deploy to Render & Vercel
+name: Deploy to Render
 
 on:
   push:
@@ -17,19 +17,3 @@ jobs:
     - name: Deploy to Render
       run: |
         curl ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
-
-  # Frontend deploy to Vercel
-  deploy-frontend:
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Deploy to Vercel
-      uses: amondnet/vercel-action@v25
-      with:
-        vercel-token: ${{ secrets.VERCEL_TOKEN }}
-        vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-        vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-        working-directory: frontend/client

@@ -31,7 +31,6 @@ export default function ChangePasswordModal({ isOpen, onClose }: ChangePasswordM
   })
 
   const newPassword = watch('newPassword')
-  const confirmPassword = watch('confirmPassword')
 
   const onSubmit = async (data: ChangePasswordFormData) => {
     try {

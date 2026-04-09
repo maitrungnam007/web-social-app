@@ -34,12 +34,10 @@ export default function Comments({ postId }: Props) {
     const { user } = useAuth();
     const [comments, setComments] = useState<Comment[]>([]);
     const [text, setText] = useState("");
-    const [mentions, setMentions] = useState<MentionUser[]>([]);
     const [loading, setLoading] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [replyTo, setReplyTo] = useState<Comment | null>(null);
     const [replyText, setReplyText] = useState("");
-    const [replyMentions, setReplyMentions] = useState<MentionUser[]>([]);
     const [likingComments, setLikingComments] = useState<Set<number>>(new Set());
     const [showMenuFor, setShowMenuFor] = useState<number | null>(null);
     const [reportComment, setReportComment] = useState<Comment | null>(null);
@@ -49,14 +47,14 @@ export default function Comments({ postId }: Props) {
         commentId: null
     });
 
-    const handleTextChange = (newText: string, newMentions: MentionUser[]) => {
+    const handleTextChange = (newText: string, _newMentions: MentionUser[]) => {
         setText(newText);
-        setMentions(newMentions);
+        // Mentions feature coming soon
     };
 
-    const handleReplyTextChange = (newText: string, newMentions: MentionUser[]) => {
+    const handleReplyTextChange = (newText: string, _newMentions: MentionUser[]) => {
         setReplyText(newText);
-        setReplyMentions(newMentions);
+        // Mentions feature coming soon
     };
 
     const fetchComments = async () => {

@@ -226,11 +226,6 @@ export default function Notifications() {
                   <div className="min-w-0">
                     <p className="font-medium text-sm sm:text-base truncate">{notification.title}</p>
                     <p className="text-gray-600 text-xs sm:text-sm line-clamp-2">{notification.message}</p>
-                    {notification.actorName && (
-                      <p className="text-gray-500 text-xs mt-1">
-                        Từ: {notification.actorName}
-                      </p>
-                    )}
                   </div>
                   <span className="text-gray-400 text-xs whitespace-nowrap flex-shrink-0">
                     {formatTime(notification.createdAt)}

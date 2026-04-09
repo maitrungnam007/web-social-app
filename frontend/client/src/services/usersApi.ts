@@ -64,4 +64,10 @@ export const usersApi = {
     const response = await api.delete(`/users/${userId}/ban`)
     return response.data
   },
+  
+  // Doi mat khau
+  changePassword: async (data: { currentPassword: string; newPassword: string }): Promise<ApiResponse<boolean>> => {
+    const response = await api.put('/users/password', data)
+    return response.data
+  },
 }

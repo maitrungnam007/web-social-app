@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { notificationsApi, usersApi, hashtagsApi } from '../services'
 import { Notification, User } from '../types'
 import type { HashtagDto } from '../services/hashtagsApi'
+import ChangePasswordModal from './ChangePasswordModal'
 
 export default function Navbar() {
   const { user, logout } = useAuth()
@@ -13,6 +14,8 @@ export default function Navbar() {
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [showMobileSearch, setShowMobileSearch] = useState(false)
   const [showNotifDropdown, setShowNotifDropdown] = useState(false)
+  const [showUserDropdown, setShowUserDropdown] = useState(false)
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false)
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
   const [searchTerm, setSearchTerm] = useState('')
@@ -22,6 +25,8 @@ export default function Navbar() {
   const [searching, setSearching] = useState(false)
   const notifDropdownRef = useRef<HTMLDivElement>(null)
   const notifButtonRef = useRef<HTMLButtonElement>(null)
+  const userDropdownRef = useRef<HTMLDivElement>(null)
+  const userButtonRef = useRef<HTMLButtonElement>(null)
   const searchDropdownRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
@@ -219,7 +224,27 @@ export default function Navbar() {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
 
-  // Xử lý click vào thông báo - điều hướng đến trang tương ứng
+  // Dong user dropdown khi click outside
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as Node
+      
+      if (userButtonRef.current && userButtonRef.current.contains(target)) {
+        return
+      }
+      
+      if (userDropdownRef.current && userDropdownRef.current.contains(target)) {
+        return
+      }
+      
+      setShowUserDropdown(false)
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // Xu ly click vao thong bao - di huong den trang tuong ung
   const handleNotificationClick = async (notification: Notification) => {
     // Đánh dấu đã đọc
     if (!notification.isRead) {
@@ -466,24 +491,64 @@ export default function Navbar() {
               </svg>
             </Link>
 
-            <Link to={`/profile/${user?.id}`} className="flex items-center space-x-2">
-              <img
-                src={user?.avatarUrl 
-                  ? `http://localhost:5259/api/files/${user.avatarUrl}` 
-                  : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
-                alt={user?.userName}
-                className="w-8 h-8 rounded-full"
-              />
-            </Link>
+            {/* User Dropdown */}
+            <div className="relative">
+              <button
+                ref={userButtonRef}
+                onClick={() => setShowUserDropdown(!showUserDropdown)}
+                className="flex items-center space-x-2"
+              >
+                <img
+                  src={user?.avatarUrl 
+                    ? `http://localhost:5259/api/files/${user.avatarUrl}` 
+                    : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                  alt={user?.userName}
+                  className="w-8 h-8 rounded-full"
+                />
+              </button>
 
-            <button
-              onClick={handleLogout}
-              className="text-gray-600 hover:text-red-600 p-2"
-            >
-              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-              </svg>
-            </button>
+              {showUserDropdown && (
+                <div
+                  ref={userDropdownRef}
+                  className="absolute right-0 top-full mt-2 w-48 bg-white rounded-lg shadow-lg border z-50"
+                >
+                  <Link
+                    to={`/profile/${user?.id}`}
+                    onClick={() => setShowUserDropdown(false)}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-t-lg"
+                  >
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    <span>Xem hồ sơ</span>
+                  </Link>
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false)
+                      setShowChangePasswordModal(true)
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 w-full text-left"
+                  >
+                    <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                    </svg>
+                    <span>Đổi mật khẩu</span>
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowUserDropdown(false)
+                      handleLogout()
+                    }}
+                    className="flex items-center gap-3 px-4 py-3 hover:bg-gray-50 rounded-b-lg w-full text-left text-red-600"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                    </svg>
+                    <span>Đăng xuất</span>
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Menu Button */}
@@ -664,6 +729,12 @@ export default function Navbar() {
           </div>
         </div>
       )}
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={showChangePasswordModal}
+        onClose={() => setShowChangePasswordModal(false)}
+      />
     </nav>
   )
 }

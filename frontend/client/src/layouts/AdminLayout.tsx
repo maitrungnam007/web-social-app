@@ -2,6 +2,7 @@ import { Outlet, NavLink, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect, useState } from 'react'
 import toast from 'react-hot-toast'
+import { getAvatarUrl } from '../utils/avatar'
 
 export default function AdminLayout() {
   const { user, logout } = useAuth()
@@ -136,7 +137,7 @@ export default function AdminLayout() {
             <>
               <div className="flex items-center gap-3 mb-3 px-2">
                 <img
-                  src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                  src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
                   alt={user.userName}
                   className="w-10 h-10 rounded-full"
                 />
@@ -155,7 +156,7 @@ export default function AdminLayout() {
           ) : (
             <div className="flex flex-col items-center gap-2">
               <img
-                src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.firstName || user.userName)}&background=random`}
+                src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 32)}
                 alt={user.userName}
                 className="w-8 h-8 rounded-full"
                 title={user.firstName || user.userName}

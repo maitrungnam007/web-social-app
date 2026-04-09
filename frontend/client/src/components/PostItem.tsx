@@ -7,6 +7,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Comments from "./Comments.tsx";
 import ReportModal from "./ReportModal.tsx";
 import MentionDisplay from "./MentionDisplay.tsx";
+import { getAvatarUrl } from "../utils/avatar";
 
 interface Props {
     post: Post;
@@ -169,11 +170,7 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
     const displayName = post.userFirstName && post.userLastName 
         ? `${post.userFirstName} ${post.userLastName}` 
         : post.userName;
-    const avatarUrl = post.userAvatar
-        ? post.userAvatar.startsWith("http")
-            ? post.userAvatar
-            : `http://localhost:5259/api/files/${post.userAvatar}`
-        : `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&background=random&size=40`;
+    const avatarUrl = getAvatarUrl(post.userAvatar, post.userFirstName, post.userLastName, post.userName, 40);
 
     return (
         <div className="bg-white rounded-lg shadow-md mb-3 sm:mb-4 overflow-hidden hover:shadow-lg transition-shadow">

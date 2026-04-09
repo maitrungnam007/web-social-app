@@ -141,6 +141,8 @@ public class ApplicationDbContext : IdentityDbContext<User>
         builder.Entity<StoryView>(entity =>
         {
             entity.HasKey(e => e.Id);
+            // Unique index de ngan chan 1 user xem cung 1 story nhieu lan
+            entity.HasIndex(e => new { e.StoryId, e.ViewerId }).IsUnique();
             entity.HasOne(e => e.Story)
                 .WithMany(s => s.StoryViews)
                 .HasForeignKey(e => e.StoryId)

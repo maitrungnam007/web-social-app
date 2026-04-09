@@ -124,9 +124,16 @@ public class StoryService : IStoryService
                 friendIds.Add(currentUserId);
             }
 
+            // Lay Admin role ID de loai bo story cua admin
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
             var stories = await _context.Stories
                 .AsNoTracking()
-                .Where(s => !s.IsDeleted && s.ExpiresAt > now && friendIds.Contains(s.UserId))
+                .Where(s => !s.IsDeleted && s.ExpiresAt > now && friendIds.Contains(s.UserId) &&
+                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == s.UserId && ur.RoleId == adminRoleId)))
                 .Select(s => new StoryResponseDto
                 {
                     Id = s.Id,
@@ -135,6 +142,8 @@ public class StoryService : IStoryService
                     MediaType = s.MediaType,
                     UserId = s.UserId,
                     UserName = s.User != null ? s.User.UserName : "",
+                    UserFirstName = s.User != null ? s.User.FirstName : null,
+                    UserLastName = s.User != null ? s.User.LastName : null,
                     UserAvatar = s.User != null ? s.User.AvatarUrl : null,
                     CreatedAt = s.CreatedAt,
                     ExpiresAt = s.ExpiresAt,
@@ -171,6 +180,8 @@ public class StoryService : IStoryService
                     MediaType = s.MediaType,
                     UserId = s.UserId,
                     UserName = s.User != null ? s.User.UserName : "",
+                    UserFirstName = s.User != null ? s.User.FirstName : null,
+                    UserLastName = s.User != null ? s.User.LastName : null,
                     UserAvatar = s.User != null ? s.User.AvatarUrl : null,
                     CreatedAt = s.CreatedAt,
                     ExpiresAt = s.ExpiresAt,
@@ -262,6 +273,8 @@ public class StoryService : IStoryService
             MediaType = story.MediaType,
             UserId = story.UserId,
             UserName = story.User?.UserName ?? "",
+            UserFirstName = story.User?.FirstName,
+            UserLastName = story.User?.LastName,
             UserAvatar = story.User?.AvatarUrl,
             CreatedAt = story.CreatedAt,
             ExpiresAt = story.ExpiresAt,

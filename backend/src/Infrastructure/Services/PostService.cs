@@ -246,9 +246,16 @@ public class PostService : IPostService
     {
         try
         {
+            // Lay Admin role ID de loai bo bai viet cua admin
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
             var query = _context.Posts
                 .AsNoTracking()
-                .Where(p => !p.IsDeleted && !p.User.IsBanned);
+                .Where(p => !p.IsDeleted && !p.User.IsBanned && 
+                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == p.UserId && ur.RoleId == adminRoleId)));
 
             // Lọc theo userId
             if (!string.IsNullOrEmpty(filter.UserId))

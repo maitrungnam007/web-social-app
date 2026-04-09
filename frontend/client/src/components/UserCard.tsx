@@ -1,4 +1,5 @@
 import { User } from '../types'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface UserCardProps {
   user: User
@@ -27,9 +28,7 @@ export default function UserCard({
       onClick={onClick}
     >
       <img
-        src={user.avatarUrl 
-          ? `http://localhost:5259/api/files/${user.avatarUrl}` 
-          : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=48`}
+        src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 48)}
         alt={user.userName}
         className="w-12 h-12 rounded-full"
       />

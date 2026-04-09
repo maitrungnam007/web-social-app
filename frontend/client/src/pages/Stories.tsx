@@ -5,6 +5,7 @@ import { Story, StoryHighlight, ArchivedStory } from '../types'
 import toast from 'react-hot-toast'
 import StoryViewer from '../components/StoryViewer'
 import ConfirmDialog from '../components/ConfirmDialog'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface ConfirmState {
   isOpen: boolean
@@ -108,12 +109,8 @@ export default function Stories() {
     }
   }
 
-  const handleViewStory = async (story: Story) => {
+  const handleViewStory = (story: Story) => {
     setViewingStory(story)
-    
-    if (!story.isViewedByCurrentUser) {
-      await storiesApi.markAsViewed(story.id)
-    }
   }
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -211,6 +208,8 @@ export default function Stories() {
         user: {
           id: story.userId,
           name: story.userName,
+          firstName: story.userFirstName,
+          lastName: story.userLastName,
           avatar: story.userAvatar
         },
         stories: []
@@ -218,7 +217,7 @@ export default function Stories() {
     }
     acc[key].stories.push(story)
     return acc
-  }, {} as Record<string, { user: { id: string; name: string; avatar?: string }; stories: Story[] }>)
+  }, {} as Record<string, { user: { id: string; name: string; firstName?: string; lastName?: string; avatar?: string }; stories: Story[] }>)
 
   if (loading) {
     return (
@@ -295,7 +294,7 @@ export default function Stories() {
               <div className="absolute top-2 left-2">
                 <div className={`w-10 h-10 rounded-full p-0.5 ${hasUnviewed ? 'bg-gradient-to-tr from-blue-500 to-purple-500' : 'bg-gray-300'}`}>
                   <img
-                    src={group.user.avatar ? `http://localhost:5259/api/files/${group.user.avatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(group.user.name)}&background=random&size=40`}
+                    src={getAvatarUrl(group.user.avatar, group.user.firstName, group.user.lastName, group.user.name, 40)}
                     alt={group.user.name}
                     className="w-full h-full rounded-full object-cover border-2 border-white"
                   />
@@ -375,6 +374,8 @@ export default function Stories() {
             setShowHighlightModal(true)
           }}
           userName={viewingStory.userName}
+          userFirstName={viewingStory.userFirstName}
+          userLastName={viewingStory.userLastName}
           userAvatar={viewingStory.userAvatar}
         />
       )}
@@ -461,7 +462,7 @@ export default function Stories() {
                             ? `http://localhost:5259/api/files/${h.coverImageUrl}` 
                             : (h.stories[0]?.mediaUrl 
                               ? `http://localhost:5259/api/files/${h.stories[0].mediaUrl}` 
-                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name)}&background=random&size=40`)}
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name.substring(0, 2).toUpperCase())}&background=random&size=40`)}
                           alt={h.name}
                           className="w-full h-full rounded-full object-cover border border-white"
                         />
@@ -562,7 +563,9 @@ export default function Stories() {
             await loadHighlights()
             setShowHighlightModal(true)
           }}
-          userName={user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : user?.userName}
+          userName={user?.userName}
+          userFirstName={user?.firstName}
+          userLastName={user?.lastName}
           userAvatar={user?.avatarUrl}
         />
       )}

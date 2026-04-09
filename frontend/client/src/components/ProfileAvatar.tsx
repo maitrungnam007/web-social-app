@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { User, Story } from '../types'
+import { getAvatarUrl } from '../utils/avatar'
 
 interface ProfileAvatarProps {
   user: User
@@ -25,10 +26,12 @@ export default function ProfileAvatar({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleClick = () => {
-    if (stories.length > 0) {
-      onViewStory(stories[0])
-    } else if (isOwnProfile) {
+    // Luon cho phep chinh sua avatar tren profile cua minh
+    if (isOwnProfile) {
       onShowAvatarActions(!showAvatarActions)
+    } else if (stories.length > 0) {
+      // Chi xem story khi khong phai profile cua minh
+      onViewStory(stories[0])
     }
   }
 
@@ -43,7 +46,7 @@ export default function ProfileAvatar({
     <div className="relative group" onClick={handleClick}>
       <div className={`w-34 h-34 rounded-full p-1 ${stories.length > 0 && !isOwnProfile ? 'bg-gradient-to-tr from-blue-500 to-purple-500' : ''}`}>
         <img
-          src={user.avatarUrl ? `http://localhost:5259/api/files/${user.avatarUrl}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(user.userName)}&background=random&size=128`}
+          src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 128)}
           alt={user.userName}
           className={`w-32 h-32 rounded-full border-4 border-white object-cover bg-gray-200 ${stories.length > 0 || isOwnProfile ? 'cursor-pointer' : ''}`}
         />

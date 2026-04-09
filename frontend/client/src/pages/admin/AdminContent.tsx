@@ -3,6 +3,7 @@ import { postsApi, commentsApi } from '../../services'
 import { Post, Comment } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '../../components/ConfirmDialog'
+import { getAvatarUrl } from '../../utils/avatar'
 
 type ContentType = 'posts' | 'comments'
 type ContentStatus = 'all' | 'visible' | 'hidden'
@@ -329,7 +330,7 @@ export default function AdminContent() {
                 <div key={post.id} className={`p-4 ${post.isHidden ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-start gap-3">
                     <img
-                      src={post.userAvatar ? `http://localhost:5259/api/files/${post.userAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(post.userName)}&background=random`}
+                      src={getAvatarUrl(post.userAvatar, post.userFirstName, post.userLastName, post.userName, 40)}
                       alt={post.userName}
                       className="w-10 h-10 rounded-full"
                     />
@@ -401,7 +402,7 @@ export default function AdminContent() {
                 <div key={comment.id} className={`p-4 ${comment.isHidden ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-start gap-3">
                     <img
-                      src={comment.userAvatar ? `http://localhost:5259/api/files/${comment.userAvatar}` : `https://ui-avatars.com/api/?name=${encodeURIComponent(comment.userName)}&background=random`}
+                      src={getAvatarUrl(comment.userAvatar, undefined, undefined, comment.userName, 40)}
                       alt={comment.userName}
                       className="w-10 h-10 rounded-full"
                     />

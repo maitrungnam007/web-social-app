@@ -19,6 +19,8 @@ public class StoryResponseDto
     public string? MediaType { get; set; }
     public string UserId { get; set; } = string.Empty;
     public string UserName { get; set; } = string.Empty;
+    public string? UserFirstName { get; set; }
+    public string? UserLastName { get; set; }
     public string? UserAvatar { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime ExpiresAt { get; set; }

@@ -4,6 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { storiesApi } from '../services'
 import { Story } from '../types'
 import StoryViewer from './StoryViewer'
+import { getAvatarUrl } from '../utils/avatar'
 
 export default function Sidebar() {
   const { user } = useAuth()
@@ -81,9 +82,7 @@ export default function Sidebar() {
               className={`w-13 h-13 rounded-full p-0.5 cursor-pointer ${hasActiveStory ? 'bg-gradient-to-tr from-blue-500 to-purple-500' : ''}`}
             >
               <img
-                src={user?.avatarUrl 
-                  ? `http://localhost:5259/api/files/${user.avatarUrl}` 
-                  : `https://ui-avatars.com/api/?name=${user?.userName}&background=random`}
+                src={getAvatarUrl(user?.avatarUrl, user?.firstName, user?.lastName, user?.userName, 48)}
                 alt={user?.userName}
                 className="w-12 h-12 rounded-full object-cover border-2 border-white"
               />
@@ -116,6 +115,8 @@ export default function Sidebar() {
           initialIndex={0}
           onClose={() => setViewingStory(null)}
           userName={user?.userName}
+          userFirstName={user?.firstName}
+          userLastName={user?.lastName}
           userAvatar={user?.avatarUrl}
         />
       )}

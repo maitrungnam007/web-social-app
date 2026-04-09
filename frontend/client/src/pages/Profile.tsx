@@ -627,6 +627,8 @@ export default function Profile() {
           showAddToHighlight={isOwnProfile && !viewingHighlight}
           onAddToHighlight={() => setShowHighlightModal(true)}
           userName={user?.userName}
+          userFirstName={user?.firstName}
+          userLastName={user?.lastName}
           userAvatar={user?.avatarUrl}
         />
       )}
@@ -707,7 +709,7 @@ export default function Profile() {
                             ? `http://localhost:5259/api/files/${h.coverImageUrl}` 
                             : (h.stories[0]?.mediaUrl 
                               ? `http://localhost:5259/api/files/${h.stories[0].mediaUrl}` 
-                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name)}&background=random&size=40`)}
+                              : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name.substring(0, 2).toUpperCase())}&background=random&size=40`)}
                           alt={h.name}
                           className="w-full h-full rounded-full object-cover border border-white"
                         />

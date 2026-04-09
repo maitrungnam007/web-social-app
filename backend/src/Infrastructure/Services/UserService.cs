@@ -105,8 +105,15 @@ public class UserService : IUserService
                 return ApiResponse<List<UserDto>>.ErrorResult("Từ khóa tìm kiếm không được để trống");
             }
 
+            // Lay Admin role ID de loai bo admin khoi ket qua
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
             var users = await _context.Users
                 .Where(u => !u.IsBanned && 
+                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId)) &&
                             (u.UserName!.Contains(searchTerm) || 
                             u.Email!.Contains(searchTerm) ||
                             (u.FirstName != null && u.FirstName.Contains(searchTerm)) ||

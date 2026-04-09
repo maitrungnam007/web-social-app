@@ -24,7 +24,7 @@ export const postsApi = {
     return response.data
   },
   
-  createPost: async (data: { content: string; imageUrl?: string; hashtags?: string[] }): Promise<ApiResponse<Post>> => {
+  createPost: async (data: { content: string; imageUrl?: string; hashtags?: string[]; mentionedUserIds?: string[] }): Promise<ApiResponse<Post>> => {
     const response = await api.post('/posts', data)
     return response.data
   },

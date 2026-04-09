@@ -41,6 +41,17 @@ public class FriendService : IFriendService
                 return ApiResponse<bool>.ErrorResult("Không tìm thấy người dùng");
             }
 
+            // Không thể gửi lời mời kết bạn cho admin
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+            
+            if (adminRoleId != null && await _context.UserRoles.AnyAsync(ur => ur.UserId == addresseeId && ur.RoleId == adminRoleId))
+            {
+                return ApiResponse<bool>.ErrorResult("Không thể gửi lời mời kết bạn cho người dùng này");
+            }
+
             // Kiểm tra đã có mối quan hệ chưa
             var existingFriendship = await _context.Friendships
                 .FirstOrDefaultAsync(f => 
@@ -264,9 +275,13 @@ public class FriendService : IFriendService
                     Id = f.Id,
                     RequesterId = f.RequesterId,
                     RequesterName = f.Requester != null ? f.Requester.UserName : "",
+                    RequesterFirstName = f.Requester != null ? f.Requester.FirstName : null,
+                    RequesterLastName = f.Requester != null ? f.Requester.LastName : null,
                     RequesterAvatar = f.Requester != null ? f.Requester.AvatarUrl : null,
                     AddresseeId = f.AddresseeId,
                     AddresseeName = f.Addressee != null ? f.Addressee.UserName : "",
+                    AddresseeFirstName = f.Addressee != null ? f.Addressee.FirstName : null,
+                    AddresseeLastName = f.Addressee != null ? f.Addressee.LastName : null,
                     AddresseeAvatar = f.Addressee != null ? f.Addressee.AvatarUrl : null,
                     Status = f.Status,
                     CreatedAt = f.CreatedAt
@@ -296,9 +311,13 @@ public class FriendService : IFriendService
                     Id = f.Id,
                     RequesterId = f.RequesterId,
                     RequesterName = f.Requester != null ? f.Requester.UserName : "",
+                    RequesterFirstName = f.Requester != null ? f.Requester.FirstName : null,
+                    RequesterLastName = f.Requester != null ? f.Requester.LastName : null,
                     RequesterAvatar = f.Requester != null ? f.Requester.AvatarUrl : null,
                     AddresseeId = f.AddresseeId,
                     AddresseeName = f.Addressee != null ? f.Addressee.UserName : "",
+                    AddresseeFirstName = f.Addressee != null ? f.Addressee.FirstName : null,
+                    AddresseeLastName = f.Addressee != null ? f.Addressee.LastName : null,
                     AddresseeAvatar = f.Addressee != null ? f.Addressee.AvatarUrl : null,
                     Status = f.Status,
                     CreatedAt = f.CreatedAt
@@ -432,12 +451,19 @@ public class FriendService : IFriendService
                 .Take(count)
                 .ToList();
 
+            // Lay Admin role ID de loai bo admin
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
             if (!mutualCount.Any())
             {
-                // Nếu không có friends of friends, lấy random users
+                // Nếu không có friends of friends, lấy random users (loại trừ admin)
                 var randomUsers = await _context.Users
                     .AsNoTracking()
-                    .Where(u => !existingRelations.Contains(u.Id))
+                    .Where(u => !existingRelations.Contains(u.Id) && !u.IsBanned &&
+                                (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId)))
                     .OrderBy(u => Guid.NewGuid())
                     .Take(count)
                     .Select(u => new FriendSuggestionDto
@@ -454,11 +480,12 @@ public class FriendService : IFriendService
                 return ApiResponse<List<FriendSuggestionDto>>.SuccessResult(randomUsers);
             }
 
-            // Lấy thông tin chi tiết của các user được gợi ý
+            // Lấy thông tin chi tiết của các user được gợi ý (loại trừ admin)
             var suggestionIds = mutualCount.Select(x => x.UserId).ToList();
             var users = await _context.Users
                 .AsNoTracking()
-                .Where(u => suggestionIds.Contains(u.Id))
+                .Where(u => suggestionIds.Contains(u.Id) &&
+                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == adminRoleId)))
                 .Select(u => new FriendSuggestionDto
                 {
                     Id = u.Id,

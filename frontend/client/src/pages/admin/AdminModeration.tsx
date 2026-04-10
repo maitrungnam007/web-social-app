@@ -205,17 +205,17 @@ export default function AdminModeration() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Kiểm duyệt nội dung</h1>
-        <p className="text-gray-500 mt-1">Quản lý các báo cáo nội dung từ người dùng</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Kiểm duyệt nội dung</h1>
+        <p className="text-gray-500 mt-1 text-sm sm:text-base">Quản lý các báo cáo nội dung từ người dùng</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-wrap gap-4">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
           {/* Search */}
-          <div className="flex-1 min-w-[200px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
+          <div className="flex-1 min-w-0 sm:min-w-[200px]">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Tìm kiếm</label>
             <div className="relative">
               <input
                 type="text"
@@ -228,7 +228,7 @@ export default function AdminModeration() {
                   }
                 }}
                 placeholder="Nội dung, người dùng..."
-                className="w-full border rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border rounded-lg px-3 py-2 pr-10 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
               />
               <button
                 onClick={() => {
@@ -244,15 +244,15 @@ export default function AdminModeration() {
             </div>
           </div>
           {/* Status Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
+          <div className="w-full sm:w-auto">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Trạng thái</label>
             <select
               value={statusFilter ?? ''}
               onChange={(e) => {
                 setStatusFilter(e.target.value as ReportStatus || undefined)
                 setPage(1)
               }}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Tất cả</option>
               <option value={ReportStatus.Pending}>Chờ xử lý</option>
@@ -262,15 +262,15 @@ export default function AdminModeration() {
             </select>
           </div>
           {/* Type Filter */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Loại đối tượng</label>
+          <div className="w-full sm:w-auto">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Loại đối tượng</label>
             <select
               value={typeFilter ?? ''}
               onChange={(e) => {
                 setTypeFilter(e.target.value as ReportTargetType || undefined)
                 setPage(1)
               }}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="">Tất cả</option>
               <option value={ReportTargetType.Post}>Bài viết</option>
@@ -279,15 +279,15 @@ export default function AdminModeration() {
             </select>
           </div>
           {/* Sort */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Sắp xếp</label>
+          <div className="w-full sm:w-auto">
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Sắp xếp</label>
             <select
               value={sortBy}
               onChange={(e) => {
                 setSortBy(e.target.value)
                 setPage(1)
               }}
-              className="border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full sm:w-auto border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             >
               <option value="newest">Mới nhất</option>
               <option value="oldest">Cũ nhất</option>
@@ -295,7 +295,7 @@ export default function AdminModeration() {
             </select>
           </div>
           {/* Reset */}
-          <div className="flex items-end">
+          <div className="flex items-end w-full sm:w-auto">
             <button
               onClick={() => {
                 setStatusFilter(undefined)
@@ -305,7 +305,7 @@ export default function AdminModeration() {
                 setPage(1)
                 loadReports()
               }}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50"
+              className="w-full sm:w-auto px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg hover:bg-gray-50 text-sm"
             >
               Xóa bộ lọc
             </button>
@@ -324,31 +324,31 @@ export default function AdminModeration() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     ID
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Loại
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Nội dung
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Người báo cáo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Lý do
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Số báo cáo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Trạng thái
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Ngày tạo
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>
@@ -356,24 +356,24 @@ export default function AdminModeration() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {reports.map((report) => (
                   <tr key={report.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                       #{report.id}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       {getTypeBadge(report.targetType)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="hidden md:table-cell px-6 py-4">
                       <div className="text-sm text-gray-900 max-w-[150px] truncate">
                         {report.postContent || report.commentContent || report.reportedUserName || '-'}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900">
                       {report.reporterName}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden lg:table-cell px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                       {getReasonLabel(report.reason)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
                         report.reportCount > 3 ? 'bg-red-100 text-red-800' :
                         report.reportCount > 1 ? 'bg-yellow-100 text-yellow-800' :
@@ -382,20 +382,20 @@ export default function AdminModeration() {
                         {report.reportCount}
                       </span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(report.status)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
                       {new Date(report.createdAt).toLocaleDateString('vi-VN')}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end gap-2 items-center">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-xs sm:text-sm font-medium">
+                      <div className="flex justify-end gap-1 sm:gap-2 items-center">
                         <button
                           onClick={() => setDetailModal({ isOpen: true, report })}
                           className="p-1 text-blue-600 hover:text-blue-900 hover:bg-blue-50 rounded"
                           title="Xem chi tiết"
                         >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                           </svg>
@@ -414,7 +414,7 @@ export default function AdminModeration() {
                               handleUnderReview(report.id)
                             }
                           }}
-                          className="text-sm border rounded px-2 py-1"
+                          className="text-xs border rounded px-1 sm:px-2 py-1"
                         >
                           <option value={ReportStatus.Pending}>Chờ xử lý</option>
                           <option value={ReportStatus.UnderReview}>Đang xem xét</option>
@@ -518,55 +518,55 @@ export default function AdminModeration() {
 
       {/* Detail Modal */}
       {detailModal.isOpen && detailModal.report && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-lg w-full mx-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-4 sm:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-start mb-4">
-              <h3 className="text-lg font-semibold">Chi tiết báo cáo #{detailModal.report.id}</h3>
+              <h3 className="text-base sm:text-lg font-semibold">Chi tiet bao cao #{detailModal.report.id}</h3>
               <button
                 onClick={() => setDetailModal({ isOpen: false, report: null })}
                 className="text-gray-400 hover:text-gray-600"
               >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-3 text-sm sm:text-base">
               <div>
-                <span className="text-gray-500 text-sm">Loại đối tượng:</span>
+                <span className="text-gray-500 text-xs sm:text-sm">Loại đối tượng:</span>
                 <span className="ml-2">{getTypeBadge(detailModal.report.targetType)}</span>
               </div>
               <div>
-                <span className="text-gray-500 text-sm">Nội dung:</span>
-                <p className="mt-1 text-gray-900 bg-gray-50 p-3 rounded">
+                <span className="text-gray-500 text-xs sm:text-sm">Nội dung:</span>
+                <p className="mt-1 text-gray-900 bg-gray-50 p-2 sm:p-3 rounded text-sm">
                   {detailModal.report.postContent || detailModal.report.commentContent || detailModal.report.reportedUserName || '-'}
                 </p>
               </div>
               <div>
-                <span className="text-gray-500 text-sm">Người báo cáo:</span>
+                <span className="text-gray-500 text-xs sm:text-sm">Người báo cáo:</span>
                 <span className="ml-2 font-medium">{detailModal.report.reporterName}</span>
               </div>
               <div>
-                <span className="text-gray-500 text-sm">Lý do:</span>
+                <span className="text-gray-500 text-xs sm:text-sm">Lý do:</span>
                 <span className="ml-2">{getReasonLabel(detailModal.report.reason)}</span>
               </div>
               {detailModal.report.description && (
                 <div>
-                  <span className="text-gray-500 text-sm">Mô tả thêm:</span>
-                  <p className="mt-1 text-gray-700">{detailModal.report.description}</p>
+                  <span className="text-gray-500 text-xs sm:text-sm">Mô tả thêm:</span>
+                  <p className="mt-1 text-gray-700 text-sm">{detailModal.report.description}</p>
                 </div>
               )}
               <div>
-                <span className="text-gray-500 text-sm">Trạng thái:</span>
+                <span className="text-gray-500 text-xs sm:text-sm">Trạng thái:</span>
                 <span className="ml-2">{getStatusBadge(detailModal.report.status)}</span>
               </div>
               <div>
-                <span className="text-gray-500 text-sm">Ngày tạo:</span>
+                <span className="text-gray-500 text-xs sm:text-sm">Ngày tạo:</span>
                 <span className="ml-2">{new Date(detailModal.report.createdAt).toLocaleString('vi-VN')}</span>
               </div>
               {detailModal.report.resolvedByName && (
                 <div>
-                  <span className="text-gray-500 text-sm">Xử lý bởi:</span>
+                  <span className="text-gray-500 text-xs sm:text-sm">Xử lý bởi:</span>
                   <span className="ml-2">{detailModal.report.resolvedByName}</span>
                 </div>
               )}

@@ -173,14 +173,14 @@ export default function AdminViolations() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý vi phạm</h1>
-        <p className="text-gray-500 mt-1">Danh sách người dùng vi phạm và lịch sử</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Quản lý vi phạm</h1>
+        <p className="text-gray-500 mt-1 text-sm sm:text-base">Danh sách người dùng vi phạm và lịch sử</p>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
           <div className="flex-1">
             <input
               type="text"
@@ -188,50 +188,52 @@ export default function AdminViolations() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && loadUsers()}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showBannedOnly}
-              onChange={(e) => { setShowBannedOnly(e.target.checked); setPage(1); }}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm text-gray-700">Chỉ hiển thị đã cấm</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={showNeedAction}
-              onChange={(e) => { setShowNeedAction(e.target.checked); setPage(1); }}
-              className="rounded border-gray-300"
-            />
-            <span className="text-sm text-gray-700">Cần xử lý (3+ vi phạm)</span>
-          </label>
-          <button
-            onClick={loadUsers}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Tìm kiếm
-          </button>
+          <div className="flex flex-wrap gap-3 sm:gap-4 items-center">
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showBannedOnly}
+                onChange={(e) => { setShowBannedOnly(e.target.checked); setPage(1); }}
+                className="rounded border-gray-300"
+              />
+              <span className="text-xs sm:text-sm text-gray-700">Chỉ hiển thị đã cấm</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={showNeedAction}
+                onChange={(e) => { setShowNeedAction(e.target.checked); setPage(1); }}
+                className="rounded border-gray-300"
+              />
+              <span className="text-xs sm:text-sm text-gray-700">Cần xử lý (3+ vi phạm)</span>
+            </label>
+            <button
+              onClick={loadUsers}
+              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            >
+              Tìm kiếm
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-sm text-gray-500">Tổng vi phạm</p>
-          <p className="text-2xl font-bold text-gray-900">{allViolationCount}</p>
+      <div className="grid grid-cols-3 sm:grid-cols-3 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Tổng vi phạm</p>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900">{allViolationCount}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4">
-          <p className="text-sm text-gray-500">Đang bị cấm</p>
-          <p className="text-2xl font-bold text-red-600">{allBannedCount}</p>
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <p className="text-xs sm:text-sm text-gray-500">Đang bị cấm</p>
+          <p className="text-lg sm:text-2xl font-bold text-red-600">{allBannedCount}</p>
         </div>
-        <div className="bg-white rounded-lg shadow p-4 cursor-pointer hover:bg-yellow-50 transition-colors"
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4 cursor-pointer hover:bg-yellow-50 transition-colors"
           onClick={() => { setShowNeedAction(!showNeedAction); setShowBannedOnly(false); setPage(1); }}>
-          <p className="text-sm text-gray-500">Cần xử lý</p>
-          <p className="text-2xl font-bold text-yellow-600">{allNeedActionCount}</p>
+          <p className="text-xs sm:text-sm text-gray-500">Cần xử lý</p>
+          <p className="text-lg sm:text-2xl font-bold text-yellow-600">{allNeedActionCount}</p>
         </div>
       </div>
 
@@ -242,123 +244,125 @@ export default function AdminViolations() {
         ) : users.length === 0 ? (
           <div className="p-8 text-center text-gray-500">Không có dữ liệu</div>
         ) : (
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người dùng</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số vi phạm</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lý do cấm</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hạn cấm</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {users.map((user) => (
-                <tr key={user.id} className={user.role === 'Admin' ? 'bg-purple-50' : ''}>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center gap-3">
-                      <img
-                        src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
-                        alt={user.userName}
-                        className="w-10 h-10 rounded-full"
-                      />
-                      <div>
-                        <p className="font-medium">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.userName}</p>
-                        <p className="text-sm text-gray-500">@{user.userName}</p>
+          <div className="overflow-x-auto">
+            <table className="min-w-full divide-y divide-gray-200">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Người dùng</th>
+                  <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Số vi phạm</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Trạng thái</th>
+                  <th className="hidden lg:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Lý do cấm</th>
+                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hạn cấm</th>
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Thao tác</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {users.map((user) => (
+                  <tr key={user.id} className={user.role === 'Admin' ? 'bg-purple-50' : ''}>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 sm:gap-3">
+                        <img
+                          src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
+                          alt={user.userName}
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
+                        />
+                        <div>
+                          <p className="font-medium text-sm sm:text-base">{user.firstName && user.lastName ? `${user.firstName} ${user.lastName}` : user.userName}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">@{user.userName}</p>
+                        </div>
                       </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      (user.violationCount || 0) >= 3
-                        ? 'bg-red-100 text-red-800'
-                        : (user.violationCount || 0) >= 2
-                          ? 'bg-yellow-100 text-yellow-800'
-                          : 'bg-gray-100 text-gray-800'
-                    }`}>
-                      {user.violationCount || 0}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    {user.role === 'Admin' ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        Admin
+                    </td>
+                    <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">{user.email}</td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        (user.violationCount || 0) >= 3
+                          ? 'bg-red-100 text-red-800'
+                          : (user.violationCount || 0) >= 2
+                            ? 'bg-yellow-100 text-yellow-800'
+                            : 'bg-gray-100 text-gray-800'
+                      }`}>
+                        {user.violationCount || 0}
                       </span>
-                    ) : user.isBanned ? (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                        Đã cấm
-                      </span>
-                    ) : (
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                        Hoạt động
-                      </span>
-                    )}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
-                    {user.banReason || '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {user.isBanned ? (
-                      user.banExpiresAt ? (
-                        <span className="text-orange-600">
-                          {new Date(user.banExpiresAt.endsWith('Z') ? user.banExpiresAt : user.banExpiresAt + 'Z').toLocaleString('vi-VN', {
-                            day: '2-digit',
-                            month: '2-digit',
-                            year: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                          })}
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      {user.role === 'Admin' ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                          Admin
+                        </span>
+                      ) : user.isBanned ? (
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                          Đã cấm
                         </span>
                       ) : (
-                        <span className="text-red-600 font-medium">Vĩnh viễn</span>
-                      )
-                    ) : '-'}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex gap-2">
-                      <button
-                        onClick={() => handleViewDetails(user)}
-                        className="px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
-                      >
-                        Chi tiết
-                      </button>
-                      {user.role !== 'Admin' && (
-                        user.isBanned ? (
-                          <button
-                            onClick={() => {
-                              setConfirm({
-                                isOpen: true,
-                                title: 'Gỡ cấm người dùng',
-                                message: `Bạn có chắc muốn gỡ cấm người dùng "${user.userName}"?`,
-                                userId: user.id,
-                                action: 'unban',
-                                banReason: '',
-                                banDays: 0,
-                                isPermanent: false
-                              })
-                            }}
-                            className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
-                          >
-                            Gỡ cấm
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => handleBan(user.id, user.userName)}
-                            className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
-                          >
-                            Cấm
-                          </button>
-                        )
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          Hoạt động
+                        </span>
                       )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </td>
+                    <td className="hidden lg:table-cell px-6 py-4 text-sm text-gray-500 max-w-xs truncate">
+                      {user.banReason || '-'}
+                    </td>
+                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-500">
+                      {user.isBanned ? (
+                        user.banExpiresAt ? (
+                          <span className="text-orange-600">
+                            {new Date(user.banExpiresAt.endsWith('Z') ? user.banExpiresAt : user.banExpiresAt + 'Z').toLocaleString('vi-VN', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-red-600 font-medium">Vĩnh viễn</span>
+                        )
+                      ) : '-'}
+                    </td>
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="flex gap-1 sm:gap-2">
+                        <button
+                          onClick={() => handleViewDetails(user)}
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200"
+                        >
+                          Chi tiết
+                        </button>
+                        {user.role !== 'Admin' && (
+                          user.isBanned ? (
+                            <button
+                              onClick={() => {
+                                setConfirm({
+                                  isOpen: true,
+                                  title: 'Gỡ cấm người dùng',
+                                  message: `Bạn có chắc muốn gỡ cấm người dùng "${user.userName}"?`,
+                                  userId: user.id,
+                                  action: 'unban',
+                                  banReason: '',
+                                  banDays: 0,
+                                  isPermanent: false
+                                })
+                              }}
+                              className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                            >
+                              Gỡ cấm
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleBan(user.id, user.userName)}
+                              className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                            >
+                              Cấm
+                            </button>
+                          )
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Pagination */}
@@ -455,11 +459,11 @@ export default function AdminViolations() {
 
       {/* Modal Chi tiet vi pham */}
       {showDetails && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowDetails(null)} />
-          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">
+          <div className="relative bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex items-center justify-between p-3 sm:p-4 border-b">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900">
                 Chi tiết vi phạm - {showDetails.userName}
               </h3>
               <button

@@ -217,6 +217,15 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine($"Loi database: {ex.Message}");
+        
+        // Log inner exception de debug
+        var innerEx = ex.InnerException;
+        while (innerEx != null)
+        {
+            Console.WriteLine($"Inner Exception: {innerEx.Message}");
+            innerEx = innerEx.InnerException;
+        }
+        
         Console.WriteLine($"Stack trace: {ex.StackTrace}");
     }
 }

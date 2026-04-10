@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import PostItem from "../components/PostItem.tsx";
 import CreatePostModal from "../components/CreatePostModal.tsx";
@@ -26,6 +26,8 @@ export default function Home() {
     const [initialLoad, setInitialLoad] = useState(true);
     const [showCreateModal, setShowCreateModal] = useState(false);
     const [createMode, setCreateMode] = useState<'image' | 'hashtag' | undefined>(undefined);
+    // Flag de tranh chay 2 lan trong React StrictMode
+    const isLoadingRef = useRef(false);
 
     // Fetch danh sách bài viết đã ẩn
     const fetchHiddenPosts = async () => {
@@ -68,7 +70,13 @@ export default function Home() {
 
     // Load all pages that were previously loaded
     useEffect(() => {
+        let isMounted = true;
+        
         const loadAllPages = async () => {
+            // Tranh chay 2 lan trong React StrictMode
+            if (isLoadingRef.current) return;
+            isLoadingRef.current = true;
+            
             const savedPage = sessionStorage.getItem('homePage');
             const targetPage = savedPage ? parseInt(savedPage) : 1;
             
@@ -76,13 +84,17 @@ export default function Home() {
             await fetchHiddenPosts();
             
             for (let p = 1; p <= targetPage; p++) {
+                if (!isMounted) break;
                 await fetchPosts(p);
             }
-            setInitialLoad(false);
+            
+            if (isMounted) {
+                setInitialLoad(false);
+            }
             
             // Restore scroll position after content is loaded
             const savedPosition = sessionStorage.getItem('scrollPosition');
-            if (savedPosition) {
+            if (savedPosition && isMounted) {
                 setTimeout(() => {
                     window.scrollTo(0, parseInt(savedPosition));
                 }, 100);
@@ -90,6 +102,11 @@ export default function Home() {
         };
         
         loadAllPages();
+        
+        return () => {
+            isMounted = false;
+            isLoadingRef.current = false;
+        };
     }, []);
 
     // Reload posts when search query or hashtag changes

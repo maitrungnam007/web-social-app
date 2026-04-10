@@ -24,17 +24,28 @@ builder.Services.AddSwaggerGen();
 
 // Cấu hình DbContext - Tự động phát hiện loại database từ connection string
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var isPostgres = connectionString?.StartsWith("postgresql", StringComparison.OrdinalIgnoreCase) ?? false;
+Console.WriteLine($"DEBUG Connection String: {connectionString ?? "NULL"}");
+
+// Thu doc truc tiep tu environment variable
+var envConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
+Console.WriteLine($"DEBUG Env Connection String: {envConnectionString ?? "NULL"}");
+
+// Su dung env variable neu co, neu khong thi dung config
+var finalConnectionString = envConnectionString ?? connectionString;
+Console.WriteLine($"DEBUG Final Connection String: {finalConnectionString ?? "NULL"}");
+
+var isPostgres = finalConnectionString?.StartsWith("postgresql", StringComparison.OrdinalIgnoreCase) ?? false;
+Console.WriteLine($"DEBUG Is Postgres: {isPostgres}");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
 {
     if (isPostgres)
     {
-        options.UseNpgsql(connectionString);
+        options.UseNpgsql(finalConnectionString);
     }
     else
     {
-        options.UseSqlServer(connectionString);
+        options.UseSqlServer(finalConnectionString);
     }
 });
 

@@ -4,6 +4,15 @@ import { storiesApi } from '../services'
 import { getAvatarUrl } from '../utils/avatar'
 import { API_BASE_URL } from '../services/apiClient'
 
+// Helper function de lay URL day du cho media
+const getMediaUrl = (url?: string | null): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return `${API_BASE_URL}/api/files/${url}`
+}
+
 interface StoryViewerProps {
   stories: Story[]
   initialIndex?: number
@@ -171,7 +180,7 @@ export default function StoryViewer({
           {/* Story Content */}
           {currentStory.mediaUrl ? (
             <img
-              src={`${API_BASE_URL}/api/files/${currentStory.mediaUrl}`}
+              src={getMediaUrl(currentStory.mediaUrl)}
               alt="Story"
               className="w-full h-full object-cover"
             />
@@ -237,10 +246,13 @@ export default function StoryViewer({
 
           {/* Action Buttons */}
           {(showDeleteButton || showAddToHighlight) && (
-            <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex gap-1 sm:gap-2">
+            <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex gap-1 sm:gap-2 z-20">
               {showAddToHighlight && onAddToHighlight && (
                 <button
-                  onClick={onAddToHighlight}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onAddToHighlight()
+                  }}
                   className="bg-white/20 hover:bg-white/30 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1"
                 >
                   <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -251,7 +263,10 @@ export default function StoryViewer({
               )}
               {showDeleteButton && onDeleteStory && (
                 <button
-                  onClick={() => onDeleteStory(currentStory.id)}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onDeleteStory(currentStory.id)
+                  }}
                   className="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm"
                 >
                   Xóa

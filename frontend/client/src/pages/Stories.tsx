@@ -8,6 +8,15 @@ import ConfirmDialog from '../components/ConfirmDialog'
 import { getAvatarUrl } from '../utils/avatar'
 import { API_BASE_URL } from '../services/apiClient'
 
+// Helper function de lay URL day du cho media
+const getMediaUrl = (url?: string | null): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return `${API_BASE_URL}/api/files/${url}`
+}
+
 interface ConfirmState {
   isOpen: boolean
   title: string
@@ -283,7 +292,7 @@ export default function Stories() {
               {/* Story Preview */}
               {group.stories[0].mediaUrl ? (
                 <img
-                  src={`${API_BASE_URL}/api/files/${group.stories[0].mediaUrl}`}
+                  src={getMediaUrl(group.stories[0].mediaUrl)}
                   alt="Story"
                   className="h-full w-full object-cover"
                 />
@@ -339,7 +348,7 @@ export default function Stories() {
                 >
                   {story.mediaUrl ? (
                     <img
-                      src={`${API_BASE_URL}/api/files/${story.mediaUrl}`}
+                      src={getMediaUrl(story.mediaUrl)}
                       alt="Archived Story"
                       className="w-full h-48 object-cover"
                     />
@@ -464,9 +473,9 @@ export default function Stories() {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 p-0.5">
                         <img
                           src={h.coverImageUrl 
-                            ? `${API_BASE_URL}/api/files/${h.coverImageUrl}` 
+                            ? getMediaUrl(h.coverImageUrl) 
                             : (h.stories[0]?.mediaUrl 
-                              ? `${API_BASE_URL}/api/files/${h.stories[0].mediaUrl}` 
+                              ? getMediaUrl(h.stories[0].mediaUrl) 
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name.substring(0, 2).toUpperCase())}&background=random&size=40`)}
                           alt={h.name}
                           className="w-full h-full rounded-full object-cover border border-white"

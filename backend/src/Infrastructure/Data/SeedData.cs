@@ -196,13 +196,26 @@ public static class SeedData
             var userIds = await context.Users.Select(u => u.Id).ToListAsync();
             var storyIds = await context.Stories.Select(s => s.Id).ToListAsync();
             var storyViews = new List<StoryView>();
+            var addedPairs = new HashSet<(int, string)>(); // Track unique (StoryId, ViewerId)
 
             for (int i = 1; i <= 20; i++)
             {
+                int storyId;
+                string viewerId;
+                
+                // Tao unique pair
+                do
+                {
+                    storyId = storyIds[Random.Shared.Next(storyIds.Count)];
+                    viewerId = userIds[Random.Shared.Next(userIds.Count)];
+                } while (addedPairs.Contains((storyId, viewerId)));
+
+                addedPairs.Add((storyId, viewerId));
+                
                 var storyView = new StoryView
                 {
-                    StoryId = storyIds[Random.Shared.Next(storyIds.Count)],
-                    ViewerId = userIds[Random.Shared.Next(userIds.Count)],
+                    StoryId = storyId,
+                    ViewerId = viewerId,
                     ViewedAt = DateTime.UtcNow.AddHours(-Random.Shared.Next(1, 10))
                 };
                 storyViews.Add(storyView);

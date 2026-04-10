@@ -40,8 +40,14 @@ public class FilesController : ControllerBase
         }
 
         using var stream = file.OpenReadStream();
-        var filePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, folder);
-        var fileUrl = _fileStorageService.GetFileUrl(Path.GetFileName(filePath), folder);
+        var fileUrl = await _fileStorageService.UploadFileAsync(stream, file.FileName, folder);
+        
+        // Cloudinary tra ve full URL, khong can goi GetFileUrl
+        // Neu la local storage, fileUrl la relative path, can tao full URL
+        if (!fileUrl.StartsWith("http"))
+        {
+            fileUrl = _fileStorageService.GetFileUrl(Path.GetFileName(fileUrl), folder);
+        }
 
         return Ok(new
         {
@@ -49,7 +55,7 @@ public class FilesController : ControllerBase
             message = "Upload thành công",
             data = new
             {
-                filePath,
+                filePath = fileUrl,
                 fileUrl,
                 fileName = file.FileName,
                 fileSize = file.Length

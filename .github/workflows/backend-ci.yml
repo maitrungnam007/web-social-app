@@ -24,10 +24,10 @@ jobs:
         dotnet-version: '8.0.x'
 
     - name: Restore dependencies
-      run: dotnet restore backend/WebSocialApp.sln
+      run: dotnet restore InteractHub.sln
 
     - name: Build
-      run: dotnet build backend/WebSocialApp.sln --configuration Release --no-restore
+      run: dotnet build InteractHub.sln --configuration Release --no-restore
 
     - name: Run Unit Tests
       run: dotnet test backend/tests/Tests/Tests.csproj --configuration Release --no-build --verbosity normal --collect:"XPlat Code Coverage"

@@ -186,12 +186,17 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // PostgreSQL: Dung EnsureCreated (khong can migrations)
-        // SQL Server: Dung Migrate (co migrations san)
         if (isPostgres)
         {
-            Console.WriteLine("DEBUG Using EnsureCreated for PostgreSQL");
-            dbContext.Database.EnsureCreated();
+            Console.WriteLine("DEBUG PostgreSQL: Drop and recreate database");
+            
+            // Drop database neu ton tai, sau do tao moi
+            // Chi can chay 1 lan, sau do co the comment lai
+            var deleted = dbContext.Database.EnsureDeleted();
+            Console.WriteLine($"DEBUG Database deleted: {deleted}");
+            
+            var created = dbContext.Database.EnsureCreated();
+            Console.WriteLine($"DEBUG Database created: {created}");
         }
         else
         {
@@ -206,8 +211,8 @@ using (var scope = app.Services.CreateScope())
         await dbContext.Users.AsNoTracking().OrderBy(u => u.Id).Take(1).ToListAsync();
         await dbContext.Posts.AsNoTracking().OrderBy(p => p.Id).Take(1).ToListAsync();
         
-        Console.WriteLine("✅ Database đã được tạo và seed dữ liệu thành công!");
-        Console.WriteLine("🔥 EF Core warmup completed!");
+        Console.WriteLine("Database da duoc tao va seed du lieu thanh cong!");
+        Console.WriteLine("EF Core warmup completed!");
     }
     catch (Exception ex)
     {

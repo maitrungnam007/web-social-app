@@ -1,3 +1,5 @@
+import { API_BASE_URL } from '../services/apiClient'
+
 // Tao avatar mac dinh tu ho ten hoac userName
 // Hien 2 chu cai dau tien cua ho ten (vi du: "Nguyen Van A" -> "NA")
 export function getDefaultAvatarUrl(
@@ -30,6 +32,7 @@ export function getDefaultAvatarUrl(
 }
 
 // Lay URL avatar hoan chinh (uu tien avatar thuc te, neu khong co thi dung mac dinh)
+// Them timestamp de tranh browser cache khi upload avatar moi
 export function getAvatarUrl(
   avatarUrl?: string | null,
   firstName?: string | null,
@@ -38,7 +41,11 @@ export function getAvatarUrl(
   size: number = 128
 ): string {
   if (avatarUrl) {
-    return `http://localhost:5259/api/files/${avatarUrl}`
+    // Them timestamp de tranh cache
+    const timestamp = Date.now()
+    // Kiem tra xem avatarUrl da co query string chua
+    const separator = avatarUrl.includes('?') ? '&' : '?'
+    return `${API_BASE_URL}/api/files/${avatarUrl}${separator}t=${timestamp}`
   }
   return getDefaultAvatarUrl(firstName, lastName, userName, size)
 }

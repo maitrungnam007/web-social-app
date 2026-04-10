@@ -1,5 +1,6 @@
 import { useRef } from 'react'
 import { User } from '../types'
+import { API_BASE_URL } from '../services/apiClient'
 
 interface ProfileCoverProps {
   user: User
@@ -33,10 +34,10 @@ export default function ProfileCover({
     <div className="relative h-48 rounded-t-lg overflow-hidden group">
       {user.coverImageUrl ? (
         <img
-          src={`http://localhost:5259/api/files/${user.coverImageUrl}`}
+          src={`${API_BASE_URL}/api/files/${user.coverImageUrl}`}
           alt="Cover"
           className="w-full h-full object-cover cursor-pointer"
-          onClick={() => onViewImage(`http://localhost:5259/api/files/${user.coverImageUrl}`, 'cover')}
+          onClick={() => onViewImage(`${API_BASE_URL}/api/files/${user.coverImageUrl}`, 'cover')}
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600" />

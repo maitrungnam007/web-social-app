@@ -1,10 +1,13 @@
 import { Story, StoryHighlight } from '../types'
 import { getAvatarUrl } from '../utils/avatar'
+import { API_BASE_URL } from '../services/apiClient'
 
 interface ProfileHighlightsProps {
   stories: Story[]
   highlights: StoryHighlight[]
   userName?: string
+  userFirstName?: string
+  userLastName?: string
   userAvatar?: string
   onViewStory: (story: Story) => void
   onViewHighlight: (highlight: StoryHighlight) => void
@@ -14,6 +17,8 @@ export default function ProfileHighlights({
   stories,
   highlights,
   userName,
+  userFirstName,
+  userLastName,
   userAvatar,
   onViewStory,
   onViewHighlight
@@ -30,7 +35,7 @@ export default function ProfileHighlights({
           >
             {stories[0].mediaUrl ? (
               <img
-                src={`http://localhost:5259/api/files/${stories[0].mediaUrl}`}
+                src={`${API_BASE_URL}/api/files/${stories[0].mediaUrl}`}
                 alt="Story"
                 className="h-full w-full object-cover"
               />
@@ -45,7 +50,7 @@ export default function ProfileHighlights({
             <div className="absolute top-2 left-2">
               <div className={`w-10 h-10 rounded-full p-0.5 ${stories[0].isViewedByCurrentUser ? 'bg-gray-300' : 'bg-gradient-to-tr from-blue-500 to-purple-500'}`}>
                 <img
-                  src={getAvatarUrl(userAvatar, undefined, undefined, userName, 40)}
+                  src={getAvatarUrl(userAvatar, userFirstName, userLastName, userName, 40)}
                   alt={userName || ''}
                   className="w-full h-full rounded-full object-cover border-2 border-white"
                 />
@@ -69,7 +74,7 @@ export default function ProfileHighlights({
           >
             {highlight.coverImageUrl || highlight.stories[0]?.mediaUrl ? (
               <img
-                src={`http://localhost:5259/api/files/${highlight.coverImageUrl || highlight.stories[0]?.mediaUrl}`}
+                src={`${API_BASE_URL}/api/files/${highlight.coverImageUrl || highlight.stories[0]?.mediaUrl}`}
                 alt={highlight.name}
                 className="h-full w-full object-cover"
               />

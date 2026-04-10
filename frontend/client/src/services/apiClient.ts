@@ -3,7 +3,7 @@ import axios from 'axios'
 // Su dung VITE_API_URL tu environment variable
 // Development: http://localhost:5259 (tu .env.development)
 // Production: https://interacthub-api-it5d.onrender.com (tu .env.production hoac Vercel env var)
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5259'
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5259'
 
 const api = axios.create({
   baseURL: `${API_BASE_URL}/api`,  // Them /api prefix

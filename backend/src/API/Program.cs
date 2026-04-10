@@ -22,9 +22,21 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Cấu hình DbContext
+// Cấu hình DbContext - Tự động phát hiện loại database từ connection string
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var isPostgres = connectionString?.StartsWith("postgresql", StringComparison.OrdinalIgnoreCase) ?? false;
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (isPostgres)
+    {
+        options.UseNpgsql(connectionString);
+    }
+    else
+    {
+        options.UseSqlServer(connectionString);
+    }
+});
 
 // Cấu hình Identity với thông báo lỗi tiếng Việt
 builder.Services.AddIdentity<User, IdentityRole>(options =>

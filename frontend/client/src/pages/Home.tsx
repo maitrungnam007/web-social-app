@@ -111,21 +111,23 @@ export default function Home() {
 
     // Reload posts when search query or hashtag changes
     useEffect(() => {
-        if (!initialLoad) {
-            setPosts([]);
-            setPage(1);
-            setHasMore(true);
-            fetchPosts(1);
-        }
-    }, [searchQuery, hashtagQuery, initialLoad]);
+        if (initialLoad) return; // Skip khi dang load ban dau
+        
+        setPosts([]);
+        setPage(1);
+        setHasMore(true);
+        fetchPosts(1);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery, hashtagQuery]);
 
     // Load more on page change (after initial load)
     useEffect(() => {
-        if (!initialLoad && page > 1) {
-            fetchPosts(page);
-            sessionStorage.setItem('homePage', String(page));
-        }
-    }, [page, initialLoad]);
+        if (initialLoad || page === 1) return; // Skip khi dang load ban dau hoac page 1
+        
+        fetchPosts(page);
+        sessionStorage.setItem('homePage', String(page));
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [page]);
 
     // Infinite scroll
     useEffect(() => {

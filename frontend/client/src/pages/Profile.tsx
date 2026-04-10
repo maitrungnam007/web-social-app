@@ -10,7 +10,17 @@ import ProfileAvatar from '../components/ProfileAvatar'
 import ProfileHighlights from '../components/ProfileHighlights'
 import PostItem from '../components/PostItem'
 import ReportModal from '../components/ReportModal'
+import ConfirmDialog from '../components/ConfirmDialog'
 import { API_BASE_URL } from '../services/apiClient'
+
+// Helper function de lay URL day du cho media
+const getMediaUrl = (url?: string | null): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return `${API_BASE_URL}/api/files/${url}`
+}
 
 export default function Profile() {
   const { userId } = useParams()
@@ -39,6 +49,8 @@ export default function Profile() {
     bio: ''
   })
   const [showReportModal, setShowReportModal] = useState(false)
+  const [showDeleteAvatarConfirm, setShowDeleteAvatarConfirm] = useState(false)
+  const [showDeleteCoverConfirm, setShowDeleteCoverConfirm] = useState(false)
   const requestIdRef = useRef(0)
   const observerRef = useRef<IntersectionObserver | null>(null)
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -209,41 +221,25 @@ export default function Profile() {
   }, [loadingPosts, hasMorePosts, currentPage, loadPosts])
 
   const handleDeleteAvatar = async () => {
-    // Hiển thị toast xác nhận
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <p className="font-medium">Bạn có chắc muốn xóa avatar?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
-          >
-            Hủy
-          </button>
-          <button
-            onClick={async () => {
-              toast.dismiss(t.id)
-              try {
-                const response = await usersApi.deleteAvatar()
-                if (response.success) {
-                  setUser(prev => prev ? { ...prev, avatarUrl: undefined } : null)
-                  updateUser({ avatarUrl: undefined })
-                  toast.success('Đã xóa avatar thành công')
-                } else {
-                  toast.error(response.message || 'Không thể xóa avatar')
-                }
-              } catch (error: any) {
-                const message = error.response?.data?.message || error.message || 'Không thể xóa avatar'
-                toast.error(message)
-              }
-            }}
-            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-          >
-            Xóa
-          </button>
-        </div>
-      </div>
-    ), { duration: Infinity })
+    setShowDeleteAvatarConfirm(true)
+  }
+
+  const confirmDeleteAvatar = async () => {
+    try {
+      const response = await usersApi.deleteAvatar()
+      if (response.success) {
+        setUser(prev => prev ? { ...prev, avatarUrl: undefined } : null)
+        updateUser({ avatarUrl: undefined })
+        toast.success('Đã xóa avatar thành công')
+      } else {
+        toast.error('Không thể xóa ảnh đại diện')
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Không thể xóa ảnh đại diện'
+      toast.error(message)
+    }
+    setShowDeleteAvatarConfirm(false)
+    setShowAvatarActions(false)
   }
 
   const handleAvatarUpload = async (file: File) => {
@@ -313,40 +309,25 @@ export default function Profile() {
   }
 
   const handleDeleteCover = async () => {
-    toast((t) => (
-      <div className="flex flex-col gap-3">
-        <p className="font-medium">Bạn có chắc muốn xóa ảnh bìa?</p>
-        <div className="flex gap-2">
-          <button
-            onClick={() => toast.dismiss(t.id)}
-            className="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm"
-          >
-            Hủy
-          </button>
-          <button
-            onClick={async () => {
-              toast.dismiss(t.id)
-              try {
-                const response = await usersApi.deleteCover()
-                if (response.success) {
-                  setUser(prev => prev ? { ...prev, coverImageUrl: undefined } : null)
-                  updateUser({ coverImageUrl: undefined })
-                  toast.success('Đã xóa ảnh bìa thành công')
-                } else {
-                  toast.error(response.message || 'Không thể xóa ảnh bìa')
-                }
-              } catch (error: any) {
-                const message = error.response?.data?.message || error.message || 'Không thể xóa ảnh bìa'
-                toast.error(message)
-              }
-            }}
-            className="px-3 py-1.5 bg-red-500 text-white rounded-lg hover:bg-red-600 text-sm"
-          >
-            Xóa
-          </button>
-        </div>
-      </div>
-    ), { duration: Infinity })
+    setShowDeleteCoverConfirm(true)
+  }
+
+  const confirmDeleteCover = async () => {
+    try {
+      const response = await usersApi.deleteCover()
+      if (response.success) {
+        setUser(prev => prev ? { ...prev, coverImageUrl: undefined } : null)
+        updateUser({ coverImageUrl: undefined })
+        toast.success('Đã xóa ảnh bìa thành công')
+      } else {
+        toast.error(response.message || 'Không thể xóa ảnh bìa')
+      }
+    } catch (error: any) {
+      const message = error.response?.data?.message || error.message || 'Không thể xóa ảnh bìa'
+      toast.error(message)
+    }
+    setShowDeleteCoverConfirm(false)
+    setShowCoverActions(false)
   }
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
@@ -709,9 +690,9 @@ export default function Profile() {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 p-0.5">
                         <img
                           src={h.coverImageUrl 
-                            ? `${API_BASE_URL}/api/files/${h.coverImageUrl}` 
+                            ? getMediaUrl(h.coverImageUrl) 
                             : (h.stories[0]?.mediaUrl 
-                              ? `${API_BASE_URL}/api/files/${h.stories[0].mediaUrl}` 
+                              ? getMediaUrl(h.stories[0].mediaUrl) 
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name.substring(0, 2).toUpperCase())}&background=random&size=40`)}
                           alt={h.name}
                           className="w-full h-full rounded-full object-cover border border-white"
@@ -747,6 +728,30 @@ export default function Profile() {
         targetType="user"
         targetId={user?.id || ''}
         targetName={user?.userName}
+      />
+
+      {/* Confirm dialog xóa avatar */}
+      <ConfirmDialog
+        isOpen={showDeleteAvatarConfirm}
+        title="Xóa avatar"
+        message="Bạn có chắc muốn xóa avatar?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="danger"
+        onConfirm={confirmDeleteAvatar}
+        onCancel={() => setShowDeleteAvatarConfirm(false)}
+      />
+
+      {/* Confirm dialog xóa ảnh bìa */}
+      <ConfirmDialog
+        isOpen={showDeleteCoverConfirm}
+        title="Xóa ảnh bìa"
+        message="Bạn có chắc muốn xóa ảnh bìa?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+        confirmVariant="danger"
+        onConfirm={confirmDeleteCover}
+        onCancel={() => setShowDeleteCoverConfirm(false)}
       />
     </div>
   )

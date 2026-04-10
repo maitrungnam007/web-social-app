@@ -34,10 +34,14 @@ export default function ProfileCover({
     <div className="relative h-48 rounded-t-lg overflow-hidden group">
       {user.coverImageUrl ? (
         <img
-          src={`${API_BASE_URL}/api/files/${user.coverImageUrl}`}
+          src={user.coverImageUrl.startsWith('http://') || user.coverImageUrl.startsWith('https://')
+            ? user.coverImageUrl
+            : `${API_BASE_URL}/api/files/${user.coverImageUrl}`}
           alt="Cover"
           className="w-full h-full object-cover cursor-pointer"
-          onClick={() => onViewImage(`${API_BASE_URL}/api/files/${user.coverImageUrl}`, 'cover')}
+          onClick={() => onViewImage(user.coverImageUrl!.startsWith('http://') || user.coverImageUrl!.startsWith('https://')
+            ? user.coverImageUrl!
+            : `${API_BASE_URL}/api/files/${user.coverImageUrl}`, 'cover')}
         />
       ) : (
         <div className="w-full h-full bg-gradient-to-r from-blue-500 to-purple-600" />

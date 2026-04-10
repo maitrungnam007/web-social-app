@@ -41,9 +41,15 @@ export function getAvatarUrl(
   size: number = 128
 ): string {
   if (avatarUrl) {
-    // Them timestamp de tranh cache
+    // Kiem tra neu avatarUrl da la full URL (http/https) thi khong them prefix
+    if (avatarUrl.startsWith('http://') || avatarUrl.startsWith('https://')) {
+      // Them timestamp de tranh cache
+      const timestamp = Date.now()
+      const separator = avatarUrl.includes('?') ? '&' : '?'
+      return `${avatarUrl}${separator}t=${timestamp}`
+    }
+    // Neu la relative path thi them prefix
     const timestamp = Date.now()
-    // Kiem tra xem avatarUrl da co query string chua
     const separator = avatarUrl.includes('?') ? '&' : '?'
     return `${API_BASE_URL}/api/files/${avatarUrl}${separator}t=${timestamp}`
   }

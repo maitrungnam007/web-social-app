@@ -2,6 +2,15 @@ import { Story, StoryHighlight } from '../types'
 import { getAvatarUrl } from '../utils/avatar'
 import { API_BASE_URL } from '../services/apiClient'
 
+// Helper function de lay URL day du cho media
+const getMediaUrl = (url?: string | null): string => {
+  if (!url) return ''
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url
+  }
+  return `${API_BASE_URL}/api/files/${url}`
+}
+
 interface ProfileHighlightsProps {
   stories: Story[]
   highlights: StoryHighlight[]
@@ -35,7 +44,7 @@ export default function ProfileHighlights({
           >
             {stories[0].mediaUrl ? (
               <img
-                src={`${API_BASE_URL}/api/files/${stories[0].mediaUrl}`}
+                src={getMediaUrl(stories[0].mediaUrl)}
                 alt="Story"
                 className="h-full w-full object-cover"
               />
@@ -74,7 +83,7 @@ export default function ProfileHighlights({
           >
             {highlight.coverImageUrl || highlight.stories[0]?.mediaUrl ? (
               <img
-                src={`${API_BASE_URL}/api/files/${highlight.coverImageUrl || highlight.stories[0]?.mediaUrl}`}
+                src={getMediaUrl(highlight.coverImageUrl || highlight.stories[0]?.mediaUrl)}
                 alt={highlight.name}
                 className="h-full w-full object-cover"
               />

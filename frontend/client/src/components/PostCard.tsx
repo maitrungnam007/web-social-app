@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Post } from '../types'
 import MentionDisplay from './MentionDisplay'
 import { getAvatarUrl } from '../utils/avatar'
+import { API_BASE_URL } from '../services/apiClient'
 
 interface PostCardProps {
   post: Post
@@ -116,7 +117,7 @@ export default function PostCard({
       {/* Image */}
       {post.imageUrl && (
         <img
-          src={`http://localhost:5259/api/files/${post.imageUrl}`}
+          src={`${API_BASE_URL}/api/files/${post.imageUrl}`}
           alt="Post"
           className="w-full h-48 object-cover rounded-lg mb-3"
         />

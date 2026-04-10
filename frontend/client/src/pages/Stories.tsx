@@ -6,6 +6,7 @@ import toast from 'react-hot-toast'
 import StoryViewer from '../components/StoryViewer'
 import ConfirmDialog from '../components/ConfirmDialog'
 import { getAvatarUrl } from '../utils/avatar'
+import { API_BASE_URL } from '../services/apiClient'
 
 interface ConfirmState {
   isOpen: boolean
@@ -143,8 +144,12 @@ export default function Stories() {
       if (selectedFile) {
         const formData = new FormData()
         formData.append('file', selectedFile)
-        const uploadResponse = await fetch('http://localhost:5259/api/files/upload?folder=stories', {
+        const token = localStorage.getItem('token')
+        const uploadResponse = await fetch(`${API_BASE_URL}/api/files/upload?folder=stories`, {
           method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          },
           body: formData
         })
         const uploadData = await uploadResponse.json()
@@ -278,7 +283,7 @@ export default function Stories() {
               {/* Story Preview */}
               {group.stories[0].mediaUrl ? (
                 <img
-                  src={`http://localhost:5259/api/files/${group.stories[0].mediaUrl}`}
+                  src={`${API_BASE_URL}/api/files/${group.stories[0].mediaUrl}`}
                   alt="Story"
                   className="h-full w-full object-cover"
                 />
@@ -334,7 +339,7 @@ export default function Stories() {
                 >
                   {story.mediaUrl ? (
                     <img
-                      src={`http://localhost:5259/api/files/${story.mediaUrl}`}
+                      src={`${API_BASE_URL}/api/files/${story.mediaUrl}`}
                       alt="Archived Story"
                       className="w-full h-48 object-cover"
                     />
@@ -459,9 +464,9 @@ export default function Stories() {
                       <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-green-400 to-blue-500 p-0.5">
                         <img
                           src={h.coverImageUrl 
-                            ? `http://localhost:5259/api/files/${h.coverImageUrl}` 
+                            ? `${API_BASE_URL}/api/files/${h.coverImageUrl}` 
                             : (h.stories[0]?.mediaUrl 
-                              ? `http://localhost:5259/api/files/${h.stories[0].mediaUrl}` 
+                              ? `${API_BASE_URL}/api/files/${h.stories[0].mediaUrl}` 
                               : `https://ui-avatars.com/api/?name=${encodeURIComponent(h.name.substring(0, 2).toUpperCase())}&background=random&size=40`)}
                           alt={h.name}
                           className="w-full h-full rounded-full object-cover border border-white"

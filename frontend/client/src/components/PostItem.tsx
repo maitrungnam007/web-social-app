@@ -7,7 +7,9 @@ import { useAuth } from "../contexts/AuthContext";
 import Comments from "./Comments.tsx";
 import ReportModal from "./ReportModal.tsx";
 import MentionDisplay from "./MentionDisplay.tsx";
+import ConfirmDialog from "./ConfirmDialog.tsx";
 import { getAvatarUrl } from "../utils/avatar";
+import { API_BASE_URL } from "../services/apiClient";
 
 interface Props {
     post: Post;
@@ -26,7 +28,7 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
     const [showReportModal, setShowReportModal] = useState(false);
     const [isHidden, setIsHidden] = useState(false);
     const [hiding, setHiding] = useState(false);
-    const [deleting, setDeleting] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
     // Check nếu là chủ bài viết
     const isOwner = user?.id === post.userId;
@@ -77,47 +79,24 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
 
     // Xóa bài viết
     const handleDelete = async () => {
-        if (deleting) return;
+        setShowDeleteConfirm(true);
+    };
 
-        // Sử dụng toast confirm thay vì window.confirm
-        toast(
-            (t) => (
-                <div className="flex flex-col gap-2">
-                    <p className="font-medium">Bạn có chắc muốn xóa bài viết này?</p>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => toast.dismiss(t.id)}
-                            className="px-3 py-1 text-sm bg-gray-200 rounded hover:bg-gray-300"
-                        >
-                            Hủy
-                        </button>
-                        <button
-                            onClick={async () => {
-                                toast.dismiss(t.id);
-                                setDeleting(true);
-                                try {
-                                    const result = await postsApi.deletePost(post.id);
-                                    if (result.success) {
-                                        toast.success("Đã xóa bài viết");
-                                        onPostDelete?.(post.id);
-                                    } else {
-                                        toast.error(result.message || "Không thể xóa bài viết");
-                                    }
-                                } catch (error) {
-                                    toast.error("Có lỗi xảy ra");
-                                }
-                                setDeleting(false);
-                                setShowMenu(false);
-                            }}
-                            className="px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600"
-                        >
-                            Xóa
-                        </button>
-                    </div>
-                </div>
-            ),
-            { duration: Infinity }
-        );
+    // Thực hiện xóa sau khi xác nhận
+    const confirmDelete = async () => {
+        try {
+            const result = await postsApi.deletePost(post.id);
+            if (result.success) {
+                toast.success("Đã xóa bài viết");
+                onPostDelete?.(post.id);
+            } else {
+                toast.error(result.message || "Không thể xóa bài viết");
+            }
+        } catch (error) {
+            toast.error("Có lỗi xảy ra");
+        }
+        setShowDeleteConfirm(false);
+        setShowMenu(false);
     };
 
     const handleLike = async () => {
@@ -282,7 +261,7 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
                             <img
                                 src={post.imageUrl.startsWith("http")
                                     ? post.imageUrl
-                                    : `http://localhost:5259/api/files/${post.imageUrl}`}
+                                    : `${API_BASE_URL}/api/files/${post.imageUrl}`}
                                 alt="Post image"
                                 className="w-full max-h-64 sm:max-h-96 object-cover"
                             />
@@ -355,6 +334,18 @@ export default function PostItem({ post, hiddenPostIds, onPostDelete }: Props) {
                         targetType="post"
                         targetId={post.id}
                         targetName={displayName}
+                    />
+
+                    {/* Confirm dialog xóa bài viết */}
+                    <ConfirmDialog
+                        isOpen={showDeleteConfirm}
+                        title="Xóa bài viết"
+                        message="Bạn có chắc muốn xóa bài viết này? Hành động này không thể hoàn tác."
+                        confirmText="Xóa"
+                        cancelText="Hủy"
+                        confirmVariant="danger"
+                        onConfirm={confirmDelete}
+                        onCancel={() => setShowDeleteConfirm(false)}
                     />
                 </>
             )}

@@ -4,6 +4,7 @@ import { Post, Comment } from '../../types'
 import toast from 'react-hot-toast'
 import ConfirmDialog from '../../components/ConfirmDialog'
 import { getAvatarUrl } from '../../utils/avatar'
+import { API_BASE_URL } from '../../services/apiClient'
 
 type ContentType = 'posts' | 'comments'
 type ContentStatus = 'all' | 'visible' | 'hidden'
@@ -357,7 +358,7 @@ export default function AdminContent() {
                       </p>
                       {post.imageUrl && (
                         <img
-                          src={`http://localhost:5259/api/files/${post.imageUrl}`}
+                          src={`${API_BASE_URL}/api/files/${post.imageUrl}`}
                           alt="Post"
                           className="mt-2 max-w-xs rounded-lg"
                         />

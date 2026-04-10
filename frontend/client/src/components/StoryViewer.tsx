@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Story } from '../types'
 import { storiesApi } from '../services'
 import { getAvatarUrl } from '../utils/avatar'
+import { API_BASE_URL } from '../services/apiClient'
 
 interface StoryViewerProps {
   stories: Story[]
@@ -170,7 +171,7 @@ export default function StoryViewer({
           {/* Story Content */}
           {currentStory.mediaUrl ? (
             <img
-              src={`http://localhost:5259/api/files/${currentStory.mediaUrl}`}
+              src={`${API_BASE_URL}/api/files/${currentStory.mediaUrl}`}
               alt="Story"
               className="w-full h-full object-cover"
             />

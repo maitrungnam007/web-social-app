@@ -77,8 +77,9 @@ builder.Services.AddScoped<ISystemSettingService, SystemSettingService>();
 // Cấu hình SignalR
 builder.Services.AddSignalR();
 
-// Cấu hình CORS
+// Cau hinh CORS - Ho tro ca FRONTEND_URL va ALLOWED_ORIGINS
 var allowedOrigins = builder.Configuration["ALLOWED_ORIGINS"] 
+    ?? builder.Configuration["FRONTEND_URL"]
     ?? "http://localhost:3000,http://localhost:5173,https://web-social-app-ochre.vercel.app,https://web-social-app.vercel.app";
 
 builder.Services.AddCors(options =>

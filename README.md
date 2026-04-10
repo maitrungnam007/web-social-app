@@ -1,4 +1,4 @@
-# InteractHub - Mạng xã hội
+# 🌐 InteractHub - Mạng xã hội
 
 Ứng dụng mạng xã hội full-stack được xây dựng với ASP.NET Core 8.0 và React 18+.
 
@@ -6,7 +6,7 @@
 
 ---
 
-## Công nghệ sử dụng
+## 🛠️ Công nghệ sử dụng
 
 ### Backend
 - **ASP.NET Core 8.0** Web API
@@ -33,7 +33,7 @@
 
 ---
 
-## Tính năng
+## ✨ Tính năng
 
 ### Người dùng
 - Đăng ký và đăng nhập với JWT authentication
@@ -58,7 +58,7 @@
 
 ---
 
-## Cấu trúc dự án
+## 📁 Cấu trúc dự án
 
 ```
 web-social-app/
@@ -105,12 +105,12 @@ web-social-app/
 
 ---
 
-## Hướng dẫn cài đặt
+## 🚀 Hướng dẫn cài đặt
 
-### Yêu cầu
-- **.NET SDK 8.0**
-- **Node.js 18+**
-- **SQL Server** hoặc **PostgreSQL**
+### 📋 Yêu cầu
+- 💻 **.NET SDK 8.0**
+- 📦 **Node.js 18+**
+- 🗄️ **SQL Server** hoặc **PostgreSQL**
 
 ### Backend
 
@@ -157,7 +157,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ---
 
-## Thống kê
+## 📊 Thống kê
 
 | Thành phần | Số lượng |
 |------------|----------|
@@ -170,7 +170,7 @@ CLOUDINARY_API_SECRET=your_api_secret
 
 ---
 
-## API Endpoints
+## 🔌 API Endpoints
 
 | Controller | Endpoints | Mô tả |
 |------------|-----------|-------|
@@ -189,7 +189,7 @@ Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho danh sách API endpoints đầy
 
 ---
 
-## Tài khoản Test
+## 🔑 Tài khoản Test
 
 | Username | Email | Password | Vai trò |
 |----------|-------|----------|---------|
@@ -198,7 +198,7 @@ Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho danh sách API endpoints đầy
 
 ---
 
-## Testing
+## 🧪 Testing
 
 ```bash
 dotnet test                                    # Chay tat ca tests
@@ -209,7 +209,7 @@ dotnet test --collect:"XPlat Code Coverage"   # Voi coverage
 
 ---
 
-## Screenshots
+## 📸 Screenshots
 
 | Trang | Mô tả |
 |-------|-------|
@@ -227,7 +227,7 @@ Xem thư mục `screenshots/` cho hình ảnh chi tiết.
 
 ---
 
-## Deployment
+## 🌍 Deployment
 
 ### Platform
 
@@ -266,7 +266,7 @@ Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho hướng dẫn deployment chi t
 
 ---
 
-## Tài liệu chi tiết
+## 📚 Tài liệu chi tiết
 
 Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho:
 - Kiến trúc hệ thống với diagrams
@@ -277,6 +277,6 @@ Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho:
 
 ---
 
-## Giấy phép
+## 📄 Giấy phép
 
 Dự án được tạo cho mục đích giáo dục như một phần của khóa học **C# and .NET Development (Spring 2026)**.

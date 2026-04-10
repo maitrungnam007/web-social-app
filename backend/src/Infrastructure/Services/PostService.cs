@@ -203,10 +203,23 @@ public class PostService : IPostService
     {
         try
         {
+            // Lay Admin role ID de kiem tra quyen
+            var adminRoleId = await _context.Roles
+                .Where(r => r.Name == "Admin")
+                .Select(r => r.Id)
+                .FirstOrDefaultAsync();
+
+            // Kiem tra xem user hien tai co phai admin khong
+            var isAdmin = false;
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                isAdmin = await _context.UserRoles.AnyAsync(ur => ur.UserId == currentUserId && ur.RoleId == adminRoleId);
+            }
+
             // Dùng projection để tránh N+1 và in-memory counting
             var post = await _context.Posts
                 .AsNoTracking()
-                .Where(p => p.Id == postId && !p.IsDeleted)
+                .Where(p => p.Id == postId && !p.IsDeleted && (isAdmin || !p.IsHidden))
                 .Select(p => new PostResponseDto
                 {
                     Id = p.Id,
@@ -220,7 +233,7 @@ public class PostService : IPostService
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     LikeCount = p.Likes.Count(l => l.CommentId == null && !l.User.IsBanned && l.User != null),
-                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned && c.User != null),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned && c.User != null && !c.IsHidden && (c.ParentComment == null || !c.ParentComment.IsHidden)),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
                     IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()
@@ -252,10 +265,18 @@ public class PostService : IPostService
                 .Select(r => r.Id)
                 .FirstOrDefaultAsync();
 
+            // Kiem tra xem user hien tai co phai admin khong
+            var isAdmin = false;
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                isAdmin = await _context.UserRoles.AnyAsync(ur => ur.UserId == currentUserId && ur.RoleId == adminRoleId);
+            }
+
             var query = _context.Posts
                 .AsNoTracking()
-                .Where(p => !p.IsDeleted && !p.User.IsBanned && 
-                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == p.UserId && ur.RoleId == adminRoleId)));
+                .Where(p => !p.IsDeleted && !p.User.IsBanned &&
+                            (adminRoleId == null || !_context.UserRoles.Any(ur => ur.UserId == p.UserId && ur.RoleId == adminRoleId)) &&
+                            (isAdmin || !p.IsHidden));  // An bai viet bi an doi voi user thuong
 
             // Lọc theo userId
             if (!string.IsNullOrEmpty(filter.UserId))
@@ -296,7 +317,7 @@ public class PostService : IPostService
                     CreatedAt = p.CreatedAt,
                     UpdatedAt = p.UpdatedAt,
                     LikeCount = p.Likes.Count(l => l.CommentId == null && !l.User.IsBanned),
-                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned),
+                    CommentCount = p.Comments.Count(c => !c.IsDeleted && !c.User.IsBanned && !c.IsHidden && (c.ParentComment == null || !c.ParentComment.IsHidden)),
                     IsLikedByCurrentUser = currentUserId != null && p.Likes.Any(l => l.UserId == currentUserId && l.CommentId == null),
                     IsHidden = p.IsHidden,
                     Hashtags = p.PostHashtags.Select(ph => ph.Hashtag != null ? ph.Hashtag.Name : "").Where(n => !string.IsNullOrEmpty(n)).ToList()

@@ -40,12 +40,15 @@ export interface Comment {
   postIsHidden?: boolean
   userId: string
   userName: string
+  userFirstName?: string
+  userLastName?: string
   userAvatar?: string
   parentCommentId?: number
   createdAt: string
   likeCount: number
   isLikedByCurrentUser: boolean
   isHidden?: boolean
+  isParentHidden?: boolean
   replies: Comment[]
 }
 

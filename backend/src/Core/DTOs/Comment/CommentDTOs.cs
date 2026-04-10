@@ -36,5 +36,6 @@ public class CommentResponseDto
     public int LikeCount { get; set; }
     public bool IsLikedByCurrentUser { get; set; }
     public bool IsHidden { get; set; }
+    public bool IsParentHidden { get; set; }  // Chi rang parent comment bi hidden
     public List<CommentResponseDto> Replies { get; set; } = new();
 }

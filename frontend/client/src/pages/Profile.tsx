@@ -42,6 +42,7 @@ export default function Profile() {
   const [viewingHighlight, setViewingHighlight] = useState<StoryHighlight | null>(null)
   const [showHighlightModal, setShowHighlightModal] = useState(false)
   const [newHighlightName, setNewHighlightName] = useState('')
+  const [storyToAddToHighlight, setStoryToAddToHighlight] = useState<number | null>(null)
   const [editing, setEditing] = useState(false)
   const [formData, setFormData] = useState({
     firstName: '',
@@ -88,14 +89,57 @@ export default function Profile() {
 
   const handleDeleteStory = async (storyId: number) => {
     try {
+      // Tim tat ca highlights chua story nay va xoa khoi chung
+      const highlightsContainingStory = highlights.filter(h => 
+        h.stories.some(s => s.id === storyId)
+      )
+      
+      for (const highlight of highlightsContainingStory) {
+        // Xoa story khoi highlight
+        await storiesApi.removeStoryFromHighlight(highlight.id, storyId)
+        
+        // Neu highlight chi con 1 story (story dang xoa), xoa luon highlight
+        if (highlight.stories.length <= 1) {
+          await storiesApi.deleteHighlight(highlight.id)
+          toast.success(`Tin nổi bật "${highlight.name}" đã bị xóa do không còn tin nào`)
+        }
+      }
+      
+      // Xoa story
       const response = await storiesApi.deleteStory(storyId)
       if (response.success) {
         toast.success('Đã xóa tin')
         setViewingStory(null)
+        setViewingHighlight(null)
         loadUserStories()
+        loadHighlights()
       }
     } catch (error) {
       toast.error('Không thể xóa tin')
+    }
+  }
+
+  // Xoa story khoi highlight
+  const handleRemoveFromHighlight = async (storyId: number) => {
+    if (!viewingHighlight) return
+    try {
+      const response = await storiesApi.removeStoryFromHighlight(viewingHighlight.id, storyId)
+      if (response.success) {
+        toast.success('Đã xóa khỏi tin nổi bật')
+        // Kiem tra neu highlight chi con 1 story thi xoa luon highlight
+        if (viewingHighlight.stories.length <= 1) {
+          // Xoa highlight vi khong con story nao
+          await storiesApi.deleteHighlight(viewingHighlight.id)
+          toast.success('Tin nổi bật đã bị xóa do không còn tin nào')
+        }
+        setViewingStory(null)
+        setViewingHighlight(null)
+        loadHighlights()
+      } else {
+        toast.error(response.message || 'Không thể xóa khỏi tin nổi bật')
+      }
+    } catch (error) {
+      toast.error('Có lỗi xảy ra')
     }
   }
 
@@ -606,10 +650,16 @@ export default function Profile() {
             setViewingStory(null)
             setViewingHighlight(null)
           }}
-          showDeleteButton={isOwnProfile && !viewingHighlight}
+          showDeleteButton={isOwnProfile}
           onDeleteStory={handleDeleteStory}
           showAddToHighlight={isOwnProfile && !viewingHighlight}
-          onAddToHighlight={() => setShowHighlightModal(true)}
+          onAddToHighlight={(storyId) => {
+            setStoryToAddToHighlight(storyId)
+            setShowHighlightModal(true)
+          }}
+          showRemoveFromHighlight={isOwnProfile && !!viewingHighlight}
+          onRemoveFromHighlight={handleRemoveFromHighlight}
+          highlightId={viewingHighlight?.id}
           userName={user?.userName}
           userFirstName={user?.firstName}
           userLastName={user?.lastName}
@@ -618,7 +668,7 @@ export default function Profile() {
       )}
 
       {/* Highlight Modal */}
-      {showHighlightModal && viewingStory && (
+      {showHighlightModal && storyToAddToHighlight && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60]">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-semibold mb-4">Thêm vào Tin nổi bật</h3>
@@ -641,11 +691,12 @@ export default function Profile() {
                   try {
                     const response = await storiesApi.createHighlight({
                       name: newHighlightName.trim(),
-                      storyIds: [viewingStory.id]
+                      storyIds: [storyToAddToHighlight]
                     })
                     if (response.success) {
                       toast.success('Đã tạo highlight mới')
                       setNewHighlightName('')
+                      setStoryToAddToHighlight(null)
                       setShowHighlightModal(false)
                       loadHighlights()
                     } else {
@@ -673,9 +724,10 @@ export default function Profile() {
                       key={h.id}
                       onClick={async () => {
                         try {
-                          const response = await storiesApi.addStoryToHighlight(h.id, viewingStory.id)
+                          const response = await storiesApi.addStoryToHighlight(h.id, storyToAddToHighlight)
                           if (response.success) {
                             toast.success(`Đã thêm vào "${h.name}"`)
+                            setStoryToAddToHighlight(null)
                             setShowHighlightModal(false)
                             loadHighlights()
                           } else {
@@ -712,6 +764,7 @@ export default function Profile() {
               onClick={() => {
                 setShowHighlightModal(false)
                 setNewHighlightName('')
+                setStoryToAddToHighlight(null)
               }}
               className="w-full mt-4 border py-2 rounded-lg hover:bg-gray-50"
             >

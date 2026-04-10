@@ -278,13 +278,26 @@ public static class SeedData
             var postIds = await context.Posts.Select(p => p.Id).ToListAsync();
             var hashtagIds = await context.Hashtags.Select(h => h.Id).ToListAsync();
             var postHashtags = new List<PostHashtag>();
+            var addedPairs = new HashSet<(int, int)>(); // Track unique (PostId, HashtagId)
 
             for (int i = 1; i <= 20; i++)
             {
+                int postId;
+                int hashtagId;
+                
+                // Tao unique pair
+                do
+                {
+                    postId = postIds[Random.Shared.Next(postIds.Count)];
+                    hashtagId = hashtagIds[Random.Shared.Next(hashtagIds.Count)];
+                } while (addedPairs.Contains((postId, hashtagId)));
+
+                addedPairs.Add((postId, hashtagId));
+                
                 var postHashtag = new PostHashtag
                 {
-                    PostId = postIds[Random.Shared.Next(postIds.Count)],
-                    HashtagId = hashtagIds[Random.Shared.Next(hashtagIds.Count)]
+                    PostId = postId,
+                    HashtagId = hashtagId
                 };
                 postHashtags.Add(postHashtag);
             }

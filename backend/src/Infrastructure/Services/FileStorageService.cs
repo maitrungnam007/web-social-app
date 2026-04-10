@@ -77,10 +77,19 @@ public class FileStorageService : IFileStorageService
         }
     }
 
-    // Lấy URL đầy đủ của file
+    // Lay URL day du cua file
     public string GetFileUrl(string fileName, string folder)
     {
-        var baseUrl = _configuration["FileStorage:BaseUrl"] ?? "";
-        return $"{baseUrl}/{folder}/{fileName}";
+        var baseUrl = _configuration["FileStorage:BaseUrl"];
+        
+        // Neu khong co BaseUrl, su dung URL mac dinh cho local development
+        if (string.IsNullOrEmpty(baseUrl))
+        {
+            // Lay port tu configuration hoac dung port mac dinh
+            var port = _configuration["Kestrel:Endpoints:Http:Url"] ?? "http://localhost:5259";
+            baseUrl = port;
+        }
+        
+        return $"{baseUrl}/uploads/{folder}/{fileName}";
     }
 }

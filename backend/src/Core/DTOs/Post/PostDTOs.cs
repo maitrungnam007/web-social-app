@@ -4,7 +4,6 @@ namespace Core.DTOs.Post;
 
 public class CreatePostDto
 {
-    [Required]
     [MaxLength(5000)]
     public string Content { get; set; } = string.Empty;
     
@@ -18,7 +17,6 @@ public class CreatePostDto
 
 public class UpdatePostDto
 {
-    [Required]
     [MaxLength(5000)]
     public string Content { get; set; } = string.Empty;
     

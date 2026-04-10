@@ -103,7 +103,24 @@ builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<IFriendService, FriendService>();
 builder.Services.AddScoped<IStoryService, StoryService>();
-builder.Services.AddScoped<IFileStorageService, CloudinaryService>();
+// Dang ky FileStorageService - uu tien Cloudinary, neu khong co thi dung local storage
+var cloudinaryCloudName = builder.Configuration["Cloudinary:CloudName"] 
+    ?? Environment.GetEnvironmentVariable("CLOUDINARY_CLOUD_NAME");
+var cloudinaryApiKey = builder.Configuration["Cloudinary:ApiKey"] 
+    ?? Environment.GetEnvironmentVariable("CLOUDINARY_API_KEY");
+var cloudinaryApiSecret = builder.Configuration["Cloudinary:ApiSecret"] 
+    ?? Environment.GetEnvironmentVariable("CLOUDINARY_API_SECRET");
+
+if (!string.IsNullOrEmpty(cloudinaryCloudName) && !string.IsNullOrEmpty(cloudinaryApiKey) && !string.IsNullOrEmpty(cloudinaryApiSecret))
+{
+    builder.Services.AddScoped<IFileStorageService, CloudinaryService>();
+    Console.WriteLine("DEBUG: Using Cloudinary for file storage");
+}
+else
+{
+    builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+    Console.WriteLine("DEBUG: Using local storage for file uploads (Cloudinary not configured)");
+}
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<IHashtagService, HashtagService>();
 builder.Services.AddScoped<IReportService, ReportService>();
@@ -157,6 +174,18 @@ builder.Services.AddAuthentication(options =>
 //     .AddDefaultTokenProviders();
 
 var app = builder.Build();
+
+// Cấu hình static files de serve uploads folder
+var uploadsPath = Path.Combine(Directory.GetCurrentDirectory(), "uploads");
+if (!Directory.Exists(uploadsPath))
+{
+    Directory.CreateDirectory(uploadsPath);
+}
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
+    RequestPath = "/uploads"
+});
 
 // Cấu hình HTTP request pipeline
 app.UseSwagger();

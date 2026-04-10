@@ -72,13 +72,14 @@ export default function CreatePostModal({ onClose, onSuccess, initialMode }: Cre
     };
 
     const handleSubmit = async () => {
-        if (!content.trim()) {
-            toast.error("Nội dung không được để trống");
+        // Cho phep dang bai chi voi anh hoac chi voi content
+        if (!content.trim() && !selectedFile) {
+            toast.error("Vui lòng nhập nội dung hoặc hình ảnh");
             return;
         }
 
         if (content.length > 5000) {
-            toast.error("Nội dung tối đa 5000 ký tự");
+            toast.error("Nôi dung tôi da 5000 ky tu");
             return;
         }
 

@@ -24,17 +24,41 @@ builder.Services.AddSwaggerGen();
 
 // Cấu hình DbContext - Tự động phát hiện loại database từ connection string
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-Console.WriteLine($"DEBUG Connection String: {connectionString ?? "NULL"}");
 
 // Thu doc truc tiep tu environment variable
 var envConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection");
-Console.WriteLine($"DEBUG Env Connection String: {envConnectionString ?? "NULL"}");
 
 // Su dung env variable neu co, neu khong thi dung config
 var finalConnectionString = envConnectionString ?? connectionString;
-Console.WriteLine($"DEBUG Final Connection String: {finalConnectionString ?? "NULL"}");
 
-var isPostgres = finalConnectionString?.StartsWith("postgresql", StringComparison.OrdinalIgnoreCase) ?? false;
+// Convert PostgreSQL URI sang Npgsql connection string format
+// URI: postgresql://user:pass@host:port/db
+// Npgsql: Host=host;Port=port;Username=user;Password=pass;Database=db
+if (!string.IsNullOrEmpty(finalConnectionString) && finalConnectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase))
+{
+    try
+    {
+        var uri = new Uri(finalConnectionString);
+        var host = uri.Host;
+        var port = uri.Port > 0 ? uri.Port : 5432;
+        var database = uri.AbsolutePath.TrimStart('/');
+        var userInfo = uri.UserInfo.Split(':');
+        var username = userInfo[0];
+        var password = userInfo.Length > 1 ? userInfo[1] : "";
+
+        finalConnectionString = $"Host={host};Port={port};Username={username};Password={password};Database={database};SSL Mode=Require;Trust Server Certificate=true";
+        Console.WriteLine($"DEBUG Converted Npgsql Connection String: Host={host};Port={port};Database={database};Username={username}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"DEBUG Failed to convert URI: {ex.Message}");
+    }
+}
+
+var isPostgres = !string.IsNullOrEmpty(finalConnectionString) && 
+    (finalConnectionString.StartsWith("postgresql://", StringComparison.OrdinalIgnoreCase) || 
+     finalConnectionString.Contains("Host=", StringComparison.OrdinalIgnoreCase));
+
 Console.WriteLine($"DEBUG Is Postgres: {isPostgres}");
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

@@ -8,6 +8,7 @@ export default function AdminLayout() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   // Kiểm tra quyền admin
   useEffect(() => {
@@ -86,8 +87,38 @@ export default function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-gray-100">
+      {/* Mobile Header */}
+      <header className="lg:hidden fixed top-0 left-0 right-0 bg-gray-900 text-white p-3 z-50 flex items-center justify-between">
+        <h1 className="text-lg font-bold">Admin Panel</h1>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 rounded-lg hover:bg-gray-800 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            {mobileMenuOpen ? (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            ) : (
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+      </header>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div 
+          className="lg:hidden fixed inset-0 bg-black bg-opacity-50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       {/* Sidebar */}
-      <aside className={`fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 ${sidebarCollapsed ? 'w-16' : 'w-64'}`}>
+      <aside className={`
+        fixed left-0 top-0 h-full bg-gray-900 text-white transition-all duration-300 z-50
+        ${sidebarCollapsed ? 'lg:w-16' : 'lg:w-64'}
+        ${mobileMenuOpen ? 'w-64 translate-x-0' : '-translate-x-full lg:translate-x-0'}
+        w-64
+      `}>
         {/* Header voi toggle button */}
         <div className="p-4 border-b border-gray-700 flex items-center justify-between">
           {!sidebarCollapsed && (
@@ -176,7 +207,11 @@ export default function AdminLayout() {
       </aside>
 
       {/* Main Content */}
-      <main className={`transition-all duration-300 p-6 ${sidebarCollapsed ? 'ml-16' : 'ml-64'}`}>
+      <main className={`
+        transition-all duration-300 p-6
+        ${sidebarCollapsed ? 'lg:ml-16' : 'lg:ml-64'}
+        pt-16 lg:pt-6
+      `}>
         <Outlet />
       </main>
     </div>

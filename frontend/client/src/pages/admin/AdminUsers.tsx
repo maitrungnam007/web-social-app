@@ -60,20 +60,20 @@ export default function AdminUsers() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
-        <p className="text-gray-500 mt-1">Danh sách tất cả người dùng trong hệ thống</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Quản lý người dùng</h1>
+        <p className="text-gray-500 mt-1 text-sm sm:text-base">Danh sách tất cả người dùng trong hệ thống</p>
       </div>
 
       {/* Search */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
         <div className="relative">
           <input
             type="text"
             placeholder="Tìm kiếm theo username, email, họ tên..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm sm:text-base"
           />
           <svg
             className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400"
@@ -97,16 +97,16 @@ export default function AdminUsers() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Người dùng
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Email
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Vai trò
                   </th>
-                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  <th className="px-3 sm:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Thao tác
                   </th>
                 </tr>
@@ -114,35 +114,35 @@ export default function AdminUsers() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {users.map((user) => (
                   <tr key={user.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center gap-3">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                      <div className="flex items-center gap-2 sm:gap-3">
                         <img
                           src={getAvatarUrl(user.avatarUrl, user.firstName, user.lastName, user.userName, 40)}
                           alt={user.userName}
-                          className="w-10 h-10 rounded-full"
+                          className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
                         />
                         <div>
-                          <p className="font-medium text-gray-900">
+                          <p className="font-medium text-gray-900 text-sm sm:text-base">
                             {user.firstName && user.lastName 
                               ? `${user.firstName} ${user.lastName}` 
                               : user.userName}
                           </p>
-                          <p className="text-sm text-gray-500">@{user.userName}</p>
+                          <p className="text-xs sm:text-sm text-gray-500">@{user.userName}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {user.email}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                       {getRoleBadge(user.role)}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <Link
                         to={`/profile/${user.id}`}
-                        className="text-blue-600 hover:text-blue-900"
+                        className="text-blue-600 hover:text-blue-900 text-xs sm:text-sm"
                       >
-                        Xem profile
+                        Xem
                       </Link>
                     </td>
                   </tr>
@@ -155,13 +155,16 @@ export default function AdminUsers() {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="bg-white px-4 py-3 flex items-center justify-between border-t border-gray-200 sm:px-6">
-            <div>
+            <div className="hidden sm:block">
               <p className="text-sm text-gray-700">
-                Hiển thị 
+                Hiển thị{' '}
                 <span className="font-medium">{(page - 1) * pageSize + 1}</span> đến{' '}
                 <span className="font-medium">{Math.min(page * pageSize, totalCount)}</span> trong{' '}
                 <span className="font-medium">{totalCount}</span> kết quả
               </p>
+            </div>
+            <div className="sm:hidden text-sm text-gray-700">
+              Trang {page}/{totalPages}
             </div>
             <div>
               <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">

@@ -196,73 +196,73 @@ export default function AdminContent() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Quản lý nội dung</h1>
-        <p className="text-gray-500 mt-1">Quản lý bài viết, bình luận trong hệ thống</p>
+      <div className="mb-4 sm:mb-6">
+        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Quản lý nội dung</h1>
+        <p className="text-gray-500 mt-1 text-sm sm:text-base">Quản lý bài viết, bình luận trong hệ thống</p>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-100 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-blue-100 rounded-lg">
+              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tổng bài viết</p>
-              <p className="text-xl font-bold text-gray-900">{stats.totalPosts}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Tổng bài viết</p>
+              <p className="text-base sm:text-xl font-bold text-gray-900">{stats.totalPosts}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-green-100 rounded-lg">
-              <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-green-100 rounded-lg">
+              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Tổng bình luận</p>
-              <p className="text-xl font-bold text-gray-900">{stats.totalComments}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Tổng bình luận</p>
+              <p className="text-base sm:text-xl font-bold text-gray-900">{stats.totalComments}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-yellow-100 rounded-lg">
-              <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-yellow-100 rounded-lg">
+              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0L9.88 9.88m0 0l3.29 3.29m3.29 3.29l3.59 3.59M3 3l18 18" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Bài viết đã ẩn</p>
-              <p className="text-xl font-bold text-gray-900">{stats.hiddenPosts}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Bài viết đã ẩn</p>
+              <p className="text-base sm:text-xl font-bold text-gray-900">{stats.hiddenPosts}</p>
             </div>
           </div>
         </div>
         
-        <div className="bg-white rounded-lg shadow p-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-purple-100 rounded-lg">
-              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div className="bg-white rounded-lg shadow p-2 sm:p-4">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <div className="p-2 sm:p-3 bg-purple-100 rounded-lg">
+              <svg className="w-4 h-4 sm:w-6 sm:h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
               </svg>
             </div>
             <div>
-              <p className="text-sm text-gray-500">Bình luận đã ẩn</p>
-              <p className="text-xl font-bold text-gray-900">{stats.hiddenComments}</p>
+              <p className="text-xs sm:text-sm text-gray-500">Bình luận đã ẩn</p>
+              <p className="text-base sm:text-xl font-bold text-gray-900">{stats.hiddenComments}</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-4 mb-6">
-        <div className="flex flex-wrap gap-4 items-center">
+      <div className="bg-white rounded-lg shadow p-3 sm:p-4 mb-4 sm:mb-6">
+        <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
           <div className="flex-1">
             <input
               type="text"
@@ -270,34 +270,36 @@ export default function AdminContent() {
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
             />
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => { setStatusFilter(e.target.value as ContentStatus); setPage(1); }}
-            className="px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">Tất cả trạng thái</option>
-            <option value="visible">Đang hiển thị</option>
-            <option value="hidden">Đã ẩn</option>
-          </select>
-          <button
-            onClick={handleSearch}
-            className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-          >
-            Tìm kiếm
-          </button>
+          <div className="flex gap-3">
+            <select
+              value={statusFilter}
+              onChange={(e) => { setStatusFilter(e.target.value as ContentStatus); setPage(1); }}
+              className="flex-1 sm:flex-none px-3 sm:px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            >
+              <option value="all">Tất cả trạng thái</option>
+              <option value="visible">Đang hiển thị</option>
+              <option value="hidden">Đã ẩn</option>
+            </select>
+            <button
+              onClick={handleSearch}
+              className="px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 text-sm"
+            >
+              Tìm kiếm
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="bg-white rounded-lg shadow mb-6">
+      <div className="bg-white rounded-lg shadow mb-4 sm:mb-6">
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px">
             <button
               onClick={() => { setActiveTab('posts'); setPage(1); }}
-              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 ${
                 activeTab === 'posts'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -307,7 +309,7 @@ export default function AdminContent() {
             </button>
             <button
               onClick={() => { setActiveTab('comments'); setPage(1); }}
-              className={`px-6 py-4 text-sm font-medium border-b-2 ${
+              className={`px-4 sm:px-6 py-3 sm:py-4 text-xs sm:text-sm font-medium border-b-2 ${
                 activeTab === 'comments'
                   ? 'border-blue-500 text-blue-600'
                   : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -327,17 +329,17 @@ export default function AdminContent() {
               <div className="p-8 text-center text-gray-500">Không có bài viết nào</div>
             ) : (
               posts.map((post) => (
-                <div key={post.id} className={`p-4 ${post.isHidden ? 'bg-gray-50' : ''}`}>
-                  <div className="flex items-start gap-3">
+                <div key={post.id} className={`p-3 sm:p-4 ${post.isHidden ? 'bg-gray-50' : ''}`}>
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <img
                       src={getAvatarUrl(post.userAvatar, post.userFirstName, post.userLastName, post.userName, 40)}
                       alt={post.userName}
-                      className="w-10 h-10 rounded-full"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{post.userName}</span>
-                        <span className="text-sm text-gray-500">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <span className="font-medium text-sm sm:text-base">{post.userName}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">
                           {new Date(post.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                         {post.isHidden ? (
@@ -350,7 +352,7 @@ export default function AdminContent() {
                           </span>
                         )}
                       </div>
-                      <p className={`mt-1 text-gray-900 ${post.isHidden ? 'line-through text-gray-400' : ''}`}>
+                      <p className={`mt-1 text-gray-900 text-sm sm:text-base ${post.isHidden ? 'line-through text-gray-400' : ''}`}>
                         {post.content}
                       </p>
                       {post.imageUrl && (
@@ -360,30 +362,30 @@ export default function AdminContent() {
                           className="mt-2 max-w-xs rounded-lg"
                         />
                       )}
-                      <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                      <div className="mt-2 flex items-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500">
                         <span>{post.likeCount} lượt thích</span>
                         <span>{post.commentCount} bình luận</span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       {post.isHidden ? (
                         <button
                           onClick={() => handleUnhide(post.id, 'posts')}
-                          className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
                         >
                           Hiện
                         </button>
                       ) : (
                         <button
                           onClick={() => handleHide(post.id, 'posts')}
-                          className="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
                         >
                           Ẩn
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(post.id, 'posts')}
-                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
                       >
                         Xóa
                       </button>
@@ -399,17 +401,17 @@ export default function AdminContent() {
               <div className="p-8 text-center text-gray-500">Không có bình luận nào</div>
             ) : (
               comments.map((comment) => (
-                <div key={comment.id} className={`p-4 ${comment.isHidden ? 'bg-gray-50' : ''}`}>
-                  <div className="flex items-start gap-3">
+                <div key={comment.id} className={`p-3 sm:p-4 ${comment.isHidden ? 'bg-gray-50' : ''}`}>
+                  <div className="flex items-start gap-2 sm:gap-3">
                     <img
                       src={getAvatarUrl(comment.userAvatar, undefined, undefined, comment.userName, 40)}
                       alt={comment.userName}
-                      className="w-10 h-10 rounded-full"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
                     />
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{comment.userName}</span>
-                        <span className="text-sm text-gray-500">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <span className="font-medium text-sm sm:text-base">{comment.userName}</span>
+                        <span className="text-xs sm:text-sm text-gray-500">
                           {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
                         </span>
                         {comment.postIsHidden && (
@@ -427,34 +429,34 @@ export default function AdminContent() {
                           </span>
                         )}
                       </div>
-                      <p className={`mt-1 text-gray-900 ${comment.isHidden ? 'line-through text-gray-400' : ''}`}>
+                      <p className={`mt-1 text-gray-900 text-sm sm:text-base ${comment.isHidden ? 'line-through text-gray-400' : ''}`}>
                         {comment.content}
                       </p>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                       {/* Neu post bi an thi khong cho hien comment */}
                       {comment.postIsHidden ? (
-                        <span className="px-3 py-1 text-sm text-gray-500 italic">
+                        <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-500 italic">
                           Cần hiển thị bài viết trước
                         </span>
                       ) : comment.isHidden ? (
                         <button
                           onClick={() => handleUnhide(comment.id, 'comments')}
-                          className="px-3 py-1 text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-green-100 text-green-700 rounded hover:bg-green-200"
                         >
                           Hiện
                         </button>
                       ) : (
                         <button
                           onClick={() => handleHide(comment.id, 'comments')}
-                          className="px-3 py-1 text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
+                          className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-yellow-100 text-yellow-700 rounded hover:bg-yellow-200"
                         >
                           Ẩn
                         </button>
                       )}
                       <button
                         onClick={() => handleDelete(comment.id, 'comments')}
-                        className="px-3 py-1 text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
+                        className="px-2 sm:px-3 py-1 text-xs sm:text-sm bg-red-100 text-red-700 rounded hover:bg-red-200"
                       >
                         Xóa
                       </button>

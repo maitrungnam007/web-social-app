@@ -138,15 +138,15 @@ export default function AdminDashboard() {
       ) : (
         <>
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-8">
             {statCards.map((card, index) => (
-              <div key={index} className="bg-white rounded-lg shadow p-6">
+              <div key={index} className="bg-white rounded-lg shadow p-4 sm:p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-gray-500 text-sm">{card.title}</p>
-                    <p className="text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
+                    <p className="text-gray-500 text-xs sm:text-sm">{card.title}</p>
+                    <p className="text-2xl sm:text-3xl font-bold text-gray-900 mt-1">{card.value}</p>
                   </div>
-                  <div className={`${card.color} p-3 rounded-lg text-white`}>
+                  <div className={`${card.color} p-2 sm:p-3 rounded-lg text-white`}>
                     {card.icon}
                   </div>
                 </div>
@@ -155,63 +155,63 @@ export default function AdminDashboard() {
           </div>
 
           {/* Quick Actions */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="bg-white rounded-lg shadow p-4 sm:p-6">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-4">Thao tác nhanh</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <a
                 href="/admin/moderation"
-                className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <svg className="w-6 h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-2 bg-yellow-100 rounded-lg flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A5.934 5.934 0 0112 2.944a5.934 5.934 0 01-5.618 4.04A5.934 5.934 0 012.944 12a5.934 5.934 0 004.04 5.618A5.934 5.934 0 0112 21.056a5.934 5.934 0 015.618-4.04A5.934 5.934 0 0121.056 12a5.934 5.934 0 00-4.04-5.618z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Kiểm duyệt nội dung</p>
-                  <p className="text-sm text-gray-500">Xử lý các báo cáo từ người dùng</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">Kiểm duyệt nội dung</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Xử lý các báo cáo từ người dùng</p>
                 </div>
               </a>
               <a
                 href="/admin/violations"
-                className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="p-2 bg-red-100 rounded-lg">
-                  <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-2 bg-red-100 rounded-lg flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Vi phạm</p>
-                  <p className="text-sm text-gray-500">Quản lý người vi phạm</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">Vi phạm</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Quản lý người vi phạm</p>
                 </div>
               </a>
               <a
                 href="/admin/users"
-                className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-2 bg-blue-100 rounded-lg flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Người dùng</p>
-                  <p className="text-sm text-gray-500">Quản lý tài khoản người dùng</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">Người dùng</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Quản lý tài khoản người dùng</p>
                 </div>
               </a>
               <a
                 href="/admin/content"
-                className="flex items-center gap-3 p-4 border rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-3 p-3 sm:p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="p-2 bg-green-100 rounded-lg flex-shrink-0">
+                  <svg className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
                   </svg>
                 </div>
                 <div>
-                  <p className="font-medium text-gray-900">Nội dung</p>
-                  <p className="text-sm text-gray-500">Bài viết và bình luận</p>
+                  <p className="font-medium text-gray-900 text-sm sm:text-base">Nội dung</p>
+                  <p className="text-xs sm:text-sm text-gray-500">Bài viết và bình luận</p>
                 </div>
               </a>
             </div>

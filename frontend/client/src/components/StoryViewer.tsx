@@ -67,7 +67,6 @@ export default function StoryViewer({
   onAddToHighlight,
   showRemoveFromHighlight = false,
   onRemoveFromHighlight,
-  highlightId,
   userName,
   userFirstName,
   userLastName,

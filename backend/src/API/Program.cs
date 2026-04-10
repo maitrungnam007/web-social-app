@@ -177,7 +177,7 @@ app.MapControllers();
 // Map SignalR hub
 app.MapHub<Infrastructure.Hubs.NotificationHub>("/hubs/notifications");
 
-// Tạo database và seed dữ liệu mẫu
+// Tao database va seed du lieu mau
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -186,13 +186,23 @@ using (var scope = app.Services.CreateScope())
     
     try
     {
-        // Áp dụng migrations
-        dbContext.Database.Migrate();
+        // PostgreSQL: Dung EnsureCreated (khong can migrations)
+        // SQL Server: Dung Migrate (co migrations san)
+        if (isPostgres)
+        {
+            Console.WriteLine("DEBUG Using EnsureCreated for PostgreSQL");
+            dbContext.Database.EnsureCreated();
+        }
+        else
+        {
+            Console.WriteLine("DEBUG Using Migrate for SQL Server");
+            dbContext.Database.Migrate();
+        }
         
-        // Seed dữ liệu mẫu
+        // Seed du lieu mau
         await SeedData.SeedAsync(dbContext, userManager, roleManager);
         
-        // Warmup EF Core - thực hiện query đơn giản để cache execution plan
+        // Warmup EF Core - thuc hien query don gian de cache execution plan
         await dbContext.Users.AsNoTracking().OrderBy(u => u.Id).Take(1).ToListAsync();
         await dbContext.Posts.AsNoTracking().OrderBy(p => p.Id).Take(1).ToListAsync();
         
@@ -201,7 +211,8 @@ using (var scope = app.Services.CreateScope())
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"❌ Lỗi database: {ex.Message}");
+        Console.WriteLine($"Loi database: {ex.Message}");
+        Console.WriteLine($"Stack trace: {ex.StackTrace}");
     }
 }
 

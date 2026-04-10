@@ -218,10 +218,25 @@ public class CommentService : ICommentService
                 return ApiResponse<List<CommentResponseDto>>.ErrorResult("Không tìm thấy bài đăng");
             }
 
+            // Kiểm tra xem user hiện tại có phải admin không
+            var isAdmin = false;
+            if (!string.IsNullOrEmpty(currentUserId))
+            {
+                var adminRoleId = await _context.Roles
+                    .Where(r => r.Name == "Admin")
+                    .Select(r => r.Id)
+                    .FirstOrDefaultAsync();
+                isAdmin = await _context.UserRoles.AnyAsync(ur => ur.UserId == currentUserId && ur.RoleId == adminRoleId);
+            }
+
             // Dùng projection để tránh N+1
+            // An comment neu bi hidden hoac parent comment bi hidden
             var comments = await _context.Comments
                 .AsNoTracking()
-                .Where(c => c.PostId == postId && !c.IsDeleted)
+                .Include(c => c.ParentComment)
+                .Where(c => c.PostId == postId && !c.IsDeleted && 
+                            (c.ParentComment == null || !c.ParentComment.IsHidden) &&  // An replies neu parent bi hidden
+                            (isAdmin || !c.IsHidden))  // Admin thay hidden comments
                 .Select(c => new CommentResponseDto
                 {
                     Id = c.Id,
@@ -444,6 +459,7 @@ public class CommentService : ICommentService
         {
             var query = _context.Comments
                 .AsNoTracking()
+                .Include(c => c.ParentComment)
                 .Where(c => !c.IsDeleted)
                 .OrderByDescending(c => c.CreatedAt);
 
@@ -467,7 +483,8 @@ public class CommentService : ICommentService
                     CreatedAt = c.CreatedAt,
                     LikeCount = c.Likes.Count,
                     IsLikedByCurrentUser = false,
-                    IsHidden = c.IsHidden
+                    IsHidden = c.IsHidden,
+                    IsParentHidden = c.ParentComment != null && c.ParentComment.IsHidden
                 })
                 .ToListAsync();
 

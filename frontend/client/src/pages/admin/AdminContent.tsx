@@ -9,6 +9,15 @@ import { API_BASE_URL } from '../../services/apiClient'
 type ContentType = 'posts' | 'comments'
 type ContentStatus = 'all' | 'visible' | 'hidden'
 
+// Ham loai bo dau tieng Viet
+const removeVietnameseDiacritics = (str: string): string => {
+  return str
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd')
+    .replace(/Đ/g, 'D')
+}
+
 export default function AdminContent() {
   const [activeTab, setActiveTab] = useState<ContentType>('posts')
   const [posts, setPosts] = useState<Post[]>([])
@@ -73,12 +82,28 @@ export default function AdminContent() {
             filteredPosts = filteredPosts.filter(p => !p.isHidden)
           }
           
-          // Apply search
+          // Apply search - tim theo content, username, ho ten (khong dau)
           if (search) {
-            filteredPosts = filteredPosts.filter(p => 
-              p.content.toLowerCase().includes(search.toLowerCase()) ||
-              p.userName.toLowerCase().includes(search.toLowerCase())
-            )
+            const searchLower = search.toLowerCase()
+            const searchNoAccent = removeVietnameseDiacritics(searchLower)
+            filteredPosts = filteredPosts.filter(p => {
+              const content = p.content.toLowerCase()
+              const userName = p.userName.toLowerCase()
+              const firstName = (p.userFirstName || '').toLowerCase()
+              const lastName = (p.userLastName || '').toLowerCase()
+              const fullName = `${firstName} ${lastName}`.trim()
+              
+              return content.includes(searchLower) ||
+                     removeVietnameseDiacritics(content).includes(searchNoAccent) ||
+                     userName.includes(searchLower) ||
+                     removeVietnameseDiacritics(userName).includes(searchNoAccent) ||
+                     firstName.includes(searchLower) ||
+                     removeVietnameseDiacritics(firstName).includes(searchNoAccent) ||
+                     lastName.includes(searchLower) ||
+                     removeVietnameseDiacritics(lastName).includes(searchNoAccent) ||
+                     fullName.includes(searchLower) ||
+                     removeVietnameseDiacritics(fullName).includes(searchNoAccent)
+            })
           }
           
           setPosts(filteredPosts)
@@ -90,19 +115,35 @@ export default function AdminContent() {
         if (response.success && response.data) {
           let filteredComments = response.data.items
 
-          // Apply status filter
+          // Apply status filter - bao gom ca isParentHidden
           if (statusFilter === 'hidden') {
-            filteredComments = filteredComments.filter(c => c.isHidden)
+            filteredComments = filteredComments.filter(c => c.isHidden || c.isParentHidden)
           } else if (statusFilter === 'visible') {
-            filteredComments = filteredComments.filter(c => !c.isHidden)
+            filteredComments = filteredComments.filter(c => !c.isHidden && !c.isParentHidden)
           }
 
-          // Apply search
+          // Apply search - tim theo content, username, ho ten (khong dau)
           if (search) {
-            filteredComments = filteredComments.filter(c =>
-              c.content.toLowerCase().includes(search.toLowerCase()) ||
-              c.userName.toLowerCase().includes(search.toLowerCase())
-            )
+            const searchLower = search.toLowerCase()
+            const searchNoAccent = removeVietnameseDiacritics(searchLower)
+            filteredComments = filteredComments.filter(c => {
+              const content = c.content.toLowerCase()
+              const userName = c.userName.toLowerCase()
+              const firstName = (c.userFirstName || '').toLowerCase()
+              const lastName = (c.userLastName || '').toLowerCase()
+              const fullName = `${firstName} ${lastName}`.trim()
+              
+              return content.includes(searchLower) ||
+                     removeVietnameseDiacritics(content).includes(searchNoAccent) ||
+                     userName.includes(searchLower) ||
+                     removeVietnameseDiacritics(userName).includes(searchNoAccent) ||
+                     firstName.includes(searchLower) ||
+                     removeVietnameseDiacritics(firstName).includes(searchNoAccent) ||
+                     lastName.includes(searchLower) ||
+                     removeVietnameseDiacritics(lastName).includes(searchNoAccent) ||
+                     fullName.includes(searchLower) ||
+                     removeVietnameseDiacritics(fullName).includes(searchNoAccent)
+            })
           }
 
           setComments(filteredComments)
@@ -339,7 +380,11 @@ export default function AdminContent() {
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="font-medium text-sm sm:text-base">{post.userName}</span>
+                        <span className="font-medium text-sm sm:text-base">
+                          {post.userFirstName && post.userLastName 
+                            ? `${post.userFirstName} ${post.userLastName}` 
+                            : post.userName}
+                        </span>
                         <span className="text-xs sm:text-sm text-gray-500">
                           {new Date(post.createdAt).toLocaleDateString('vi-VN')}
                         </span>
@@ -353,6 +398,7 @@ export default function AdminContent() {
                           </span>
                         )}
                       </div>
+                      <div className="text-gray-500 text-xs sm:text-sm">@{post.userName}</div>
                       <p className={`mt-1 text-gray-900 text-sm sm:text-base ${post.isHidden ? 'line-through text-gray-400' : ''}`}>
                         {post.content}
                       </p>
@@ -402,16 +448,20 @@ export default function AdminContent() {
               <div className="p-8 text-center text-gray-500">Không có bình luận nào</div>
             ) : (
               comments.map((comment) => (
-                <div key={comment.id} className={`p-3 sm:p-4 ${comment.isHidden ? 'bg-gray-50' : ''}`}>
+                <div key={comment.id} className={`p-3 sm:p-4 ${comment.isHidden || comment.isParentHidden ? 'bg-gray-50' : ''}`}>
                   <div className="flex items-start gap-2 sm:gap-3">
                     <img
-                      src={getAvatarUrl(comment.userAvatar, undefined, undefined, comment.userName, 40)}
+                      src={getAvatarUrl(comment.userAvatar, comment.userFirstName, comment.userLastName, comment.userName, 40)}
                       alt={comment.userName}
                       className="w-8 h-8 sm:w-10 sm:h-10 rounded-full"
                     />
                     <div className="flex-1 min-w-0">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className="font-medium text-sm sm:text-base">{comment.userName}</span>
+                        <span className="font-medium text-sm sm:text-base">
+                          {comment.userFirstName && comment.userLastName 
+                            ? `${comment.userFirstName} ${comment.userLastName}` 
+                            : comment.userName}
+                        </span>
                         <span className="text-xs sm:text-sm text-gray-500">
                           {new Date(comment.createdAt).toLocaleDateString('vi-VN')}
                         </span>
@@ -420,9 +470,13 @@ export default function AdminContent() {
                             Bài viết đã ẩn
                           </span>
                         )}
-                        {comment.isHidden ? (
+                        {comment.isParentHidden ? (
+                          <span className="px-2 py-0.5 text-xs bg-orange-100 text-orange-800 rounded">
+                            Ẩn (parent đã ẩn)
+                          </span>
+                        ) : comment.isHidden ? (
                           <span className="px-2 py-0.5 text-xs bg-yellow-100 text-yellow-800 rounded">
-                            Comment đã ẩn
+                            Bình luận đã ẩn
                           </span>
                         ) : (
                           <span className="px-2 py-0.5 text-xs bg-green-100 text-green-800 rounded">
@@ -430,7 +484,8 @@ export default function AdminContent() {
                           </span>
                         )}
                       </div>
-                      <p className={`mt-1 text-gray-900 text-sm sm:text-base ${comment.isHidden ? 'line-through text-gray-400' : ''}`}>
+                      <div className="text-gray-500 text-xs sm:text-sm">@{comment.userName}</div>
+                      <p className={`mt-1 text-gray-900 text-sm sm:text-base ${comment.isHidden || comment.isParentHidden ? 'line-through text-gray-400' : ''}`}>
                         {comment.content}
                       </p>
                     </div>
@@ -439,6 +494,10 @@ export default function AdminContent() {
                       {comment.postIsHidden ? (
                         <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-500 italic">
                           Cần hiển thị bài viết trước
+                        </span>
+                      ) : comment.isParentHidden ? (
+                        <span className="px-2 sm:px-3 py-1 text-xs sm:text-sm text-gray-500 italic">
+                          Cần hiển thị parent trước
                         </span>
                       ) : comment.isHidden ? (
                         <button

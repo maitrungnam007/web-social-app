@@ -97,18 +97,15 @@ public class UsersController : ControllerBase
 
         // Upload file
         using var stream = file.OpenReadStream();
-        var fileUrl = await _fileStorageService.UploadFileAsync(stream, file.FileName, "avatars");
+        var filePath = await _fileStorageService.UploadFileAsync(stream, file.FileName, "avatars");
         
-        // Cloudinary trả về full URL, không cần gọi GetFileUrl
-        if (!fileUrl.StartsWith("http"))
-        {
-            fileUrl = _fileStorageService.GetFileUrl(Path.GetFileName(fileUrl), "avatars");
-        }
+        // Cloudinary tra ve full URL, local storage tra ve relative path
+        // Frontend se tu xu ly voi getAvatarUrl()
 
         // Cập nhật avatar cho user
         var updateResult = await _userService.UpdateProfileAsync(userId, new UpdateProfileDto
         {
-            AvatarUrl = fileUrl
+            AvatarUrl = filePath
         });
 
         if (!updateResult.Success)
@@ -120,7 +117,7 @@ public class UsersController : ControllerBase
         var post = await _postService.CreatePostAsync(new CreatePostDto
         {
             Content = "đã thay đổi ảnh đại diện",
-            ImageUrl = fileUrl
+            ImageUrl = filePath
         }, userId);
 
         return Ok(new
@@ -129,7 +126,7 @@ public class UsersController : ControllerBase
             message = "Cập nhật avatar thành công",
             data = new
             {
-                avatarUrl = fileUrl,
+                avatarUrl = filePath,
                 user = updateResult.Data,
                 post = post.Success ? post.Data : null
             }

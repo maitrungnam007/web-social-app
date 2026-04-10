@@ -284,15 +284,17 @@ public class StoryService : IStoryService
         };
     }
 
-    // Lấy danh sách story đã lưu trữ (Archive)
+    // Lấy danh sách story đã lưu trữ (Archive) - chỉ story đã hết hạn 24h và chưa bị xóa
     public async Task<ApiResponse<List<ArchivedStoryResponseDto>>> GetArchivedStoriesAsync(string userId)
     {
         try
         {
+            var now = DateTime.UtcNow;
+            
             var archivedStories = await _context.Stories
                 .AsNoTracking()
                 .Include(s => s.StoryViews)
-                .Where(s => s.UserId == userId && s.IsArchived && s.IsDeleted)
+                .Where(s => s.UserId == userId && s.IsArchived && !s.IsDeleted && s.ExpiresAt < now)
                 .OrderByDescending(s => s.CreatedAt)
                 .Select(s => new ArchivedStoryResponseDto
                 {

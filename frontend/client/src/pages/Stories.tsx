@@ -110,12 +110,12 @@ export default function Stories() {
     try {
       const response = await storiesApi.deleteStory(storyId)
       if (response.success) {
-        toast.success('Da xoa tin')
+        toast.success('Đã xóa tin')
         setViewingArchivedStory(null)
         loadArchivedStories()
       }
     } catch (error) {
-      toast.error('Khong the xoa tin')
+      toast.error('Không thể xóa tin')
     }
   }
 

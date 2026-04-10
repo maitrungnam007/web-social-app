@@ -3,6 +3,7 @@ import { Story } from '../types'
 import { storiesApi } from '../services'
 import { getAvatarUrl } from '../utils/avatar'
 import { API_BASE_URL } from '../services/apiClient'
+import ConfirmDialog from './ConfirmDialog'
 
 // Helper function de lay URL day du cho media
 const getMediaUrl = (url?: string | null): string => {
@@ -20,7 +21,10 @@ interface StoryViewerProps {
   showDeleteButton?: boolean
   onDeleteStory?: (storyId: number) => void
   showAddToHighlight?: boolean
-  onAddToHighlight?: () => void
+  onAddToHighlight?: (storyId: number) => void
+  showRemoveFromHighlight?: boolean
+  onRemoveFromHighlight?: (storyId: number) => void
+  highlightId?: number
   userName?: string
   userFirstName?: string
   userLastName?: string
@@ -61,6 +65,8 @@ export default function StoryViewer({
   onDeleteStory,
   showAddToHighlight = false,
   onAddToHighlight,
+  showRemoveFromHighlight = false,
+  onRemoveFromHighlight,
   userName,
   userFirstName,
   userLastName,
@@ -74,6 +80,8 @@ export default function StoryViewer({
   const [progress, setProgress] = useState(0)
   const [isPaused, setIsPaused] = useState(false)
   const [viewRecorded, setViewRecorded] = useState<Set<number>>(new Set())
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false)
 
   const currentStory = stories[currentIndex]
 
@@ -245,13 +253,13 @@ export default function StoryViewer({
           </div>
 
           {/* Action Buttons */}
-          {(showDeleteButton || showAddToHighlight) && (
+          {(showDeleteButton || showAddToHighlight || showRemoveFromHighlight) && (
             <div className="absolute bottom-3 sm:bottom-4 right-3 sm:right-4 flex gap-1 sm:gap-2 z-20">
               {showAddToHighlight && onAddToHighlight && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onAddToHighlight()
+                    onAddToHighlight(currentStory.id)
                   }}
                   className="bg-white/20 hover:bg-white/30 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1"
                 >
@@ -261,11 +269,25 @@ export default function StoryViewer({
                   <span className="hidden sm:inline">Highlight</span>
                 </button>
               )}
+              {showRemoveFromHighlight && onRemoveFromHighlight && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setShowRemoveConfirm(true)
+                  }}
+                  className="bg-orange-500 hover:bg-orange-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm flex items-center gap-1"
+                >
+                  <svg className="w-3 h-3 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                  </svg>
+                  <span className="hidden sm:inline">Bỏ highlight</span>
+                </button>
+              )}
               {showDeleteButton && onDeleteStory && (
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
-                    onDeleteStory(currentStory.id)
+                    setShowDeleteConfirm(true)
                   }}
                   className="bg-red-500 hover:bg-red-600 text-white px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs sm:text-sm"
                 >
@@ -290,6 +312,38 @@ export default function StoryViewer({
           )}
         </div>
       </div>
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={showDeleteConfirm}
+        onCancel={() => setShowDeleteConfirm(false)}
+        onConfirm={() => {
+          setShowDeleteConfirm(false)
+          if (onDeleteStory) {
+            onDeleteStory(currentStory.id)
+          }
+        }}
+        title="Xóa tin"
+        message="Bạn có chắc chắn muốn xóa tin này không?"
+        confirmText="Xóa"
+        cancelText="Hủy"
+      />
+
+      {/* Confirm Remove from Highlight Dialog */}
+      <ConfirmDialog
+        isOpen={showRemoveConfirm}
+        onCancel={() => setShowRemoveConfirm(false)}
+        onConfirm={() => {
+          setShowRemoveConfirm(false)
+          if (onRemoveFromHighlight) {
+            onRemoveFromHighlight(currentStory.id)
+          }
+        }}
+        title="Bỏ khỏi tin nổi bật"
+        message="Bạn có chắc chắn muốn bỏ tin này khỏi tin nổi bật không?"
+        confirmText="Bỏ"
+        cancelText="Hủy"
+      />
     </div>
   )
 }

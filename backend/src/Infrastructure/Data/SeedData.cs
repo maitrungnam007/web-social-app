@@ -33,7 +33,7 @@ public static class SeedData
                     FirstName = GetFirstName(i),
                     LastName = GetLastName(i),
                     Bio = $"Xin chào! Tôi là user số {i}.",
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 365)),
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 365)),
                     EmailConfirmed = true
                 };
                 
@@ -53,7 +53,7 @@ public static class SeedData
                 FirstName = "Admin",
                 LastName = "System",
                 Bio = "Quản trị viên hệ thống",
-                CreatedAt = DateTime.Now.AddDays(-500),
+                CreatedAt = DateTime.UtcNow.AddDays(-500),
                 EmailConfirmed = true
             };
             var adminResult = await userManager.CreateAsync(admin, "Admin123!");
@@ -77,7 +77,7 @@ public static class SeedData
                     Content = GetPostContent(i),
                     ImageUrl = i % 3 == 0 ? $"https://picsum.photos/seed/post{i}/800/600" : null,
                     UserId = userIds[Random.Shared.Next(userIds.Count)],
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 100)),
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 100)),
                     IsDeleted = false
                 };
                 posts.Add(post);
@@ -101,7 +101,7 @@ public static class SeedData
                     Content = GetCommentContent(i),
                     PostId = postIds[Random.Shared.Next(postIds.Count)],
                     UserId = userIds[Random.Shared.Next(userIds.Count)],
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 50)),
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 50)),
                     IsDeleted = false
                 };
                 comments.Add(comment);
@@ -126,7 +126,7 @@ public static class SeedData
                     UserId = userIds[Random.Shared.Next(userIds.Count)],
                     PostId = i % 2 == 0 ? postIds[Random.Shared.Next(postIds.Count)] : null,
                     CommentId = i % 2 == 1 ? commentIds[Random.Shared.Next(commentIds.Count)] : null,
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 30))
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 30))
                 };
                 likes.Add(like);
             }
@@ -155,8 +155,8 @@ public static class SeedData
                     RequesterId = requesterId,
                     AddresseeId = addresseeId,
                     Status = (FriendshipStatus)Random.Shared.Next(0, 3),
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 200)),
-                    UpdatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 50))
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 200)),
+                    UpdatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 50))
                 };
                 friendships.Add(friendship);
             }
@@ -179,8 +179,8 @@ public static class SeedData
                     MediaUrl = i % 2 == 0 ? $"https://picsum.photos/seed/story{i}/400/600" : null,
                     MediaType = i % 2 == 0 ? "image" : null,
                     UserId = userIds[Random.Shared.Next(userIds.Count)],
-                    CreatedAt = DateTime.Now.AddHours(-Random.Shared.Next(1, 20)),
-                    ExpiresAt = DateTime.Now.AddHours(24 - Random.Shared.Next(1, 20)),
+                    CreatedAt = DateTime.UtcNow.AddHours(-Random.Shared.Next(1, 20)),
+                    ExpiresAt = DateTime.UtcNow.AddHours(24 - Random.Shared.Next(1, 20)),
                     IsDeleted = false
                 };
                 stories.Add(story);
@@ -203,7 +203,7 @@ public static class SeedData
                 {
                     StoryId = storyIds[Random.Shared.Next(storyIds.Count)],
                     ViewerId = userIds[Random.Shared.Next(userIds.Count)],
-                    ViewedAt = DateTime.Now.AddHours(-Random.Shared.Next(1, 10))
+                    ViewedAt = DateTime.UtcNow.AddHours(-Random.Shared.Next(1, 10))
                 };
                 storyViews.Add(storyView);
             }
@@ -229,7 +229,7 @@ public static class SeedData
                     RelatedEntityId = Random.Shared.Next(1, 20).ToString(),
                     RelatedEntityType = Random.Shared.Next(0, 2) == 0 ? "Post" : "Comment",
                     IsRead = Random.Shared.Next(0, 2) == 1,
-                    CreatedAt = DateTime.Now.AddHours(-Random.Shared.Next(1, 100))
+                    CreatedAt = DateTime.UtcNow.AddHours(-Random.Shared.Next(1, 100))
                 };
                 notifications.Add(notification);
             }
@@ -243,16 +243,16 @@ public static class SeedData
         {
             var hashtags = new List<Hashtag>
             {
-                new Hashtag { Name = "vacation", CreatedAt = DateTime.Now.AddDays(-100) },
-                new Hashtag { Name = "food", CreatedAt = DateTime.Now.AddDays(-90) },
-                new Hashtag { Name = "travel", CreatedAt = DateTime.Now.AddDays(-80) },
-                new Hashtag { Name = "photography", CreatedAt = DateTime.Now.AddDays(-70) },
-                new Hashtag { Name = "music", CreatedAt = DateTime.Now.AddDays(-60) },
-                new Hashtag { Name = "fitness", CreatedAt = DateTime.Now.AddDays(-50) },
-                new Hashtag { Name = "coding", CreatedAt = DateTime.Now.AddDays(-40) },
-                new Hashtag { Name = "nature", CreatedAt = DateTime.Now.AddDays(-30) },
-                new Hashtag { Name = "art", CreatedAt = DateTime.Now.AddDays(-20) },
-                new Hashtag { Name = "life", CreatedAt = DateTime.Now.AddDays(-10) }
+                new Hashtag { Name = "vacation", CreatedAt = DateTime.UtcNow.AddDays(-100) },
+                new Hashtag { Name = "food", CreatedAt = DateTime.UtcNow.AddDays(-90) },
+                new Hashtag { Name = "travel", CreatedAt = DateTime.UtcNow.AddDays(-80) },
+                new Hashtag { Name = "photography", CreatedAt = DateTime.UtcNow.AddDays(-70) },
+                new Hashtag { Name = "music", CreatedAt = DateTime.UtcNow.AddDays(-60) },
+                new Hashtag { Name = "fitness", CreatedAt = DateTime.UtcNow.AddDays(-50) },
+                new Hashtag { Name = "coding", CreatedAt = DateTime.UtcNow.AddDays(-40) },
+                new Hashtag { Name = "nature", CreatedAt = DateTime.UtcNow.AddDays(-30) },
+                new Hashtag { Name = "art", CreatedAt = DateTime.UtcNow.AddDays(-20) },
+                new Hashtag { Name = "life", CreatedAt = DateTime.UtcNow.AddDays(-10) }
             };
 
             context.Hashtags.AddRange(hashtags);
@@ -299,8 +299,8 @@ public static class SeedData
                     Reason = (ReportReason)Random.Shared.Next(0, 5),
                     Description = GetReportDescription(i),
                     Status = (ReportStatus)Random.Shared.Next(0, 3),
-                    CreatedAt = DateTime.Now.AddDays(-Random.Shared.Next(1, 30)),
-                    ResolvedAt = i % 3 == 0 ? DateTime.Now.AddDays(-Random.Shared.Next(1, 10)) : null,
+                    CreatedAt = DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 30)),
+                    ResolvedAt = i % 3 == 0 ? DateTime.UtcNow.AddDays(-Random.Shared.Next(1, 10)) : null,
                     ResolvedBy = i % 3 == 0 ? userIds[0] : null
                 };
                 reports.Add(report);

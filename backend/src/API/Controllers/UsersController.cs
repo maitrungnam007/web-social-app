@@ -129,8 +129,7 @@ public class UsersController : ControllerBase
             message = "Cập nhật avatar thành công",
             data = new
             {
-                avatarUrl = filePath,
-                fullUrl = fileUrl,
+                avatarUrl = fileUrl,
                 user = updateResult.Data,
                 post = post.Success ? post.Data : null
             }
@@ -234,8 +233,7 @@ public class UsersController : ControllerBase
             message = "Cập nhật ảnh bìa thành công",
             data = new
             {
-                coverUrl = filePath,
-                fullUrl = fileUrl,
+                coverUrl = fileUrl,
                 user = updateResult.Data,
                 post = post.Success ? post.Data : null
             }

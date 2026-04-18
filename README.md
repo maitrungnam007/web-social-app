@@ -2,7 +2,7 @@
 
 Ứng dụng mạng xã hội full-stack được xây dựng với ASP.NET Core 8.0 và React 18+.
 
-**Môn học:** C# and .NET Development | **Học kỳ:** Spring 2026 | **Hạn nộp:** 19/04/2026
+**Môn học:** C# and .NET Development | **Học kỳ:** Spring 2026 | **Hạn nộp:** 26/04/2026
 
 ---
 
@@ -100,7 +100,6 @@ web-social-app/
 |
 |-- database/                          # SQL Scripts
 |-- README.md                          # Tóm tắt dự án
-|-- DOCUMENTATION.md                   # Tài liệu chi tiết
 ```
 
 ---
@@ -128,34 +127,6 @@ cd frontend/client
 npm install
 npm run dev
 ```
-
-### Cấu hình Environment Variables
-
-**Backend (appsettings.Development.json):**
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=(localdb)\\mssqllocaldb;Database=InteractHub;Trusted_Connection=true"
-  },
-  "JwtSettings": {
-    "SecretKey": "your-secret-key-at-least-32-characters-long"
-  }
-}
-```
-
-**Frontend (.env.development):**
-```
-VITE_API_URL=http://localhost:5259
-```
-
-**Cloudinary (Tùy chọn):**
-```
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-```
-
----
 
 ## 📊 Thống kê
 
@@ -185,8 +156,6 @@ CLOUDINARY_API_SECRET=your_api_secret
 | ReportsController | 4 | Báo cáo, xử lý (admin) |
 | SystemSettingsController | 7 | Cài đặt hệ thống |
 
-Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho danh sách API endpoints đầy đủ.
-
 ---
 
 ## 🔑 Tài khoản Test
@@ -201,29 +170,11 @@ Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho danh sách API endpoints đầy
 ## 🧪 Testing
 
 ```bash
-dotnet test                                    # Chay tat ca tests
-dotnet test --collect:"XPlat Code Coverage"   # Voi coverage
+dotnet test                                    # Chạy tất cả tests
+dotnet test --collect:"XPlat Code Coverage"   # Với coverage
 ```
 
 **Test Coverage:** 157 tests cho 8 services (AuthService, PostService, UserService, etc.)
-
----
-
-## 📸 Screenshots
-
-| Trang | Mô tả |
-|-------|-------|
-| Home | Trang chủ với feed bài đăng |
-| Login/Register | Đăng ký và đăng nhập |
-| Profile | Hồ sơ người dùng, avatar, cover |
-| Stories | Xem và tạo stories |
-| Friends | Danh sách bạn bè, lời mời kết bạn |
-| Notifications | Thông báo real-time |
-| Admin Dashboard | Thống kê hệ thống |
-| Admin Users | Quản lý người dùng |
-| Admin Moderation | Kiểm duyệt báo cáo |
-
-Xem thư mục `screenshots/` cho hình ảnh chi tiết.
 
 ---
 
@@ -242,18 +193,6 @@ GitHub Actions tự động:
 2. Build frontend
 3. Deploy lên Render & Vercel
 
-### Environment Variables (Render)
-
-```
-ConnectionStrings__DefaultConnection = <Database URL>
-JWT_SECRET = <random string>
-ASPNETCORE_ENVIRONMENT = Production
-FRONTEND_URL = https://web-social-app-ochre.vercel.app
-CLOUDINARY_CLOUD_NAME = <cloud name>
-CLOUDINARY_API_KEY = <api key>
-CLOUDINARY_API_SECRET = <api secret>
-```
-
 ### URLs sau khi deploy
 
 | Service | URL |
@@ -261,19 +200,6 @@ CLOUDINARY_API_SECRET = <api secret>
 | Frontend | `https://web-social-app-ochre.vercel.app` |
 | Backend API | `https://interacthub-api.onrender.com` |
 | Swagger | `https://interacthub-api.onrender.com/swagger` |
-
-Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho hướng dẫn deployment chi tiết.
-
----
-
-## 📚 Tài liệu chi tiết
-
-Xem **[DOCUMENTATION.md](DOCUMENTATION.md)** cho:
-- Kiến trúc hệ thống với diagrams
-- Danh sách API endpoints đầy đủ
-- Database diagram
-- Key components
-- Hướng dẫn deployment từng bước
 
 ---
 

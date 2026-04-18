@@ -210,11 +210,18 @@ public class UserService : IUserService
                 .Take(pageSize)
                 .ToListAsync();
 
-            // Lấy roles cho từng user
+            // L?y roles cho t?ng user
             var userDtos = new List<UserDto>();
             foreach (var user in users)
             {
                 var roles = await _userManager.GetRolesAsync(user);
+                
+                // ?m s? b?n bè
+                var friendsCount = await _context.Friendships
+                    .AsNoTracking()
+                    .CountAsync(f => (f.RequesterId == user.Id || f.AddresseeId == user.Id) && 
+                                    f.Status == Core.Enums.FriendshipStatus.Accepted);
+                
                 userDtos.Add(new UserDto
                 {
                     Id = user.Id,
@@ -225,7 +232,7 @@ public class UserService : IUserService
                     AvatarUrl = user.AvatarUrl,
                     CoverImageUrl = user.CoverImageUrl,
                     Bio = user.Bio,
-                    FriendsCount = 0,
+                    FriendsCount = friendsCount,
                     Role = roles.FirstOrDefault(),
                     IsBanned = user.IsBanned,
                     BanReason = user.BanReason,

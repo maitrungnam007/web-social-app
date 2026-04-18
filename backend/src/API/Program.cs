@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using Microsoft.AspNetCore.Mvc;
+using API.Middleware;
+using API.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -186,6 +188,19 @@ app.UseStaticFiles(new StaticFileOptions
     FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadsPath),
     RequestPath = "/uploads"
 });
+
+// Middleware pipeline
+// 1. Error handling - bat tat ca exceptions
+app.UseErrorHandling();
+
+// 2. Request logging - ghi log requests/responses
+app.UseRequestLogging();
+
+// 3. Rate limiting - chong spam (bo qua cho Swagger)
+if (!app.Environment.IsDevelopment())
+{
+    app.UseRateLimiting();
+}
 
 // Cấu hình HTTP request pipeline
 app.UseSwagger();
